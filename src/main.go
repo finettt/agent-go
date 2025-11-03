@@ -18,6 +18,9 @@ var config *Config
 var agent *Agent
 
 func main() {
+	// Display ASCII logo
+	printLogo()
+
 	config = loadConfig()
 	if config.APIKey == "" {
 		runSetup()
@@ -43,10 +46,24 @@ func main() {
 	runCLI()
 }
 
+func printLogo() {
+	fmt.Println(`  /$$$$$$                                  /$$            /$$$$$$           
+ /$$__  $$                                | $$           /$$__  $$          
+| $$  \ $$  /$$$$$$   /$$$$$$  /$$$$$$$  /$$$$$$        | $$  \__/  /$$$$$$ 
+| $$$$$$$$ /$$__  $$ /$$__  $$| $$__  $$|_  $$_/        | $$ /$$$$ /$$__  $$
+| $$__  $$| $$  \ $$| $$$$$$$$| $$  \ $$  | $$          | $$|_  $$| $$  \ $$
+| $$  | $$| $$  | $$| $$_____/| $$  | $$  | $$ /$$      | $$  \ $$| $$  | $$
+| $$  | $$|  $$$$$$$|  $$$$$$$| $$  | $$  |  $$$$/      |  $$$$$$/|  $$$$$$/
+|__/  |__/ \____  $$ \_______/|__/  |__/   \___/         \______/  \______/ 
+           /$$  \ $$                                                        
+          |  $$$$$$/                                                        
+           \______/                                                         
+`)
+}
+
 func runCLI() {
 	home, _ := os.UserHomeDir()
 	historyFile := filepath.Join(home, ".config", "agent-go", "history.txt")
-
 	rl, err := readline.NewEx(&readline.Config{
 		Prompt:      "> ",
 		HistoryFile: historyFile,
