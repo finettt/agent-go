@@ -43,4 +43,4 @@ export RAG_SNIPPETS=5                           # Optional, number of snippets
 
 ## License
 
-CC0 - "No Rights Reserved"
+MIT
