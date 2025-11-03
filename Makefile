@@ -6,7 +6,7 @@ all: build
 
 build:
 	@echo "Building..."
-	@go build -o $(BINARY_NAME) .
+	@cd src && go build -o ../$(BINARY_NAME) .
 
 run: build
 	@./$(BINARY_NAME)
