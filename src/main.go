@@ -28,7 +28,7 @@ func main() {
 	}
 	agent.Messages = append(agent.Messages, Message{
 		Role:    "system",
-		Content: "You are an AI assistant. For multi-step tasks, chain commands with && (e.g., 'echo content > file.py && python3 file.py'). Use execute_command for shell tasks.",
+		Content: stringp("You are an AI assistant. For multi-step tasks, chain commands with && (e.g., 'echo content > file.py && python3 file.py'). Use execute_command for shell tasks."),
 	})
 
 	// Handle graceful shutdown
@@ -85,45 +85,60 @@ func runCLI() {
 		}
 
 		// Add user message to agent history
-		agent.Messages = append(agent.Messages, Message{Role: "user", Content: userInput})
+		agent.Messages = append(agent.Messages, Message{Role: "user", Content: stringp(userInput)})
 
 		// Manage message history to stay within limits
 		if len(agent.Messages) > 20 {
 			agent.Messages = append(agent.Messages[:1], agent.Messages[len(agent.Messages)-19:]...)
 		}
 
-		resp, err := sendAPIRequest(agent, config)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
-			continue
-		}
-
-		if len(resp.Choices) > 0 {
-			msg := resp.Choices[0].Message
-			if msg.Content != nil {
-				fmt.Printf("\033[34m%s\033[0m\n", *msg.Content)
-				agent.Messages = append(agent.Messages, Message{Role: "assistant", Content: *msg.Content})
+		// Agentic loop
+		for {
+			resp, err := sendAPIRequest(agent, config)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+				break // Break from the agentic loop
 			}
 
-			if len(msg.ToolCalls) > 0 {
-				// For simplicity, handle one tool call at a time
-				toolCall := msg.ToolCalls[0]
+			if len(resp.Choices) == 0 {
+				fmt.Fprintf(os.Stderr, "Error: received an empty response from the API\n")
+				break
+			}
+
+			assistantMsg := resp.Choices[0].Message
+			agent.Messages = append(agent.Messages, assistantMsg)
+
+			if assistantMsg.Content != nil {
+				fmt.Printf("\033[34m%s\033[0m\n", *assistantMsg.Content)
+			}
+
+			if len(assistantMsg.ToolCalls) == 0 {
+				break // No tool calls, so the agent's turn is over
+			}
+
+			for _, toolCall := range assistantMsg.ToolCalls {
 				if toolCall.Function.Name == "execute_command" {
 					var args CommandArgs
-					if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err == nil {
-						output, err := executeCommand(args.Command)
-						if err != nil {
-							fmt.Fprintf(os.Stderr, "Command execution error: %s\n", err)
-						}
-						// Add tool output to message history and resend
-						agent.Messages = append(agent.Messages, Message{Role: "tool", Content: "Command output:\n" + output})
-						// This will require another call to sendAPIRequest, creating a loop.
-						// For this iteration, we will just print the output.
-						// A more robust implementation would loop here.
-						fmt.Println("Tool output:", output)
+					if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err != nil {
+						fmt.Fprintf(os.Stderr, "Tool call argument error: %s\n", err)
+						continue // Next tool call
 					}
+
+					output, err := executeCommand(args.Command)
+					if err != nil {
+						output = fmt.Sprintf("Command execution error: %s", err)
+					}
+
+					content := "Command output:\n" + output
+					toolMsg := Message{
+						Role:       "tool",
+						ToolCallID: toolCall.ID,
+						Content:    stringp(content),
+					}
+					agent.Messages = append(agent.Messages, toolMsg)
 				}
 			}
+			// Continue loop to send tool output back to API
 		}
 	}
 }
@@ -141,6 +156,10 @@ func handleSlashCommand(command string) {
 		fmt.Println("  /config            - Display current configuration")
 		fmt.Println("  /rag on|off        - Toggle RAG feature")
 		fmt.Println("  /rag path <path>   - Set the RAG documents path")
+		fmt.Println("  /quit              - Exit the application")
+	case "/quit":
+		fmt.Println("Bye!")
+		os.Exit(0)
 	case "/model":
 		if len(parts) > 1 {
 			config.Model = parts[1]
@@ -190,6 +209,10 @@ func handleSlashCommand(command string) {
 	default:
 		fmt.Printf("Unknown command: %s\n", baseCommand)
 	}
+}
+
+func stringp(s string) *string {
+	return &s
 }
 
 func runSetup() {

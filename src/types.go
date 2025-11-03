@@ -1,8 +1,10 @@
 package main
 
 type Message struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+	Role       string     `json:"role"`
+	Content    *string    `json:"content,omitempty"`
+	ToolCalls  []ToolCall `json:"tool_calls,omitempty"`
+	ToolCallID string     `json:"tool_call_id,omitempty"`
 }
 
 type Config struct {
@@ -47,13 +49,7 @@ type APIResponse struct {
 }
 
 type Choice struct {
-	Message ResponseMessage `json:"message"`
-}
-
-type ResponseMessage struct {
-	Role      string     `json:"role"`
-	Content   *string    `json:"content"`
-	ToolCalls []ToolCall `json:"tool_calls,omitempty"`
+	Message Message `json:"message"`
 }
 
 type ToolCall struct {
