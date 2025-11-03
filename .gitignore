@@ -1,5 +1,25 @@
-# Local build artifacts
-agent-c
-build
-# IDE
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Go workspace file
+go.work
+
+# Local go module cache
+vendor/
+
+# IDE settings
 .idea/
+.vscode/
+
+# Build artifact
+agent-go
