@@ -1,5 +1,6 @@
 # Agent-Go
-<img width="728" height="182" alt="image" src="https://github.com/user-attachments/assets/60f5dab3-e574-42f1-a4f3-ff856825d5eb" />
+<img width="730" height="216" alt="image" src="https://github.com/user-attachments/assets/c2586899-0dcf-4544-9ed3-bb8a3c9a2bcc" />
+
 
 A lightweight AI agent written in Go that communicates with the OpenAI API and executes shell commands. This is a rewrite of the original [Agent-C](https://github.com/finettt/agent-c) project.
 
