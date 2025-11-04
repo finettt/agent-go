@@ -29,9 +29,25 @@ func main() {
 	agent = &Agent{
 		Messages: make([]Message, 0, 20),
 	}
+
+	// Base system prompt
+	systemPrompt := "You are an AI assistant. For multi-step tasks, chain commands with && (e.g., 'echo content > file.py && python3 file.py'). Use execute_command for shell tasks."
+
+	// Check for AGENTS.md and prepend its content to the system prompt
+	agentInstructions, err := readAgentsFile("AGENTS.md")
+	if err != nil {
+		// Log the error but continue, as it's not a fatal issue.
+		fmt.Fprintf(os.Stderr, "Warning: could not read AGENTS.md: %v\n", err)
+	}
+
+	if agentInstructions != "" {
+		systemPrompt = agentInstructions + "\n\n" + systemPrompt
+		fmt.Println("Found and loaded instructions from AGENTS.md")
+	}
+
 	agent.Messages = append(agent.Messages, Message{
 		Role:    "system",
-		Content: stringp("You are an AI assistant. For multi-step tasks, chain commands with && (e.g., 'echo content > file.py && python3 file.py'). Use execute_command for shell tasks."),
+		Content: stringp(systemPrompt),
 	})
 
 	// Handle graceful shutdown
@@ -158,6 +174,20 @@ func runCLI() {
 			// Continue loop to send tool output back to API
 		}
 	}
+}
+
+// readAgentsFile checks for AGENTS.md and returns its content.
+func readAgentsFile(filename string) (string, error) {
+	content, err := os.ReadFile(filename)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// File not found is not an error in this context.
+			return "", nil
+		}
+		// Any other error while reading the file is a problem.
+		return "", err
+	}
+	return string(content), nil
 }
 
 func handleSlashCommand(command string) {
