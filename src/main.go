@@ -63,7 +63,8 @@ func main() {
 }
 
 func printLogo() {
-	fmt.Println(`  /$$$$$$                                  /$$            /$$$$$$           
+	fmt.Println(`
+  /$$$$$$                                  /$$            /$$$$$$           
  /$$__  $$                                | $$           /$$__  $$          
 | $$  \ $$  /$$$$$$   /$$$$$$  /$$$$$$$  /$$$$$$        | $$  \__/  /$$$$$$ 
 | $$$$$$$$ /$$__  $$ /$$__  $$| $$__  $$|_  $$_/        | $$ /$$$$ /$$__  $$
@@ -81,8 +82,9 @@ func runCLI() {
 	home, _ := os.UserHomeDir()
 	historyFile := filepath.Join(home, ".config", "agent-go", "history.txt")
 	rl, err := readline.NewEx(&readline.Config{
-		Prompt:      "> ",
-		HistoryFile: historyFile,
+		Prompt:       "> ",
+		HistoryFile:  historyFile,
+		AutoComplete: buildCompleter(config),
 	})
 	if err != nil {
 		panic(err)
