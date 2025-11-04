@@ -8,3 +8,4 @@ Welcome to the developer documentation for Agent-Go. This documentation provides
 - [Slash Commands](commands.md)
 - [Configuration](configuration.md)
 - [Development Guide](development.md)
+- [Examples and Best Practices](examples.md)
