@@ -26,6 +26,7 @@ Available commands:
   /config            - Display current configuration
   /rag on|off        - Toggle RAG feature
   /rag path <path>   - Set the RAG documents path
+  /shell             - Enter shell mode
   /quit              - Exit the application
 ```
 
@@ -45,6 +46,29 @@ Provider: https://api.openai.com
 RAG Enabled: true
 RAG Path: /home/user/documents
 ```
+
+### `/shell`
+Enters shell mode, allowing you to execute shell commands directly.
+
+**Usage:**
+```
+/shell
+```
+
+**Example:**
+```
+> /shell
+Entered shell mode. Type 'exit' to return.
+shell> ls -l
+-rw-r--r-- 1 user user 1024 Oct 27 10:00 file.txt
+shell> exit
+Exited shell mode.
+```
+
+**Notes:**
+- In shell mode, all input is treated as a shell command.
+- To exit shell mode, type `exit` and press Enter.
+- Slash commands are not available while in shell mode.
 
 ### `/quit`
 Exits the Agent-Go application gracefully, saving any unsaved changes and cleaning up resources.

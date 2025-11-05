@@ -91,6 +91,7 @@ func buildCompleter(config *Config) readline.AutoCompleter {
 			readline.PcItem("off"),
 			readline.PcItem("path"), // Only suggests the "path" keyword.
 		),
+		readline.PcItem("/shell"),
 		readline.PcItem("/quit"),
 	)
 
