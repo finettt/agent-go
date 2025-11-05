@@ -16,6 +16,7 @@ import (
 
 var config *Config
 var agent *Agent
+var shellMode = false
 
 func main() {
 	// Display ASCII logo
@@ -94,6 +95,12 @@ func runCLI() {
 	fmt.Println("Agent-Go is ready. Type your requests, or /help for a list of commands.")
 
 	for {
+		if shellMode {
+			rl.SetPrompt("shell> ")
+		} else {
+			rl.SetPrompt("> ")
+		}
+
 		userInput, err := rl.Readline()
 		if err == readline.ErrInterrupt {
 			continue
@@ -102,6 +109,24 @@ func runCLI() {
 		}
 
 		userInput = strings.TrimSpace(userInput)
+
+		if shellMode {
+			if userInput == "exit" {
+				shellMode = false
+				fmt.Println("Exited shell mode.")
+				continue
+			}
+			if userInput == "" {
+				continue
+			}
+			output, err := executeCommand(userInput)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+			}
+			fmt.Println(output)
+			continue
+		}
+
 		if userInput == "" {
 			continue
 		}
@@ -205,7 +230,11 @@ func handleSlashCommand(command string) {
 		fmt.Println("  /config            - Display current configuration")
 		fmt.Println("  /rag on|off        - Toggle RAG feature")
 		fmt.Println("  /rag path <path>   - Set the RAG documents path")
+		fmt.Println("  /shell             - Enter shell mode for direct command execution")
 		fmt.Println("  /quit              - Exit the application")
+	case "/shell":
+		shellMode = true
+		fmt.Println("Entered shell mode. Type 'exit' to return.")
 	case "/quit":
 		fmt.Println("Bye!")
 		os.Exit(0)
