@@ -19,12 +19,14 @@ This comprehensive guide provides instructions for setting up the development en
 ## Prerequisites
 
 ### System Requirements
+
 - **Go**: 1.22 or higher (recommended)
 - **Git**: For version control
 - **Make**: For build automation (optional, but recommended)
 - **Text Editor**: VS Code, GoLand, or any editor with Go support
 
 ### Recommended Tools
+
 - **Go Extension**: For VS Code (provides IntelliSense, debugging, and testing)
 - **gopls**: Go language server for better IDE support
 - **golangci-lint**: Static analysis tool for code quality
@@ -74,6 +76,7 @@ code --install-extension bradlc.vscode-tailwindcss
 ```
 
 Create `.vscode/settings.json`:
+
 ```json
 {
     "go.lintTool": "golangci-lint",
@@ -276,6 +279,7 @@ golangci-lint run --enable=staticcheck
    - Use `/* */` for multi-line comments
 
 4. **Error Handling Example**:
+
 ```go
 func sendAPIRequest(agent *Agent, config *Config) (*ChatCompletionResponse, error) {
     if config.APIKey == "" {
@@ -307,25 +311,33 @@ func sendAPIRequest(agent *Agent, config *Config) (*ChatCompletionResponse, erro
 
 1. **Fork the repository** on GitHub
 2. **Create a feature branch**:
+
    ```bash
    git checkout -b feature/your-feature-name
    ```
+
 3. **Make your changes** following the guidelines above
 4. **Test your changes**:
+
    ```bash
    go test ./...
    go vet ./...
    golangci-lint run
    ```
+
 5. **Commit your changes**:
+
    ```bash
    git add .
    git commit -m "feat: add new feature description"
    ```
+
 6. **Push to your fork**:
+
    ```bash
    git push origin feature/your-feature-name
    ```
+
 7. **Create a Pull Request** with a clear description
 
 ### Commit Message Guidelines
@@ -341,6 +353,7 @@ Use [Conventional Commits](https://www.conventionalcommits.org/) format:
 ```
 
 **Types:**
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation changes
@@ -350,6 +363,7 @@ Use [Conventional Commits](https://www.conventionalcommits.org/) format:
 - `chore`: Build process or auxiliary tool changes
 
 **Examples:**
+
 ```
 feat: add RAG configuration support
 fix: resolve command execution timeout issue
@@ -402,6 +416,7 @@ go run -v ./src     # Verbose output
 ### Common Debug Scenarios
 
 **API Connection Issues**:
+
 ```bash
 # Test API connectivity
 curl -H "Authorization: Bearer $OPENAI_KEY" $OPENAI_BASE/v1/models
@@ -411,6 +426,7 @@ netstat -an | grep $OPENAI_BASE
 ```
 
 **Configuration Issues**:
+
 ```bash
 # Validate configuration file
 cat ~/.config/agent-go/config.json | jq .
@@ -492,12 +508,14 @@ go list -json -m all | nancy sleuth
    - Update changelog
 
 2. **Create Release Tag**:
+
    ```bash
    git tag -a v1.0.0 -m "Release version 1.0.0"
    git push origin v1.0.0
    ```
 
 3. **Build Release Artifacts**:
+
    ```bash
    # Build for multiple platforms
    GOOS=linux GOARCH=amd64 go build -o agent-go-linux ./src

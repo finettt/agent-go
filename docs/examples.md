@@ -17,6 +17,7 @@ This document provides practical examples and best practices for using Agent-Go 
 ### 1. File Operations
 
 **Create and Edit Files**
+
 ```
 > Create a Python script that calculates factorial
 Created factorial.py with the following content:
@@ -33,10 +34,12 @@ print(factorial(5))
 
 > Run the factorial script
 Factorial of 5 is 120
+
 ```
 
 **Batch File Operations**
 ```
+
 > Create a directory structure for a new project and initialize it
 Created directory 'my-project'
 Created directory 'my-project/src'
@@ -44,44 +47,55 @@ Created directory 'my-project/docs'
 Created directory 'my-project/tests'
 Initialized git repository in my-project
 Created requirements.txt with basic dependencies
+
 ```
 
 ### 2. System Administration
 
 **System Information**
 ```
+
 > Show system information and disk usage
 System Information:
+
 - OS: Linux Ubuntu 22.04
 - Kernel: 5.15.0-88-generic
 - CPU: 4 cores, 2.4 GHz
 - Memory: 8GB total, 4GB available
 
 Disk Usage:
+
 - /: 45GB used, 55GB available
 - /home: 25GB used, 75GB available
+
 ```
 
 **Network Operations**
 ```
+
 > Check network connectivity and open ports
 Network connectivity:
+
 - Internet: ✅ Connected
 - DNS: ✅ Working (8.8.8.8)
 - Latency: 15ms
 
 Open ports:
+
 - 22/tcp: SSH (OpenSSH)
 - 80/tcp: HTTP (nginx)
 - 443/tcp: HTTPS (nginx)
+
 ```
 
 ### 3. Development Tasks
 
 **Code Generation**
 ```
+
 > Generate a React component for a user profile
 Created UserProfile.jsx with the following content:
+
 ```jsx
 import React from 'react';
 
@@ -98,12 +112,15 @@ const UserProfile = ({ user }) => {
 
 export default UserProfile;
 ```
+
 ```
 
 **Database Operations**
 ```
+
 > Create a SQL schema for a blog application
 Created schema.sql with the following content:
+
 ```sql
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
@@ -120,6 +137,7 @@ CREATE TABLE posts (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
+
 ```
 
 ## Advanced Workflows
@@ -128,7 +146,9 @@ CREATE TABLE posts (
 
 **Complete Web Application Setup**
 ```
+
 > Set up a complete web application with React backend and PostgreSQL database
+
 1. Created project directory 'web-app'
 2. Initialized React app with Vite
 3. Set up Express.js backend
@@ -145,13 +165,16 @@ web-app/
 ├── database/          # Database scripts
 ├── docker-compose.yml # Docker configuration
 └── .github/           # CI/CD configuration
+
 ```
 
 ### 2. Data Processing Pipeline
 
 **Automated Data Analysis**
 ```
+
 > Create a data processing pipeline that analyzes sales data and generates reports
+
 1. Created data processing script with pandas
 2. Set up database connection for data extraction
 3. Implemented data cleaning and transformation
@@ -160,18 +183,22 @@ web-app/
 6. Set up automated scheduling
 
 Data processing pipeline created:
+
 - Extracts data from PostgreSQL database
 - Cleans and transforms sales data
 - Generates monthly sales reports
 - Creates visualizations and charts
 - Saves reports to shared drive
+
 ```
 
 ### 3. DevOps Automation
 
 **Infrastructure Setup**
 ```
+
 > Set up complete infrastructure on AWS using Terraform
+
 1. Created VPC with public and private subnets
 2. Configured security groups and NACLs
 3. Set up EC2 instances with auto-scaling
@@ -181,6 +208,7 @@ Data processing pipeline created:
 7. Configured monitoring and logging
 
 Infrastructure deployed successfully:
+
 - VPC: 10.0.0.0/16
 - Public Subnets: 2
 - Private Subnets: 2
@@ -188,6 +216,7 @@ Infrastructure deployed successfully:
 - RDS Instance: PostgreSQL 14
 - S3 Buckets: 3
 - CloudWatch Alarms: 5
+
 ```
 
 ## Integration Scenarios
@@ -235,6 +264,7 @@ jobs:
 ### 2. Docker Integration
 
 **Dockerfile Example**
+
 ```dockerfile
 # Dockerfile
 FROM golang:1.22-alpine AS builder
@@ -257,6 +287,7 @@ CMD ["./agent-go"]
 ```
 
 **docker-compose.yml Example**
+
 ```yaml
 version: '3.8'
 services:
@@ -277,6 +308,7 @@ services:
 ### 3. Kubernetes Integration
 
 **Kubernetes Deployment**
+
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -324,6 +356,7 @@ spec:
 ### 1. Configuration Optimization
 
 **High-Performance Configuration**
+
 ```json
 {
   "api_url": "https://api.openai.com",
@@ -340,6 +373,7 @@ spec:
 ```
 
 **Environment Variables for Performance**
+
 ```bash
 # Optimized environment setup
 export OPENAI_KEY="your-api-key"
@@ -354,6 +388,7 @@ export REQUEST_TIMEOUT=25
 ### 2. RAG Optimization
 
 **Document Organization**
+
 ```
 # Optimal directory structure for RAG
 documents/
@@ -373,6 +408,7 @@ documents/
 ```
 
 **Document Indexing Strategy**
+
 ```bash
 # Pre-process documents for better RAG performance
 find documents -type f -name "*.md" -exec grep -l "important" {} \; > important_docs.txt
@@ -382,6 +418,7 @@ find documents -type f -name "*.txt" -exec wc -l {} \; | sort -n > document_size
 ### 3. Memory Management
 
 **Optimized Configuration**
+
 ```json
 {
   "message_history_limit": 10,
@@ -397,6 +434,7 @@ find documents -type f -name "*.txt" -exec wc -l {} \; | sort -n > document_size
 ### 1. Secure Configuration
 
 **Production Configuration**
+
 ```json
 {
   "api_url": "https://secure-api-provider.com",
@@ -411,6 +449,7 @@ find documents -type f -name "*.txt" -exec wc -l {} \; | sort -n > document_size
 ```
 
 **Environment Variables for Security**
+
 ```bash
 # Secure environment setup
 export OPENAI_KEY="${OPENAI_API_KEY}"
@@ -424,6 +463,7 @@ export ENABLE_METRICS=0
 ### 2. Input Validation
 
 **Safe Command Execution**
+
 ```
 # Example of safe commands
 > Create a backup of /etc/nginx/nginx.conf
@@ -447,6 +487,7 @@ Disk space on /var:
 ### 3. Network Security
 
 **Secure Network Configuration**
+
 ```bash
 # Firewall rules for Agent-Go
 sudo ufw allow 22/tcp    # SSH
@@ -460,6 +501,7 @@ sudo ufw enable
 ### 1. Development Assistant
 
 **Code Review and Optimization**
+
 ```
 > Review the following code and suggest improvements
 Code review completed:
@@ -487,14 +529,17 @@ func processFile(filename string) error {
     return nil
 }
 ```
+
 ```
 
 ### 2. System Administration
 
 **Automated Maintenance**
 ```
+
 > Perform system maintenance: update packages, clean logs, check disk space
 System maintenance completed:
+
 1. Updated 15 packages
 2. Cleaned log files (freed 2.3GB)
 3. Disk space checked and optimized
@@ -502,18 +547,22 @@ System maintenance completed:
 5. Backup verification passed
 
 System status:
+
 - CPU Usage: 15%
 - Memory Usage: 45%
 - Disk Usage: 65%
 - Services: All running
+
 ```
 
 ### 3. Data Analysis
 
 **Business Intelligence**
 ```
+
 > Analyze sales data from Q1 and generate insights
 Sales analysis completed:
+
 - Total revenue: $2.3M (↑ 15% from Q4)
 - Top product: Product A (35% of sales)
 - Best region: North America (40% of revenue)
@@ -521,9 +570,11 @@ Sales analysis completed:
 - Average order value: $125
 
 Recommendations:
+
 1. Increase marketing in Europe
 2. Optimize inventory for Product A
 3. Improve customer retention strategies
+
 ```
 
 ## Troubleshooting Examples
@@ -532,28 +583,34 @@ Recommendations:
 
 **Diagnosing API Problems**
 ```
+
 > Check API connectivity and diagnose issues
 API connectivity check:
+
 - Status: ❌ Failed
 - Error: Connection timeout
-- URL: https://api.openai.com
+- URL: <https://api.openai.com>
 - Port: 443
 - DNS Resolution: ✅ Working
 - Network Reachability: ✅ Working
 
 Troubleshooting steps:
+
 1. Check internet connection
 2. Verify API key is valid
 3. Check firewall settings
 4. Try alternative API endpoint
+
 ```
 
 ### 2. Performance Issues
 
 **Performance Analysis**
 ```
+
 > Analyze application performance and identify bottlenecks
 Performance analysis completed:
+
 - Response time: 2.3s (target: <1s)
 - Memory usage: 512MB (high)
 - CPU usage: 45% (peak)
@@ -561,18 +618,22 @@ Performance analysis completed:
 - Cache hit rate: 60%
 
 Optimization recommendations:
+
 1. Increase message history limit
 2. Enable response caching
 3. Optimize RAG search parameters
 4. Add request batching
+
 ```
 
 ### 3. Configuration Issues
 
 **Configuration Validation**
 ```
+
 > Validate configuration and identify issues
 Configuration validation:
+
 - API Key: ✅ Valid
 - API URL: ✅ Reachable
 - Model: ✅ Available
@@ -580,14 +641,17 @@ Configuration validation:
 - Permissions: ❌ Insufficient
 
 Issues found:
+
 1. RAG directory does not exist
 2. Missing read permissions for config file
 3. Environment variables not set
 
 Fixes applied:
+
 1. Created RAG directory
 2. Set proper file permissions
 3. Updated environment variables
+
 ```
 
 ## Best Practices Summary

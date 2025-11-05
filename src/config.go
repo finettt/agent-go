@@ -7,9 +7,8 @@ import (
 	"strconv"
 )
 
-// loadConfig загружает конфигурацию из файла JSON и переменных окружения.
 func loadConfig() *Config {
-	// 1. Устанавливаем значения по умолчанию
+
 	config := &Config{
 		Temp:        0.1,
 		MaxTokens:   1000,
@@ -19,7 +18,6 @@ func loadConfig() *Config {
 		RAGSnippets: 5,
 	}
 
-	// 2. Загружаем конфигурацию из файла
 	home, err := os.UserHomeDir()
 	if err == nil {
 		configPath := filepath.Join(home, ".config", "agent-go", "config.json")
@@ -31,7 +29,6 @@ func loadConfig() *Config {
 		}
 	}
 
-	// 3. Переопределяем значениями из переменных окружения (если они установлены)
 	if key := os.Getenv("OPENAI_KEY"); key != "" {
 		config.APIKey = key
 	}
@@ -56,7 +53,6 @@ func loadConfig() *Config {
 	return config
 }
 
-// saveConfig сохраняет текущую конфигурацию в файл.
 func saveConfig(config *Config) error {
 	home, err := os.UserHomeDir()
 	if err != nil {

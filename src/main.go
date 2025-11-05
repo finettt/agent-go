@@ -28,7 +28,7 @@ func main() {
 	}
 
 	agent = &Agent{
-		Messages: make([]Message, 0, 20),
+		Messages: make([]Message, 0),
 	}
 
 	// Base system prompt
@@ -147,10 +147,7 @@ func runCLI() {
 		// Add user message to agent history
 		agent.Messages = append(agent.Messages, Message{Role: "user", Content: stringp(userInput)})
 
-		// Manage message history to stay within limits
-		if len(agent.Messages) > 20 {
-			agent.Messages = append(agent.Messages[:1], agent.Messages[len(agent.Messages)-19:]...)
-		}
+		// Message history is now unlimited
 
 		// Agentic loop
 		for {
@@ -231,6 +228,7 @@ func handleSlashCommand(command string) {
 		fmt.Println("  /rag on|off        - Toggle RAG feature")
 		fmt.Println("  /rag path <path>   - Set the RAG documents path")
 		fmt.Println("  /shell             - Enter shell mode for direct command execution")
+		fmt.Println("  /compress          - Compress context and start new chat thread")
 		fmt.Println("  /quit              - Exit the application")
 	case "/shell":
 		shellMode = true
@@ -284,6 +282,8 @@ func handleSlashCommand(command string) {
 		} else {
 			fmt.Println("Usage: /rag [on|off|path <path>]")
 		}
+	case "/compress":
+		compressAndStartNewChat()
 	default:
 		fmt.Printf("Unknown command: %s\n", baseCommand)
 	}
@@ -291,6 +291,42 @@ func handleSlashCommand(command string) {
 
 func stringp(s string) *string {
 	return &s
+}
+
+func compressAndStartNewChat() {
+	if len(agent.Messages) <= 1 {
+		fmt.Println("No messages to compress. Start a conversation first.")
+		return
+	}
+
+	fmt.Println("Compressing context...")
+	compressedContent, err := compressContext(agent, config)
+	if err != nil {
+		fmt.Printf("Error compressing context: %s\n", err)
+		return
+	}
+
+	agent = &Agent{
+		Messages: make([]Message, 0),
+	}
+
+	systemPrompt := fmt.Sprintf("Previous conversation context:\n\n%s\n\nYou are an AI assistant. For multi-step tasks, chain commands with && (e.g., 'echo content > file.py && python3 file.py'). Use execute_command for shell tasks.", compressedContent)
+
+	agentInstructions, err := readAgentsFile("AGENTS.md")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: could not read AGENTS.md: %v\n", err)
+	}
+
+	if agentInstructions != "" {
+		systemPrompt = agentInstructions + "\n\n" + systemPrompt
+	}
+
+	agent.Messages = append(agent.Messages, Message{
+		Role:    "system",
+		Content: stringp(systemPrompt),
+	})
+
+	fmt.Println("Context compressed. Starting new chat with compressed summary as system message.")
 }
 
 func runSetup() {

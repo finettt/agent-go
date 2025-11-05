@@ -128,6 +128,8 @@ Support for `AGENTS.md` file for custom agent behavior:
 - **Auto-completion**: Intelligent suggestions for commands and models
 - **Error Messages**: Clear, user-friendly error messages
 - **Progress Indicators**: Visual feedback for long-running operations
+- **Unlimited Context**: Removed 20-message limit for conversation history
+- **Context Compression**: Intelligent conversation summarization using AI
 
 ## Data Flow
 
@@ -140,13 +142,34 @@ Support for `AGENTS.md` file for custom agent behavior:
 7. **Preprocessing**: Input is trimmed and validated
 8. **Slash Command Handling**: If input starts with `/`, it's processed as a command
 9. **RAG Processing**: If enabled, local documents are searched for relevant context
-10. **Message History**: User input is added to the conversation history
-11. **History Management**: Conversation history is maintained within limits
-12. **API Request**: Complete conversation history is sent to the AI
-13. **Response Processing**: AI response is parsed and validated
-14. **Tool Execution**: If the AI requests command execution, it's handled by the executor
-15. **Response Display**: Results are displayed to the user
-16. **Graceful Shutdown**: Handle interrupt signals for clean exit
+10. **Message History**: User input is added to the conversation history (unlimited)
+11. **API Request**: Complete conversation history is sent to the AI
+12. **Response Processing**: AI response is parsed and validated
+13. **Tool Execution**: If the AI requests command execution, it's handled by the executor
+14. **Response Display**: Results are displayed to the user
+15. **Graceful Shutdown**: Handle interrupt signals for clean exit
+
+## Context Management
+
+Agent-Go now supports unlimited conversation history with intelligent compression capabilities:
+
+### Unlimited Context
+- **No Message Limits**: Removed the previous 20-message constraint
+- **Memory Management**: While unlimited, users should be mindful of very long conversations
+- **Token Management**: Users can use `/compress` to manage context length
+
+### Context Compression
+- **Intelligent Summarization**: Uses the same AI model to compress conversation history
+- **New Chat Threads**: Creates fresh chat sessions with compressed context as system message
+- **Key Information Preservation**: Maintains important details and conversation flow
+- **AGENTS.md Integration**: Automatically includes custom instructions in new sessions
+
+### Compression Process
+1. **Trigger**: User executes `/compress` command
+2. **Validation**: Checks if there are messages to compress
+3. **API Request**: Sends conversation history to AI for summarization
+4. **New Session**: Creates fresh agent with compressed summary as system prompt
+5. **Continuity**: Maintains context while starting fresh conversation thread
 
 ## Security Considerations
 

@@ -85,12 +85,14 @@ Environment variables provide a way to override configuration settings without m
 ### Environment Variable Examples
 
 #### Basic Setup
+
 ```bash
 export OPENAI_KEY="sk-proj-your-api-key-here"
 export OPENAI_MODEL="gpt-4-turbo"
 ```
 
 #### Development Environment
+
 ```bash
 export OPENAI_KEY="dev-api-key"
 export OPENAI_BASE="http://localhost:8080/v1"
@@ -99,6 +101,7 @@ export RAG_PATH="./project-docs"
 ```
 
 #### Production Environment
+
 ```bash
 export OPENAI_KEY="${OPENAI_API_KEY}"
 export OPENAI_MODEL="gpt-4-turbo"
@@ -116,6 +119,7 @@ The configuration system merges settings from all sources with the following pre
 ### Example Priority Scenario
 
 **Default Configuration:**
+
 ```json
 {
   "api_url": "https://api.openai.com",
@@ -125,6 +129,7 @@ The configuration system merges settings from all sources with the following pre
 ```
 
 **Configuration File:**
+
 ```json
 {
   "model": "gpt-4-turbo",
@@ -133,12 +138,14 @@ The configuration system merges settings from all sources with the following pre
 ```
 
 **Environment Variables:**
+
 ```bash
 export OPENAI_BASE="https://api.anthropic.com"
 export RAG_SNIPPETS=10
 ```
 
 **Final Merged Configuration:**
+
 ```json
 {
   "api_url": "https://api.openai.com",          // from config file
@@ -211,6 +218,7 @@ When you run Agent-Go for the first time:
 ### Modifying Configuration
 
 #### Using Slash Commands (Interactive)
+
 ```bash
 > /model gpt-4-turbo
 Model set to: gpt-4-turbo
@@ -223,12 +231,14 @@ RAG path set to: /home/user/documents
 ```
 
 #### Manual Configuration File Editing
+
 ```bash
 # Create/edit configuration file
 nano ~/.config/agent-go/config.json
 ```
 
 #### Environment Variables for CI/CD
+
 ```bash
 # GitHub Actions example
 env:
@@ -244,9 +254,11 @@ env:
 - **Never commit API keys to version control**
 - **Use environment variables for sensitive data**
 - **Set proper file permissions**:
+
   ```bash
   chmod 600 ~/.config/agent-go/config.json
   ```
+
 - **Consider using secret management tools** for production
 
 ### Configuration File Security
@@ -263,18 +275,21 @@ chmod 600 ~/.config/agent-go/config.json
 ### Common Configuration Issues
 
 **Missing API Key**
+
 ```
 Error: OpenAI API key is not set
 Solution: Set OPENAI_KEY environment variable or run interactive setup
 ```
 
 **Invalid API URL**
+
 ```
 Error: could not connect to API
 Solution: Verify OPENAI_BASE URL is correct and accessible
 ```
 
 **RAG Path Issues**
+
 ```
 Error: cannot access RAG documents
 Solution: Ensure RAG_PATH exists and is readable
@@ -359,6 +374,7 @@ Exclude sensitive configuration from version control:
 ### Upgrading from Previous Versions
 
 1. **Backup existing configuration**:
+
    ```bash
    cp ~/.config/agent-go/config.json ~/.config/agent-go/config.json.backup
    ```
@@ -368,6 +384,7 @@ Exclude sensitive configuration from version control:
    - Update your configuration file if needed
 
 3. **Test with new version**:
+
    ```bash
    make test
    ./agent-go --help
