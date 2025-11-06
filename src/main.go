@@ -19,6 +19,13 @@ var agent *Agent
 var shellMode = false
 
 func main() {
+	// Check for command line task argument
+	if len(os.Args) > 1 {
+		task := strings.Join(os.Args[1:], " ")
+		runTask(task)
+		return
+	}
+
 	// Display ASCII logo
 	printLogo()
 
@@ -65,17 +72,17 @@ func main() {
 
 func printLogo() {
 	fmt.Println(`
-  /$$$$$$                                  /$$            /$$$$$$           
- /$$__  $$                                | $$           /$$__  $$          
-| $$  \ $$  /$$$$$$   /$$$$$$  /$$$$$$$  /$$$$$$        | $$  \__/  /$$$$$$ 
+  /$$$$$$                                  /$$            /$$$$$$
+ /$$__  $$                                | $$           /$$__  $$
+| $$  \ $$  /$$$$$$   /$$$$$$  /$$$$$$$  /$$$$$$        | $$  \__/  /$$$$$$
 | $$$$$$$$ /$$__  $$ /$$__  $$| $$__  $$|_  $$_/        | $$ /$$$$ /$$__  $$
 | $$__  $$| $$  \ $$| $$$$$$$$| $$  \ $$  | $$          | $$|_  $$| $$  \ $$
 | $$  | $$| $$  | $$| $$_____/| $$  | $$  | $$ /$$      | $$  \ $$| $$  | $$
 | $$  | $$|  $$$$$$$|  $$$$$$$| $$  | $$  |  $$$$/      |  $$$$$$/|  $$$$$$/
-|__/  |__/ \____  $$ \_______/|__/  |__/   \___/         \______/  \______/ 
-           /$$  \ $$                                                        
-          |  $$$$$$/                                                        
-           \______/                                                         
+|__/  |__/ \____  $$ \_______/|__/  |__/   \___/         \______/  \______/
+           /$$  \ $$
+          |  $$$$$$/
+           \______/
 `)
 }
 
@@ -343,4 +350,91 @@ func runSetup() {
 	}
 
 	fmt.Println("Configuration saved successfully.")
+}
+
+func runTask(task string) {
+	// Load configuration
+	config = loadConfig()
+	if config.APIKey == "" {
+		fmt.Fprintln(os.Stderr, "Error: API key not set. Please run the interactive setup first.")
+		os.Exit(1)
+	}
+
+	// Create agent instance
+	agent = &Agent{
+		Messages: make([]Message, 0),
+	}
+
+	// Base system prompt
+	systemPrompt := "You are an AI assistant. For multi-step tasks, chain commands with && (e.g., 'echo content > file.py && python3 file.py'). Use execute_command for shell tasks."
+
+	// Check for AGENTS.md and prepend its content to the system prompt
+	agentInstructions, err := readAgentsFile("AGENTS.md")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: could not read AGENTS.md: %v\n", err)
+	}
+
+	if agentInstructions != "" {
+		systemPrompt = agentInstructions + "\n\n" + systemPrompt
+	}
+
+	agent.Messages = append(agent.Messages, Message{
+		Role:    "system",
+		Content: stringp(systemPrompt),
+	})
+
+	// Add the task as a user message
+	agent.Messages = append(agent.Messages, Message{
+		Role:    "user",
+		Content: stringp(task),
+	})
+
+	// Execute the task using the agentic loop
+	for {
+		resp, err := sendAPIRequest(agent, config)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+			break
+		}
+
+		if len(resp.Choices) == 0 {
+			fmt.Fprintf(os.Stderr, "Error: received an empty response from the API\n")
+			break
+		}
+
+		assistantMsg := resp.Choices[0].Message
+		agent.Messages = append(agent.Messages, assistantMsg)
+
+		if assistantMsg.Content != nil {
+			fmt.Printf("%s\n", *assistantMsg.Content)
+		}
+
+		if len(assistantMsg.ToolCalls) == 0 {
+			break // No tool calls, so the agent's turn is over
+		}
+
+		for _, toolCall := range assistantMsg.ToolCalls {
+			if toolCall.Function.Name == "execute_command" {
+				var args CommandArgs
+				if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err != nil {
+					fmt.Fprintf(os.Stderr, "Tool call argument error: %s\n", err)
+					continue // Next tool call
+				}
+
+				output, err := executeCommand(args.Command)
+				if err != nil {
+					output = fmt.Sprintf("Command execution error: %s", err)
+				}
+
+				content := "Command output:\n" + output
+				toolMsg := Message{
+					Role:       "tool",
+					ToolCallID: toolCall.ID,
+					Content:    stringp(content),
+				}
+				agent.Messages = append(agent.Messages, toolMsg)
+			}
+		}
+		// Continue loop to send tool output back to API
+	}
 }
