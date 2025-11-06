@@ -10,12 +10,15 @@ import (
 func loadConfig() *Config {
 
 	config := &Config{
-		Temp:        0.1,
-		MaxTokens:   1000,
-		APIURL:      "https://api.openai.com",
-		Model:       "gpt-3.5-turbo",
-		RAGEnabled:  false,
-		RAGSnippets: 5,
+		Temp:                  0.1,
+		MaxTokens:             1000,
+		APIURL:                "https://api.openai.com",
+		Model:                 "gpt-3.5-turbo",
+		RAGEnabled:            false,
+		RAGSnippets:           5,
+		AutoCompress:          true,
+		AutoCompressThreshold: 20,
+		ModelContextLength:    131072,
 	}
 
 	home, err := os.UserHomeDir()
@@ -47,6 +50,19 @@ func loadConfig() *Config {
 	if ragSnippets := os.Getenv("RAG_SNIPPETS"); ragSnippets != "" {
 		if val, err := strconv.Atoi(ragSnippets); err == nil && val > 0 {
 			config.RAGSnippets = val
+		}
+	}
+	if autoCompress := os.Getenv("AUTO_COMPRESS"); autoCompress == "1" {
+		config.AutoCompress = true
+	}
+	if autoCompressThreshold := os.Getenv("AUTO_COMPRESS_THRESHOLD"); autoCompressThreshold != "" {
+		if val, err := strconv.Atoi(autoCompressThreshold); err == nil && val > 0 {
+			config.AutoCompressThreshold = val
+		}
+	}
+	if modelContextLength := os.Getenv("MODEL_CONTEXT_LENGTH"); modelContextLength != "" {
+		if val, err := strconv.Atoi(modelContextLength); err == nil && val > 0 {
+			config.ModelContextLength = val
 		}
 	}
 

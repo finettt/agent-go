@@ -8,14 +8,17 @@ type Message struct {
 }
 
 type Config struct {
-	APIURL      string  `json:"api_url"`
-	Model       string  `json:"model"`
-	APIKey      string  `json:"api_key"`
-	RAGPath     string  `json:"rag_path"`
-	Temp        float32 `json:"temp"`
-	MaxTokens   int     `json:"max_tokens"`
-	RAGEnabled  bool    `json:"rag_enabled"`
-	RAGSnippets int     `json:"rag_snippets"`
+	APIURL               string  `json:"api_url"`
+	Model                string  `json:"model"`
+	APIKey               string  `json:"api_key"`
+	RAGPath              string  `json:"rag_path"`
+	Temp                 float32 `json:"temp"`
+	MaxTokens            int     `json:"max_tokens"`
+	RAGEnabled           bool    `json:"rag_enabled"`
+	RAGSnippets          int     `json:"rag_snippets"`
+	AutoCompress         bool    `json:"auto_compress"`
+	AutoCompressThreshold int     `json:"auto_compress_threshold"`
+	ModelContextLength   int     `json:"model_context_length"`
 }
 
 type Agent struct {
@@ -46,6 +49,13 @@ type FunctionDefinition struct {
 
 type APIResponse struct {
 	Choices []Choice `json:"choices"`
+	Usage   Usage    `json:"usage"`
+}
+
+type Usage struct {
+	PromptTokens     int `json:"prompt_tokens"`
+	CompletionTokens int `json:"completion_tokens"`
+	TotalTokens      int `json:"total_tokens"`
 }
 
 type Choice struct {

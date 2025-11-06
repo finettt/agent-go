@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -17,6 +18,7 @@ import (
 var config *Config
 var agent *Agent
 var shellMode = false
+var totalTokens = 0
 
 func main() {
 	// Check for command line task argument
@@ -158,6 +160,13 @@ func runCLI() {
 
 		// Agentic loop
 		for {
+			// Auto-compress context if enabled and token count exceeds 75% of context length
+			if config.AutoCompress && totalTokens > (config.ModelContextLength*3/4) {
+				compressAndStartNewChat()
+				fmt.Println("Context compressed due to token limit. New user input is required.")
+				continue // Restart the outer loop to get fresh user input
+			}
+
 			resp, err := sendAPIRequest(agent, config)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %s\n", err)
@@ -174,6 +183,12 @@ func runCLI() {
 
 			if assistantMsg.Content != nil {
 				fmt.Printf("\033[34m%s\033[0m\n", *assistantMsg.Content)
+			}
+
+			// Update and display total tokens
+			if resp.Usage.TotalTokens > 0 {
+				totalTokens += resp.Usage.TotalTokens
+				fmt.Printf("\033[32m[Tokens: %d]\033[0m\n", totalTokens)
 			}
 
 			if len(assistantMsg.ToolCalls) == 0 {
@@ -236,7 +251,21 @@ func handleSlashCommand(command string) {
 		fmt.Println("  /rag path <path>   - Set the RAG documents path")
 		fmt.Println("  /shell             - Enter shell mode for direct command execution")
 		fmt.Println("  /compress          - Compress context and start new chat thread")
+		fmt.Println("  /contextlength <value> - Set the model context length (e.g., 131072)")
 		fmt.Println("  /quit              - Exit the application")
+	case "/contextlength":
+		if len(parts) > 1 {
+			val, err := strconv.Atoi(parts[1])
+			if err == nil && val > 0 {
+				config.ModelContextLength = val
+				saveConfig(config)
+				fmt.Printf("Model context length set to: %d\n", config.ModelContextLength)
+			} else {
+				fmt.Println("Usage: /contextlength <positive_integer_value>")
+			}
+		} else {
+			fmt.Println("Usage: /contextlength <value>")
+		}
 	case "/shell":
 		shellMode = true
 		fmt.Println("Entered shell mode. Type 'exit' to return.")
@@ -264,6 +293,9 @@ func handleSlashCommand(command string) {
 		fmt.Printf("Provider: %s\n", config.APIURL)
 		fmt.Printf("RAG Enabled: %t\n", config.RAGEnabled)
 		fmt.Printf("RAG Path: %s\n", config.RAGPath)
+		fmt.Printf("Auto Compress Enabled: %t\n", config.AutoCompress)
+		fmt.Printf("Auto Compress Threshold: %d\n", config.AutoCompressThreshold)
+		fmt.Printf("Model Context Length: %d\n", config.ModelContextLength)
 	case "/rag":
 		if len(parts) > 1 {
 			switch parts[1] {
@@ -334,6 +366,9 @@ func compressAndStartNewChat() {
 	})
 
 	fmt.Println("Context compressed. Starting new chat with compressed summary as system message.")
+
+	// Reset total tokens after compression
+	totalTokens = 0
 }
 
 func runSetup() {

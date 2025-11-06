@@ -92,6 +92,7 @@ func buildCompleter(config *Config) readline.AutoCompleter {
 			readline.PcItem("path"), // Only suggests the "path" keyword.
 		),
 		readline.PcItem("/compress"),
+		readline.PcItem("/contextlength"),
 		readline.PcItem("/shell"),
 		readline.PcItem("/quit"),
 	)
