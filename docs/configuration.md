@@ -27,12 +27,14 @@ The configuration file is automatically created on first run or when settings ar
   "api_url": "https://api.openai.com",
   "model": "gpt-4-turbo",
   "api_key": "sk-your-secret-api-key-here",
-  "temperature": 0.1,
+  "temp": 0.1,
   "max_tokens": 1000,
   "rag_enabled": true,
   "rag_path": "/home/user/documents",
   "rag_snippets": 5,
-  "message_history_limit": 20
+  "auto_compress": true,
+  "auto_compress_threshold": 20,
+  "model_context_length": 131072
 }
 ```
 
@@ -45,7 +47,7 @@ The configuration file is automatically created on first run or when settings ar
 | `api_url` | string | `"https://api.openai.com"` | Base URL for the AI API provider |
 | `api_key` | string | `""` | API key for authentication (required) |
 | `model` | string | `"gpt-3.5-turbo"` | AI model to use for responses |
-| `temperature` | float | `0.1` | Controls randomness (0.0-1.0, lower = more deterministic) |
+| `temp` | float | `0.1` | Controls randomness (0.0-1.0, lower = more deterministic) |
 | `max_tokens` | int | `1000` | Maximum tokens per response |
 
 #### RAG Configuration
@@ -56,11 +58,13 @@ The configuration file is automatically created on first run or when settings ar
 | `rag_path` | string | `""` | Path to local documents for RAG |
 | `rag_snippets` | int | `5` | Number of document snippets to include in context |
 
-#### Application Configuration
+#### Context Management Configuration
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `message_history_limit` | int | `20` | Maximum number of messages to retain in conversation history |
+| `auto_compress` | bool | `true` | Enable automatic context compression |
+| `auto_compress_threshold` | int | `20` | Threshold for auto compression (percentage of context length) |
+| `model_context_length` | int | `131072` | Maximum context length for the AI model |
 
 ## Environment Variables
 
@@ -81,6 +85,9 @@ Environment variables provide a way to override configuration settings without m
 | `RAG_PATH` | Path to RAG documents | `/home/user/documents` |
 | `RAG_ENABLED` | Enable RAG feature (`1`=enabled, `0`=disabled) | `1` |
 | `RAG_SNIPPETS` | Number of RAG snippets | `5` |
+| `AUTO_COMPRESS` | Enable auto context compression (`1`=enabled, `0`=disabled) | `1` |
+| `AUTO_COMPRESS_THRESHOLD` | Threshold for auto compression | `20` |
+| `MODEL_CONTEXT_LENGTH` | Model context length | `131072` |
 
 ### Environment Variable Examples
 
@@ -98,6 +105,8 @@ export OPENAI_KEY="dev-api-key"
 export OPENAI_BASE="http://localhost:8080/v1"
 export RAG_ENABLED=1
 export RAG_PATH="./project-docs"
+export AUTO_COMPRESS=1
+export AUTO_COMPRESS_THRESHOLD=15
 ```
 
 #### Production Environment
@@ -106,6 +115,21 @@ export RAG_PATH="./project-docs"
 export OPENAI_KEY="${OPENAI_API_KEY}"
 export OPENAI_MODEL="gpt-4-turbo"
 export RAG_ENABLED=0
+export AUTO_COMPRESS=1
+export MODEL_CONTEXT_LENGTH=16384
+```
+
+#### High-Performance Configuration
+
+```bash
+export OPENAI_KEY="your-api-key"
+export OPENAI_MODEL="gpt-4-turbo"
+export RAG_ENABLED=1
+export RAG_PATH="/optimized/documents"
+export RAG_SNIPPETS=8
+export AUTO_COMPRESS=1
+export AUTO_COMPRESS_THRESHOLD=25
+export MODEL_CONTEXT_LENGTH=131072
 ```
 
 ## Configuration Priority and Merging
@@ -153,6 +177,9 @@ export RAG_SNIPPETS=10
   "temperature": 0.1,                          // from config file
   "rag_enabled": true,                         // from config file
   "rag_snippets": 10,                          // from environment variable
+  "auto_compress": true,                       // from config file
+  "auto_compress_threshold": 20,               // from config file
+  "model_context_length": 131072,              // from config file
   "api_key": ""                                // from environment variable (if set)
 }
 ```
@@ -170,7 +197,10 @@ For local development with custom documents:
   "api_key": "dev-key",
   "rag_enabled": true,
   "rag_path": "./docs",
-  "temperature": 0.2
+  "temperature": 0.2,
+  "auto_compress": true,
+  "auto_compress_threshold": 15,
+  "model_context_length": 32768
 }
 ```
 
@@ -184,7 +214,10 @@ For production with minimal features:
   "model": "gpt-4-turbo",
   "api_key": "${OPENAI_API_KEY}",
   "rag_enabled": false,
-  "temperature": 0.0
+  "temperature": 0.0,
+  "auto_compress": true,
+  "auto_compress_threshold": 25,
+  "model_context_length": 16384
 }
 ```
 
@@ -194,14 +227,38 @@ Use environment variables for different environments:
 
 ```bash
 # Development
-export OPENAI_BASE="http://localhost:8080/v1"
+export OPENAI_BASE="https://api.openai.com"
 export OPENAI_MODEL="gpt-4-turbo"
 export RAG_ENABLED=1
+export RAG_PATH="./project-docs"
+export AUTO_COMPRESS=1
+export AUTO_COMPRESS_THRESHOLD=15
 
 # Production
 export OPENAI_BASE="https://api.openai.com"
 export OPENAI_MODEL="gpt-4"
 export RAG_ENABLED=0
+export AUTO_COMPRESS=1
+export MODEL_CONTEXT_LENGTH=131072
+```
+
+### Scenario 4: RAG-Optimized Setup
+
+For heavy RAG usage with large document collections:
+
+```json
+{
+  "api_url": "https://api.openai.com",
+  "model": "gpt-4-turbo",
+  "api_key": "your-api-key",
+  "rag_enabled": true,
+  "rag_path": "/large/documents/collection",
+  "rag_snippets": 10,
+  "temperature": 0.1,
+  "auto_compress": true,
+  "auto_compress_threshold": 30,
+  "model_context_length": 131072
+}
 ```
 
 ## Configuration Management
@@ -214,6 +271,7 @@ When you run Agent-Go for the first time:
 2. Launches an interactive setup wizard
 3. Prompts for required API key
 4. Saves configuration to `~/.config/agent-go/config.json`
+5. Provides feedback on successful configuration
 
 ### Modifying Configuration
 
@@ -228,6 +286,9 @@ RAG enabled.
 
 > /rag path /home/user/documents
 RAG path set to: /home/user/documents
+
+> /contextlength 131072
+Model context length set to: 131072
 ```
 
 #### Manual Configuration File Editing
@@ -245,6 +306,21 @@ env:
   OPENAI_KEY: ${{ secrets.OPENAI_API_KEY }}
   OPENAI_MODEL: gpt-4-turbo
   RAG_ENABLED: 0
+  AUTO_COMPRESS: 1
+  MODEL_CONTEXT_LENGTH: 131072
+```
+
+#### Docker Environment Setup
+
+```bash
+# Using Docker environment variables
+docker run -e OPENAI_KEY="your-api-key" \
+           -e OPENAI_MODEL="gpt-4-turbo" \
+           -e RAG_ENABLED=1 \
+           -e RAG_PATH="/documents" \
+           -e AUTO_COMPRESS=1 \
+           -v ./documents:/documents \
+           agent-go
 ```
 
 ## Security Considerations
@@ -260,6 +336,7 @@ env:
   ```
 
 - **Consider using secret management tools** for production
+- **Use encrypted configuration files** for sensitive environments
 
 ### Configuration File Security
 
@@ -270,11 +347,24 @@ touch ~/.config/agent-go/config.json
 chmod 600 ~/.config/agent-go/config.json
 ```
 
+### Environment Variable Security
+
+```bash
+# Use .env files for development
+echo "OPENAI_KEY=your-api-key" > .env
+echo "OPENAI_MODEL=gpt-4-turbo" >> .env
+# Add .env to .gitignore
+
+# Use secure shell sessions for sensitive operations
+read -s -p "Enter API key: " api_key
+export OPENAI_KEY="$api_key"
+```
+
 ## Troubleshooting
 
 ### Common Configuration Issues
 
-**Missing API Key**
+### Missing API Key
 
 ```
 Error: OpenAI API key is not set
@@ -295,6 +385,27 @@ Error: cannot access RAG documents
 Solution: Ensure RAG_PATH exists and is readable
 ```
 
+**Context Compression Issues**
+
+```
+Error: context compression failed
+Solution: Check API connectivity and ensure you have sufficient messages to compress
+```
+
+**Model Context Length Issues**
+
+```
+Error: invalid context length
+Solution: Set MODEL_CONTEXT_LENGTH to a positive integer matching your model's capabilities
+```
+
+**Auto-compression Threshold Issues**
+
+```
+Error: invalid auto-compress threshold
+Solution: Set AUTO_COMPRESS_THRESHOLD to a positive integer (typically 10-50)
+```
+
 ### Configuration Validation
 
 Agent-Go validates configuration on startup:
@@ -304,6 +415,9 @@ Agent-Go validates configuration on startup:
 3. **Path validation**: `rag_path` must exist if RAG is enabled
 4. **Range validation**: `temperature` must be 0.0-1.0
 5. **Type validation**: All values must match expected types
+6. **Context length validation**: `model_context_length` must be positive
+7. **Auto-compression validation**: `auto_compress_threshold` must be positive
+8. **RAG snippets validation**: `rag_snippets` must be positive
 
 ### Debug Mode
 
@@ -313,9 +427,20 @@ For troubleshooting configuration issues:
 # Enable debug logging
 export DEBUG=1
 ./agent-go
+
+# Or use verbose mode
+./agent-go -v
 ```
 
-## Best Practices
+### Configuration Testing
+
+```bash
+# Test configuration without running the full application
+go run src/main.go --test-config
+
+# Validate configuration file
+cat ~/.config/agent-go/config.json | jq .
+```
 
 ### 1. Environment-Specific Configurations
 
@@ -327,6 +452,9 @@ export CONFIG_FILE=~/.config/agent-go/dev.json
 
 # Production
 export CONFIG_FILE=~/.config/agent-go/prod.json
+
+# Override with environment variables
+export OPENAI_KEY="dev-key" && ./agent-go
 ```
 
 ### 2. Secret Management
@@ -344,6 +472,9 @@ env:
       secretKeyRef:
         name: ai-secrets
         key: openai-key
+
+# Using HashiCorp Vault
+vault read -field=openai_key secret/agent-go
 ```
 
 ### 3. Configuration Backup
@@ -356,6 +487,9 @@ cp ~/.config/agent-go/config.json ~/.config/agent-go/config.json.backup
 
 # Restore configuration
 cp ~/.config/agent-go/config.json.backup ~/.config/agent-go/config.json
+
+# Compress old configurations
+find ~/.config/agent-go -name "config.json.*" -mtime +30 -delete
 ```
 
 ### 4. Version Control
@@ -366,6 +500,45 @@ Exclude sensitive configuration from version control:
 # .gitignore
 ~/.config/agent-go/config.json
 *.key
+*.secret
+.env
+.env.local
+```
+
+### 5. Configuration Templates
+
+Create configuration templates for different use cases:
+
+```bash
+# Template for new users
+cat > ~/.config/agent-go/config.template.json << EOF
+{
+  "api_url": "https://api.openai.com",
+  "model": "gpt-3.5-turbo",
+  "temperature": 0.1,
+  "max_tokens": 1000,
+  "rag_enabled": false,
+  "auto_compress": true,
+  "auto_compress_threshold": 20,
+  "model_context_length": 131072
+}
+EOF
+
+# Copy template for new user
+cp ~/.config/agent-go/config.template.json ~/.config/agent-go/config.json
+```
+
+### 6. Configuration Monitoring
+
+Monitor configuration changes and usage:
+
+```bash
+# Log configuration changes
+echo "$(date): Configuration modified" >> ~/.config/agent-go/config.log
+
+# Monitor API usage
+grep "API request" ~/.config/agent-go/agent.log | tail -10
+```
 *.secret
 ```
 
@@ -390,6 +563,36 @@ Exclude sensitive configuration from version control:
    ./agent-go --help
    ```
 
+4. **Migrate configuration**:
+
+   ```bash
+   # Check for deprecated options
+   grep -i "message_history_limit" ~/.config/agent-go/config.json && echo "Warning: message_history_limit is deprecated, use model_context_length instead"
+   ```
+
 ### Configuration File Format Changes
 
 If you're upgrading from an older version, the configuration file format may have changed. Review the example configuration above and update your file accordingly.
+
+**Key Changes in Recent Versions:**
+
+- **Removed**: `message_history_limit` - replaced with `model_context_length`
+- **Added**: `auto_compress` - automatic context compression
+- **Added**: `auto_compress_threshold` - threshold for auto compression
+- **Added**: `model_context_length` - configurable context length
+
+**Migration Guide:**
+
+```bash
+# Old configuration format
+{
+  "message_history_limit": 20
+}
+
+# New configuration format
+{
+  "model_context_length": 131072,
+  "auto_compress": true,
+  "auto_compress_threshold": 20
+}
+```

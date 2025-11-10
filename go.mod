@@ -1,6 +1,6 @@
 module github.com/finettt/agent-go
 
-go 1.22.5
+go 1.25.3
 
 require github.com/chzyer/readline v1.5.1
 

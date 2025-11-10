@@ -243,7 +243,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v3
       with:
-        go-version: 1.22
+        go-version: 1.25
     
     - name: Run tests
       run: |
@@ -267,7 +267,7 @@ jobs:
 
 ```dockerfile
 # Dockerfile
-FROM golang:1.22-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 COPY go.mod go.sum ./
@@ -494,6 +494,95 @@ sudo ufw allow 22/tcp    # SSH
 sudo ufw allow 8080/tcp  # Agent-Go web interface (if enabled)
 sudo ufw deny out 443    # Block direct API access
 sudo ufw enable
+```
+
+## Advanced Features
+
+### 1. Token Usage Monitoring
+
+Agent-Go tracks and displays token usage in real-time throughout your session:
+
+```
+> Create a Python script that calculates factorial
+[Tokens: 156]
+
+> Run the factorial script with input 10
+[Tokens: 342]
+
+> /compress
+Context compressed. Starting new chat with compressed summary as system message.
+[Tokens: 0]  # Token counter resets after compression
+```
+
+**Understanding Token Usage:**
+- Tokens are cumulative throughout the session
+- Each API call adds to the total token count
+- Auto-compression triggers at 75% of `model_context_length`
+- Manual compression with `/compress` resets the token counter
+
+### 2. Command-Line Task Execution
+
+Execute tasks directly without interactive mode:
+
+```bash
+# Single task execution
+./agent-go "Create a new directory called 'test-project' and initialize git"
+
+# The agent will execute the task and exit automatically
+```
+
+**Benefits:**
+- Ideal for scripting and automation
+- No interactive prompts
+- Returns exit code 0 on success, non-zero on failure
+- Perfect for CI/CD pipelines
+
+### 3. Shell Mode
+
+Direct shell command execution for interactive sessions:
+
+```
+> /shell
+Entered shell mode. Type 'exit' to return.
+shell> ls -la
+total 8
+drwxr-xr-x 2 user user 4096 Oct 27 10:00 .
+drwxr-xr-x 5 user user 4096 Oct 27 10:00 ..
+
+shell> exit
+Exited shell mode.
+```
+
+**Shell Mode Features:**
+- Platform-aware (CMD on Windows, sh on Unix-like systems)
+- All output is captured and displayed
+- Type 'exit' to return to AI assistant mode
+- Slash commands are not available in shell mode
+
+### 4. Error Handling and Debugging
+
+Agent-Go provides comprehensive error handling with helpful feedback:
+
+**Common Error Messages:**
+```
+Error: OpenAI API key is not set
+Solution: Set OPENAI_KEY environment variable or run interactive setup
+
+Error: could not connect to API
+Solution: Verify OPENAI_BASE URL is correct and accessible
+
+Error: cannot access RAG path
+Solution: Ensure RAG_PATH exists and is readable
+
+Error: no messages to compress
+Solution: Start a conversation first before using /compress
+```
+
+**Debug Mode:**
+```bash
+# Enable detailed logging for troubleshooting
+export DEBUG=1
+./agent-go
 ```
 
 ## Common Use Cases

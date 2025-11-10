@@ -20,7 +20,7 @@ This comprehensive guide provides instructions for setting up the development en
 
 ### System Requirements
 
-- **Go**: 1.22 or higher (recommended)
+- **Go**: 1.25.3 (recommended)
 - **Git**: For version control
 - **Make**: For build automation (optional, but recommended)
 - **Text Editor**: VS Code, GoLand, or any editor with Go support
@@ -133,7 +133,7 @@ agent-go/
 # Build the application
 make build
 
-# Run the application
+# Run the application (builds first)
 make run
 
 # Clean build artifacts
@@ -142,6 +142,8 @@ make clean
 # Install to system (optional)
 make install
 ```
+
+**Build Output**: The binary is created as `agent-go` in the project root directory.
 
 ### Using Go Directly
 
@@ -198,28 +200,35 @@ package main
 
 import (
     "testing"
-    "github.com/stretchr/testify/assert"
+    "os"
 )
 
 func TestConfigLoading(t *testing.T) {
-    // Setup test data
-    testConfig := &Config{
-        APIKey: "test-key",
-        Model:  "gpt-4",
-    }
+    // Setup environment for test
+    os.Setenv("OPENAI_KEY", "test-key")
+    os.Setenv("OPENAI_MODEL", "gpt-4")
     
     // Test the function
     result := loadConfig()
     
     // Assert the results
-    assert.Equal(t, testConfig.APIKey, result.APIKey)
-    assert.Equal(t, testConfig.Model, result.Model)
+    if result.APIKey != "test-key" {
+        t.Errorf("Expected APIKey 'test-key', got %s", result.APIKey)
+    }
+    if result.Model != "gpt-4" {
+        t.Errorf("Expected Model 'gpt-4', got %s", result.Model)
+    }
+    
+    // Cleanup
+    os.Unsetenv("OPENAI_KEY")
+    os.Unsetenv("OPENAI_MODEL")
 }
 
+// Mock test for sendAPIRequest would require mocking HTTP client
 func BenchmarkAPIRequest(b *testing.B) {
+    // Note: Actual benchmark would require mock setup
     for i := 0; i < b.N; i++ {
-        // Benchmark code here
-        sendAPIRequest(testAgent, testConfig)
+        // Benchmark code would go here
     }
 }
 ```

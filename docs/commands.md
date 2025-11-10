@@ -29,7 +29,9 @@ Available commands:
   /config            - Display current configuration
   /rag on|off        - Toggle RAG feature
   /rag path <path>   - Set the RAG documents path
-  /shell             - Enter shell mode
+  /shell             - Enter shell mode for direct command execution
+  /compress          - Compress context and start new chat thread
+  /contextlength <value> - Set the model context length
   /quit              - Exit the application
 ```
 
@@ -51,6 +53,9 @@ Model: gpt-4-turbo
 Provider: https://api.openai.com
 RAG Enabled: true
 RAG Path: /home/user/documents
+Auto Compress Enabled: true
+Auto Compress Threshold: 20
+Model Context Length: 131072
 ```
 
 ### `/shell`
@@ -79,6 +84,7 @@ Exited shell mode.
 - In shell mode, all input is treated as a shell command.
 - To exit shell mode, type `exit` and press Enter.
 - Slash commands are not available while in shell mode.
+- Commands are executed with platform-specific shell handling (cmd.exe on Windows, sh on Unix-like systems)
 
 ### `/quit`
 
@@ -127,7 +133,8 @@ Model set to: claude-3-sonnet
 
 - The model name must be supported by your API provider
 - Changes are saved to the configuration file
-- Auto-completion is available for model names
+- Auto-completion is available for model names (fetched from API)
+- Model change affects all subsequent API requests
 
 ### `/provider <api_url>`
 
@@ -180,9 +187,11 @@ RAG enabled.
 
 **Notes:**
 
-- Requires a valid RAG path to be set
+- Requires a valid RAG path to be set via `/rag path <path>`
 - May increase response time as documents are searched
 - Provides more context-aware responses for document-related queries
+- Searches through subdirectories recursively
+- Supports multiple file formats (txt, md, json, etc.)
 
 ### `/rag off`
 
@@ -236,6 +245,8 @@ RAG path set to: ./docs
 - The directory must exist and be readable
 - Changes are saved to the configuration file
 - Subdirectories are also searched recursively
+- File paths are validated for security
+- Gracefully handles permission errors and inaccessible files
 
 ## Advanced Usage
 
@@ -268,6 +279,83 @@ Agent-Go provides intelligent auto-completion for slash commands:
 - `/` + Tab shows all available commands
 - `/model` + Tab shows available models (fetched from API)
 - `/rag` + Tab shows RAG options (`on`, `off`, `path`)
+- `/provider` + Tab shows URL suggestions
+- Dynamic model completion based on API response
+
+### Context Management Commands
+
+#### `/contextlength <value>`
+
+Sets the model context length for token management. This determines when auto-compression triggers (at 75% of this value).
+
+**Usage:**
+
+```
+/contextlength <value>
+```
+
+**Parameters:**
+
+- `value`: Positive integer representing the context length (e.g., 131072 for GPT-4, 16384 for GPT-3.5)
+
+**Examples:**
+
+```
+> /contextlength 16384
+Model context length set to: 16384
+
+> /contextlength 131072
+Model context length set to: 131072
+```
+
+**Common Model Context Lengths:**
+- GPT-4: 8192 or 131072 (depending on variant)
+- GPT-3.5 Turbo: 16384
+- Claude 3: 200000
+- Local models: Varies (typically 2048-8192)
+
+**Notes:**
+
+- Must be a positive integer
+- Affects auto-compression threshold calculation (triggers at 75% of this value)
+- Changes are saved to the configuration file
+- Should match your model's maximum context length
+- Higher values allow longer conversations but use more tokens
+
+### `/compress`
+
+Compresses the current conversation context and starts a new chat with the compressed summary as a system message.
+
+**Usage:**
+
+```
+/compress
+```
+
+**Example:**
+
+```
+> /compress
+Context compressed. Starting new chat with compressed summary as system message.
+```
+
+**Notes:**
+
+- Requires at least one message in the current chat
+- Preserves key details and context from the previous conversation
+- Completely clears the current message history
+- Useful for very long conversations to avoid token limits
+- Uses the same AI model for intelligent context compression
+- Automatically includes AGENTS.md in the new system prompt if it exists
+- Resets the token counter after compression
+- Creates a fresh conversation thread while maintaining context
+
+**When to Use:**
+
+- When approaching token limits (check with `/config`)
+- When conversation becomes too long and unwieldy
+- When you want to start fresh but keep important context
+- After completing a major task or project phase
 
 ## Configuration Persistence
 
@@ -304,6 +392,24 @@ Error: could not fetch models from API
 
 Solution: Check your internet connection and API provider URL.
 
+**Context compression errors:**
+
+```
+> /compress
+Error: no messages to compress
+```
+
+Solution: Start a conversation first before attempting to compress context.
+
+**Permission errors:**
+
+```
+> /rag path /protected/path
+Error: permission denied
+```
+
+Solution: Choose a directory you have read access to.
+
 ### Getting Help
 
 If you encounter issues not covered here:
@@ -313,28 +419,24 @@ If you encounter issues not covered here:
 3. Review the [Architecture](architecture.md) and [Configuration](configuration.md) documents
 4. For bugs or feature requests, check the GitHub repository
 
-### `/compress`
+### Debug Mode
 
-Сжимает текущий контекст беседы и начинает новый чат с сжатым резюме в качестве системного сообщения.
+For troubleshooting configuration issues:
 
-**Usage:**
-
-```
-/compress
-```
-
-**Example:**
-
-```
-> /compress
-Context compressed. Starting new chat with compressed summary as system message.
+```bash
+# Enable debug logging
+export DEBUG=1
+./agent-go
 ```
 
-**Notes:**
+This will provide detailed logging information to help diagnose issues.
 
-- Требует наличия хотя бы одного сообщения в текущем чате
-- Сохраняет ключевые детали и контекст предыдущего разговора
-- Полностью очищает текущую историю сообщений
-- Полезно для очень длинных бесед, чтобы избежать токен-лимитов
-- Использует тот же API для интеллектуального сжатия контекста
-- Автоматически включает AGENTS.md в новый системный промпт, если он существует
+### Getting Help
+
+If you encounter issues not covered here:
+
+1. Use `/help` to see all available commands
+2. Check the main documentation in the `/docs` directory
+3. Review the [Architecture](architecture.md) and [Configuration](configuration.md) documents
+4. For bugs or feature requests, check the GitHub repository
+
