@@ -432,6 +432,120 @@ export DEBUG=1
 
 This will provide detailed logging information to help diagnose issues.
 
+## Additional Features
+
+### Streaming Mode
+
+Agent-Go supports streaming mode for real-time response generation:
+
+```
+> /stream on
+Streaming enabled.
+
+> Write a Python script that calculates Fibonacci numbers
+[Streaming] Writing Python script...
+[Streaming] Script created successfully...
+```
+
+**Usage:**
+```
+/stream on|off
+```
+
+**Notes:**
+- When enabled, responses are streamed token by token for better user experience
+- Reduces perceived latency for long responses
+- Automatically disabled when shell mode is entered
+- Can be toggled at any time during a session
+
+### Token Usage Tracking
+
+Agent-Go tracks and displays token usage in real-time:
+
+```
+> Create a Python script that calculates factorial
+[Tokens: 156]
+
+> Run the factorial script with input 10
+[Tokens: 342]
+
+> /compress
+Context compressed. Starting new chat with compressed summary as system message.
+[Tokens: 0]  # Token counter resets after compression
+```
+
+**Understanding Token Usage:**
+- Tokens are cumulative throughout the session
+- Each API call adds to the total token count
+- Auto-compression triggers at 75% of `model_context_length`
+- Manual compression with `/compress` resets the token counter
+
+### Command-Line Task Execution
+
+Execute tasks directly without interactive mode:
+
+```bash
+# Single task execution
+./agent-go "Create a new directory called 'test-project' and initialize git"
+
+# The agent will execute the task and exit automatically
+```
+
+**Benefits:**
+- Ideal for scripting and automation
+- No interactive prompts
+- Returns exit code 0 on success, non-zero on failure
+- Perfect for CI/CD pipelines
+
+## Troubleshooting
+
+### Common Issues
+
+**Model not found:**
+
+```
+> /model invalid-model
+Unknown model: invalid-model
+```
+
+Solution: Use `/help` or check your provider's documentation for valid model names.
+
+**Invalid path:**
+
+```
+> /rag path /nonexistent/path
+Error: cannot access /nonexistent/path
+```
+
+Solution: Ensure the directory exists and you have read permissions.
+
+**API connection issues:**
+
+```
+> /model
+Error: could not fetch models from API
+```
+
+Solution: Check your internet connection and API provider URL.
+
+**Context compression errors:**
+
+```
+> /compress
+Error: no messages to compress
+```
+
+Solution: Start a conversation first before attempting to compress context.
+
+**Permission errors:**
+
+```
+> /rag path /protected/path
+Error: permission denied
+```
+
+Solution: Choose a directory you have read access to.
+
 ### Getting Help
 
 If you encounter issues not covered here:
@@ -440,4 +554,16 @@ If you encounter issues not covered here:
 2. Check the main documentation in the `/docs` directory
 3. Review the [Architecture](architecture.md) and [Configuration](configuration.md) documents
 4. For bugs or feature requests, check the GitHub repository
+
+### Debug Mode
+
+For troubleshooting configuration issues:
+
+```bash
+# Enable debug logging
+export DEBUG=1
+./agent-go
+```
+
+This will provide detailed logging information to help diagnose issues.
 

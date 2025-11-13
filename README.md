@@ -9,6 +9,7 @@ Agent-Go is a powerful, command-line AI agent written in Go. It integrates with 
 - **Unlimited Conversation Memory**: Overcomes message limits through intelligent, automatic context compression, ensuring long-running conversations stay within token limits.
 - **Retrieval-Augmented Generation (RAG)**: Enhances AI responses by searching a local knowledge base of your files, providing highly relevant and context-aware answers.
 - **Advanced User Experience**: Features a dedicated shell mode, dynamic command-line auto-completion, built-in slash commands, and a first-time interactive setup wizard.
+- **Streaming Mode**: Real-time response generation for improved user experience.
 - **Cross-Platform**: Compiles and runs seamlessly on macOS, Linux, and Windows.
 - **Highly Configurable**: Manage behavior via environment variables, a central JSON configuration file, or command-line arguments.
 - **Custom Agent Behavior**: Define custom agent instructions and behavior using a simple `AGENTS.md` file.
@@ -105,11 +106,29 @@ Available commands:
   /shell             - Enter shell mode for direct command execution
   /compress          - Compress context and start new chat thread
   /contextlength <value> - Set the model context length
+  /stream on|off     - Toggle streaming mode
   /quit              - Exit the application
 
 > /model gpt-4-turbo
 Model set to: gpt-4-turbo
 ```
+
+### Streaming Mode
+Enable streaming mode for real-time response generation:
+
+```
+> /stream on
+Streaming enabled.
+
+> Write a Python script that calculates Fibonacci numbers
+[Streaming] Writing Python script...
+[Streaming] Script created successfully...
+```
+
+**Benefits:**
+- Reduces perceived latency for long responses
+- Provides immediate feedback during generation
+- Can be toggled at any time during a session
 
 ### Shell Mode
 For a more traditional shell experience, use the `/shell` command. The agent will not interpret your input, and commands are executed directly.
@@ -142,6 +161,43 @@ Based on the provided documentation, authentication requires:
 2. Proper endpoint setup
 ...
 ```
+
+### Token Usage Tracking
+Agent-Go tracks and displays token usage in real-time:
+
+```
+> Create a Python script that calculates factorial
+[Tokens: 156]
+
+> Run the factorial script with input 10
+[Tokens: 342]
+
+> /compress
+Context compressed. Starting new chat with compressed summary as system message.
+[Tokens: 0]  # Token counter resets after compression
+```
+
+**Understanding Token Usage:**
+- Tokens are cumulative throughout the session
+- Each API call adds to the total token count
+- Auto-compression triggers at 75% of `model_context_length`
+- Manual compression with `/compress` resets the token counter
+
+### Command-Line Task Execution
+Execute tasks directly without interactive mode:
+
+```bash
+# Single task execution
+./agent-go "Create a new directory called 'test-project' and initialize git"
+
+# The agent will execute the task and exit automatically
+```
+
+**Benefits:**
+- Ideal for scripting and automation
+- No interactive prompts
+- Returns exit code 0 on success, non-zero on failure
+- Perfect for CI/CD pipelines
 
 ## Configuration
 

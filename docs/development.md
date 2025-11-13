@@ -15,6 +15,8 @@ This comprehensive guide provides instructions for setting up the development en
 - [Performance Considerations](#performance-considerations)
 - [Security Guidelines](#security-guidelines)
 - [Release Process](#release-process)
+- [Documentation Guidelines](#documentation-guidelines)
+- [Community and Support](#community-and-support)
 
 ## Prerequisites
 
@@ -566,6 +568,154 @@ When updating documentation:
 3. Include code examples where helpful
 4. Update related documentation when making changes
 5. Test all examples to ensure they work
+
+## Documentation Guidelines
+
+### Documentation Structure
+
+- **README.md**: Main project overview and quick start guide
+- **docs/README.md**: Developer documentation overview
+- **docs/architecture.md**: System architecture and design decisions
+- **docs/commands.md**: Complete command reference
+- **docs/configuration.md**: Configuration options and examples
+- **docs/development.md**: This development guide
+- **docs/examples.md**: Practical examples and best practices
+
+### Writing Good Documentation
+
+1. **Audience Awareness**: Write for both users and developers
+2. **Clarity**: Use simple, direct language
+3. **Examples**: Include practical, working examples
+4. **Consistency**: Follow established formatting and style
+5. **Completeness**: Cover all important aspects of the topic
+6. **Maintenance**: Keep documentation up-to-date with code changes
+
+### Documentation Format
+
+- Use Markdown for all documentation
+- Follow consistent heading structure
+- Use code blocks for examples and configuration
+- Include tables for parameter references
+- Use proper link formatting for cross-references
+
+### Code Examples
+
+```go
+// Good example with context
+func loadConfig() (*Config, error) {
+    // Load configuration from multiple sources
+    // with proper error handling
+    return &config, nil
+}
+```
+
+## Community and Support
+
+### Getting Help
+
+- **GitHub Issues**: Report bugs and request features
+- **GitHub Discussions**: Join community discussions
+- **Discord**: Join our community server (if available)
+- **Email**: Contact maintainers for private matters
+
+### Contributing
+
+We welcome contributions of all types:
+
+1. **Code Contributions**: New features, bug fixes, optimizations
+2. **Documentation**: Improvements to existing docs or new guides
+3. **Bug Reports**: Detailed issue reports with reproduction steps
+4. **Feature Requests**: Well-thought-out suggestions for new functionality
+5. **Testing**: Additional test coverage and edge case testing
+
+### Development Community
+
+- **Code of Conduct**: Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md)
+- **License**: This project is licensed under the MIT License
+- **Attribution**: Please give appropriate credit when using this project
+
+### Stay Updated
+
+- **Watch the repository** for releases and announcements
+- **Subscribe to releases** for version notifications
+- **Follow the project** on GitHub for updates
+
+## Performance Optimization
+
+### Memory Management
+
+1. **Use object pooling** for frequently allocated objects
+2. **Avoid unnecessary allocations** in hot paths
+3. **Use `sync.Pool`** for temporary objects
+4. **Profile memory usage** regularly with `go tool pprof`
+
+### Concurrency Patterns
+
+1. **Use goroutines** for I/O-bound operations
+2. **Use channels** for communication between goroutines
+3. **Avoid shared memory** when possible
+4. **Use `sync.WaitGroup`** for goroutine synchronization
+5. **Implement proper cancellation** with `context.Context`
+
+### Network Optimization
+
+1. **Use connection pooling** for HTTP clients
+2. **Implement request batching** where appropriate
+3. **Cache responses** when possible
+4. **Use timeouts** to prevent hanging operations
+5. **Implement retry logic** for transient failures
+
+## Security Guidelines
+
+### Input Validation
+
+1. **Validate all user inputs** before processing
+2. **Sanitize file paths** to prevent directory traversal
+3. **Validate API responses** for expected structure
+4. **Use parameterized queries** for database operations
+5. **Implement rate limiting** for API endpoints
+
+### Secret Management
+
+1. **Never hardcode API keys** or secrets
+2. **Use environment variables** for sensitive data
+3. **Set proper file permissions** for configuration files
+4. **Use secret management tools** in production
+5. **Implement audit logging** for sensitive operations
+
+### Command Execution Security
+
+1. **Validate commands** before execution
+2. **Use safe execution methods** with proper sandboxing
+3. **Implement proper error handling** to avoid information leakage
+4. **Use platform-specific shell handling** (cmd.exe on Windows, sh on Unix-like systems)
+5. **Implement timeout mechanisms** for long-running commands
+
+## Release Process
+
+### Version Management
+
+1. **Semantic Versioning**: Follow semantic versioning (SemVer) principles
+2. **Changelog**: Maintain a CHANGELOG.md file
+3. **Tagging**: Use meaningful git tags for releases
+4. **Branching**: Use feature branches for development
+
+### Release Checklist
+
+- [ ] All tests pass
+- [ ] Documentation is updated
+- [ ] Changelog is updated
+- [ ] Version numbers are updated
+- [ ] Release artifacts are built
+- [ ] GitHub release is created
+- [ ] Documentation is published
+
+### Post-Release Activities
+
+1. **Monitor feedback** from early adopters
+2. **Address critical issues** promptly
+3. **Plan next release** based on feedback and roadmap
+4. **Update roadmap** based on completed features
 
 ---
 

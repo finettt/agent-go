@@ -442,7 +442,9 @@ go run src/main.go --test-config
 cat ~/.config/agent-go/config.json | jq .
 ```
 
-### 1. Environment-Specific Configurations
+## Advanced Configuration Management
+
+### Environment-Specific Configurations
 
 Use different configuration files for different environments:
 
@@ -457,7 +459,7 @@ export CONFIG_FILE=~/.config/agent-go/prod.json
 export OPENAI_KEY="dev-key" && ./agent-go
 ```
 
-### 2. Secret Management
+### Secret Management
 
 Use secret management tools for production:
 
@@ -477,7 +479,7 @@ env:
 vault read -field=openai_key secret/agent-go
 ```
 
-### 3. Configuration Backup
+### Configuration Backup and Recovery
 
 Regularly backup your configuration:
 
@@ -492,7 +494,7 @@ cp ~/.config/agent-go/config.json.backup ~/.config/agent-go/config.json
 find ~/.config/agent-go -name "config.json.*" -mtime +30 -delete
 ```
 
-### 4. Version Control
+### Version Control Integration
 
 Exclude sensitive configuration from version control:
 
@@ -505,7 +507,7 @@ Exclude sensitive configuration from version control:
 .env.local
 ```
 
-### 5. Configuration Templates
+### Configuration Templates
 
 Create configuration templates for different use cases:
 
@@ -528,7 +530,7 @@ EOF
 cp ~/.config/agent-go/config.template.json ~/.config/agent-go/config.json
 ```
 
-### 6. Configuration Monitoring
+### Configuration Monitoring and Logging
 
 Monitor configuration changes and usage:
 
@@ -539,7 +541,55 @@ echo "$(date): Configuration modified" >> ~/.config/agent-go/config.log
 # Monitor API usage
 grep "API request" ~/.config/agent-go/agent.log | tail -10
 ```
-*.secret
+
+## Configuration Best Practices
+
+### Security Best Practices
+
+1. **Never hardcode API keys** in configuration files
+2. **Use environment variables** for sensitive data in production
+3. **Set proper file permissions** (600) for configuration files
+4. **Use encrypted configuration files** for sensitive environments
+5. **Implement audit logging** for configuration changes
+6. **Regularly rotate API keys** and update configuration
+
+### Performance Optimization
+
+1. **Use appropriate context lengths** for your model
+2. **Optimize RAG search parameters** for your document collection
+3. **Enable auto-compression** to manage long conversations
+4. **Set reasonable token limits** to control API costs
+5. **Use caching** where appropriate for frequently accessed data
+
+### Development vs Production
+
+**Development Configuration:**
+- More verbose logging
+- Debug mode enabled
+- Local API endpoints
+- Larger context limits
+- Experimental features enabled
+
+**Production Configuration:**
+- Minimal logging
+- Strict security settings
+- Production API endpoints
+- Optimized context limits
+- Experimental features disabled
+
+### Configuration Validation
+
+Agent-Go performs comprehensive validation on startup:
+
+```bash
+# Validate configuration file structure
+cat ~/.config/agent-go/config.json | jq .
+
+# Test API connectivity
+curl -H "Authorization: Bearer $OPENAI_KEY" $OPENAI_BASE/v1/models
+
+# Validate RAG path
+ls -la $RAG_PATH 2>/dev/null && echo "RAG path is accessible"
 ```
 
 ## Migration Guide

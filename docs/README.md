@@ -45,6 +45,7 @@ For quick start information, see the main [README.md](../README.md) file.
 - **Custom Instructions**: AGENTS.md file support for personalized behavior
 - **Shell Mode**: Direct command execution interface
 - **Token Tracking**: Real-time usage monitoring
+- **Streaming Mode**: Real-time response generation
 - **Cross-platform**: Works on macOS, Linux, and Windows
 
 ## Contributing
