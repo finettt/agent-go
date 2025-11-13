@@ -24,6 +24,7 @@ type Config struct {
 }
 
 type Agent struct {
+	ID       string
 	Messages []Message
 	MsgCount int
 }

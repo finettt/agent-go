@@ -3,14 +3,17 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/google/uuid"
 )
 
 func runSubAgent(task string, config *Config) (string, error) {
 	subAgent := &Agent{
+		ID: uuid.New().String(),
 		Messages: []Message{
 			{
 				Role:    "system",
-				Content: stringp(getSystemInfo() + "\n\nYou are a sub-agent tasked with completing a specific goal. You have access to the 'execute_command' tool. Plan your steps and execute them sequentially. When you have finished the task, output the final result as a single response."),
+				Content: stringp(getSystemInfo() + "\n\nYou are a sub-agent tasked with completing a specific goal. You have access to the 'execute_command' and todo list management tools. Plan your steps and execute them sequentially. When you have finished the task, output the final result as a single response."),
 			},
 			{
 				Role:    "user",
@@ -20,7 +23,7 @@ func runSubAgent(task string, config *Config) (string, error) {
 	}
 
 	for {
-		resp, err := sendAPIRequest(subAgent, config, false) // false: do not include spawn_agent tool
+		resp, err := sendAPIRequest(subAgent, config, true) // true: include all tools for sub-agents
 		if err != nil {
 			return "", fmt.Errorf("sub-agent API request failed: %w", err)
 		}
@@ -42,24 +45,33 @@ func runSubAgent(task string, config *Config) (string, error) {
 		}
 
 		for _, toolCall := range assistantMsg.ToolCalls {
-			if toolCall.Function.Name == "execute_command" {
+			var output string
+			var err error
+
+			switch toolCall.Function.Name {
+			case "execute_command":
 				var args CommandArgs
-				if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err != nil {
-					return "", fmt.Errorf("sub-agent tool call argument error: %w", err)
+				if err = json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err == nil {
+					output, err = executeCommand(args.Command)
 				}
-
-				output, err := executeCommand(args.Command)
-				if err != nil {
-					output = fmt.Sprintf("Command execution error: %s", err)
-				}
-
-				toolMsg := Message{
-					Role:       "tool",
-					ToolCallID: toolCall.ID,
-					Content:    stringp("Command output:\n" + output),
-				}
-				subAgent.Messages = append(subAgent.Messages, toolMsg)
+			case "create_todo":
+				output, err = createTodo(subAgent.ID, toolCall.Function.Arguments)
+			case "update_todo":
+				output, err = updateTodo(subAgent.ID, toolCall.Function.Arguments)
+			case "get_todo_list":
+				output, err = getTodoList(subAgent.ID)
 			}
+
+			if err != nil {
+				output = fmt.Sprintf("Tool execution error: %s", err)
+			}
+
+			toolMsg := Message{
+				Role:       "tool",
+				ToolCallID: toolCall.ID,
+				Content:    stringp(output),
+			}
+			subAgent.Messages = append(subAgent.Messages, toolMsg)
 		}
 	}
 }
