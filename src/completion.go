@@ -59,7 +59,6 @@ func fetchAvailableModels(config *Config) ([]string, error) {
 	return models, nil
 }
 
-
 // buildCompleter creates the completer for readline.
 // It fetches model names once on startup for autocompletion.
 func buildCompleter(config *Config) readline.AutoCompleter {
@@ -93,6 +92,10 @@ func buildCompleter(config *Config) readline.AutoCompleter {
 		),
 		readline.PcItem("/compress"),
 		readline.PcItem("/contextlength"),
+		readline.PcItem("/stream",
+			readline.PcItem("on"),
+			readline.PcItem("off"),
+		),
 		readline.PcItem("/shell"),
 		readline.PcItem("/quit"),
 	)

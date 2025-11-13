@@ -168,7 +168,16 @@ func runCLI() {
 				continue // Restart the outer loop to get fresh user input
 			}
 
-			resp, err := sendAPIRequest(agent, config, true)
+			var resp *APIResponse
+			var err error
+
+			// Use streaming or regular API based on config
+			if config.Stream {
+				resp, err = sendAPIRequestStreaming(agent, config, true)
+			} else {
+				resp, err = sendAPIRequest(agent, config, true)
+			}
+
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 				break // Break from the agentic loop
@@ -182,7 +191,8 @@ func runCLI() {
 			assistantMsg := resp.Choices[0].Message
 			agent.Messages = append(agent.Messages, assistantMsg)
 
-			if assistantMsg.Content != nil {
+			// Only print content if not streaming (streaming already printed it)
+			if !config.Stream && assistantMsg.Content != nil {
 				fmt.Printf("\033[34m%s\033[0m\n", *assistantMsg.Content)
 			}
 
@@ -273,6 +283,7 @@ func handleSlashCommand(command string) {
 		fmt.Println("  /shell             - Enter shell mode for direct command execution")
 		fmt.Println("  /compress          - Compress context and start new chat thread")
 		fmt.Println("  /contextlength <value> - Set the model context length (e.g., 131072)")
+		fmt.Println("  /stream on|off     - Toggle streaming mode")
 		fmt.Println("  /quit              - Exit the application")
 	case "/contextlength":
 		if len(parts) > 1 {
@@ -317,6 +328,7 @@ func handleSlashCommand(command string) {
 		fmt.Printf("Auto Compress Enabled: %t\n", config.AutoCompress)
 		fmt.Printf("Auto Compress Threshold: %d\n", config.AutoCompressThreshold)
 		fmt.Printf("Model Context Length: %d\n", config.ModelContextLength)
+		fmt.Printf("Stream Enabled: %t\n", config.Stream)
 	case "/rag":
 		if len(parts) > 1 {
 			switch parts[1] {
@@ -344,6 +356,27 @@ func handleSlashCommand(command string) {
 		}
 	case "/compress":
 		compressAndStartNewChat()
+	case "/stream":
+		if len(parts) > 1 {
+			switch parts[1] {
+			case "on":
+				config.Stream = true
+				saveConfig(config)
+				fmt.Println("Streaming enabled.")
+			case "off":
+				config.Stream = false
+				saveConfig(config)
+				fmt.Println("Streaming disabled.")
+			default:
+				fmt.Println("Usage: /stream [on|off]")
+			}
+		} else {
+			if config.Stream {
+				fmt.Println("Streaming is currently enabled.")
+			} else {
+				fmt.Println("Streaming is currently disabled.")
+			}
+		}
 	default:
 		fmt.Printf("Unknown command: %s\n", baseCommand)
 	}
@@ -449,7 +482,16 @@ func runTask(task string) {
 
 	// Execute the task using the agentic loop
 	for {
-		resp, err := sendAPIRequest(agent, config, true)
+		var resp *APIResponse
+		var err error
+
+		// Use streaming or regular API based on config
+		if config.Stream {
+			resp, err = sendAPIRequestStreaming(agent, config, true)
+		} else {
+			resp, err = sendAPIRequest(agent, config, true)
+		}
+
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 			break
@@ -463,7 +505,8 @@ func runTask(task string) {
 		assistantMsg := resp.Choices[0].Message
 		agent.Messages = append(agent.Messages, assistantMsg)
 
-		if assistantMsg.Content != nil {
+		// Only print content if not streaming (streaming already printed it)
+		if !config.Stream && assistantMsg.Content != nil {
 			fmt.Printf("%s\n", *assistantMsg.Content)
 		}
 

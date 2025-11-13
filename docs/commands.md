@@ -32,6 +32,7 @@ Available commands:
   /shell             - Enter shell mode for direct command execution
   /compress          - Compress context and start new chat thread
   /contextlength <value> - Set the model context length
+  /stream on|off     - Toggle streaming mode
   /quit              - Exit the application
 ```
 

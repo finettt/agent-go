@@ -77,6 +77,7 @@ Manages communication with OpenAI-compatible APIs:
 - **Request Building**: Constructs API requests with proper headers and payload
 - **Response Handling**: Processes API responses and extracts assistant messages
 - **Error Handling**: Comprehensive error handling for network and API issues
+- **Streaming Support**: Real-time token-by-token streaming for interactive user experience.
 - **Tool Calling**: Supports function/tool calling for command execution
 - **Model Flexibility**: Works with any OpenAI-compatible API provider
 - **Retry Logic**: Basic retry mechanism for transient failures

@@ -19,6 +19,7 @@ func loadConfig() *Config {
 		AutoCompress:          true,
 		AutoCompressThreshold: 20,
 		ModelContextLength:    131072,
+		Stream:                false,
 	}
 
 	home, err := os.UserHomeDir()
@@ -64,6 +65,9 @@ func loadConfig() *Config {
 		if val, err := strconv.Atoi(modelContextLength); err == nil && val > 0 {
 			config.ModelContextLength = val
 		}
+	}
+	if stream := os.Getenv("STREAM_ENABLED"); stream == "1" || stream == "true" {
+		config.Stream = true
 	}
 
 	return config
