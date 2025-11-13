@@ -1,8 +1,8 @@
-.PHONY: all build run clean
+.PHONY: all build compress run clean
 
 BINARY_NAME=agent-go
 
-all: build
+all: build compress
 
 build:
 	@echo "Building..."
@@ -15,3 +15,7 @@ clean:
 	@echo "Cleaning..."
 	@go clean
 	@rm -f $(BINARY_NAME)
+
+compress:
+	@echo "Compressing..."
+	@upx ./$(BINARY_NAME)
