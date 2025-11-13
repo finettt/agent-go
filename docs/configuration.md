@@ -312,16 +312,45 @@ env:
 
 #### Docker Environment Setup
 
+The Dockerfile is configured to create a `/workspace` volume where you can mount your current directory:
+
 ```bash
-# Using Docker environment variables
-docker run -e OPENAI_KEY="your-api-key" \
-           -e OPENAI_MODEL="gpt-4-turbo" \
-           -e RAG_ENABLED=1 \
-           -e RAG_PATH="/documents" \
-           -e AUTO_COMPRESS=1 \
-           -v ./documents:/documents \
-           agent-go
+# Basic usage with workspace mounted
+docker run -it -v $(pwd):/workspace agent-go
+
+# With full environment configuration
+docker run -it \
+  -v $(pwd):/workspace \
+  -e OPENAI_KEY="your-api-key" \
+  -e OPENAI_MODEL="gpt-4-turbo" \
+  -e RAG_ENABLED=1 \
+  -e RAG_PATH="/workspace" \
+  -e AUTO_COMPRESS=1 \
+  agent-go
+
+# With separate documents directory
+docker run -it \
+  -v $(pwd):/workspace \
+  -v /path/to/documents:/documents \
+  -e OPENAI_KEY="your-api-key" \
+  -e RAG_ENABLED=1 \
+  -e RAG_PATH="/documents" \
+  agent-go
+
+# With persistent configuration
+docker run -it \
+  -v $(pwd):/workspace \
+  -v ~/.config/agent-go:/home/appuser/.config/agent-go \
+  -e OPENAI_KEY="your-api-key" \
+  agent-go
 ```
+
+**Docker Volume Configuration:**
+- `/workspace` - Mount your current directory here for file access
+- `/home/appuser/.config/agent-go` - Configuration directory (can be mounted for persistence)
+- Additional volumes can be mounted for RAG documents or other data
+- The container runs as non-root user `appuser` for security
+- Ensure mounted directories have appropriate permissions
 
 ## Security Considerations
 

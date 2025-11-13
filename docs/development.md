@@ -147,6 +147,38 @@ make install
 
 **Build Output**: The binary is created as `agent-go` in the project root directory.
 
+### Using Docker
+
+```bash
+# Build the Docker image
+docker build -t agent-go .
+
+# Run with current directory mounted as /workspace
+docker run -it -v $(pwd):/workspace agent-go
+
+# Run with environment variables
+docker run -it \
+  -v $(pwd):/workspace \
+  -e OPENAI_KEY="your-api-key" \
+  -e OPENAI_MODEL="gpt-4-turbo" \
+  agent-go
+
+# Run with RAG documents mounted
+docker run -it \
+  -v $(pwd):/workspace \
+  -v /path/to/documents:/documents \
+  -e OPENAI_KEY="your-api-key" \
+  -e RAG_ENABLED=1 \
+  -e RAG_PATH="/documents" \
+  agent-go
+```
+
+**Docker Configuration:**
+- The `/workspace` directory is where your host's current directory will be mounted
+- The container runs as a non-root user (`appuser`) for security
+- Configuration is stored in `/home/appuser/.config/agent-go` inside the container
+- Use volume mounts to persist configuration across container restarts
+
 ### Using Go Directly
 
 ```bash

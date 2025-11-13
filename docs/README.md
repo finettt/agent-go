@@ -16,7 +16,7 @@ For quick start information, see the main [README.md](../README.md) file.
 
 ### Development Resources
 
-- [Development Guide](development.md) - Contributing guidelines, testing, and development workflow
+- [Development Guide](development.md) - Contributing guidelines, testing, development workflow, and Docker deployment
 - [Examples and Best Practices](examples.md) - Practical use cases, integration scenarios, and performance optimization
 
 ## Quick Navigation
@@ -29,6 +29,7 @@ For quick start information, see the main [README.md](../README.md) file.
 ### For Developers
 - **Architecture**: Understand the system design in [architecture.md](architecture.md)
 - **Development**: Follow the contributing guide in [development.md](development.md)
+- **Docker Deployment**: Learn how to run Agent-Go in Docker containers in [development.md](development.md#using-docker)
 - **Examples**: Explore practical implementations in [examples.md](examples.md)
 
 ## Key Features

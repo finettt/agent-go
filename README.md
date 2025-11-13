@@ -25,7 +25,7 @@ Agent-Go is a powerful, command-line AI agent written in Go. It integrates with 
 
 ### Installation
 
-You can install Agent-Go either by building from the source or directly with `go install`.
+You can install Agent-Go either by building from the source, using Docker, or directly with `go install`.
 
 **Build from Source**
 ```bash
@@ -38,6 +38,19 @@ make build
 
 # Or, build and run the application
 make run
+```
+
+**Using Docker**
+```bash
+# Clone the repository
+git clone https://github.com/finettt/agent-go.git
+cd agent-go
+
+# Build the Docker image
+docker build -t agent-go .
+
+# Run with your current directory mounted as /workspace
+docker run -it -v $(pwd):/workspace agent-go
 ```
 
 **Using `go install`**

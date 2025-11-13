@@ -18,7 +18,7 @@ This document provides practical examples and best practices for using Agent-Go 
 
 **Create and Edit Files**
 
-```
+
 > Create a Python script that calculates factorial
 Created factorial.py with the following content:
 ```python
@@ -35,10 +35,10 @@ print(factorial(5))
 > Run the factorial script
 Factorial of 5 is 120
 
-```
+
 
 **Batch File Operations**
-```
+
 
 > Create a directory structure for a new project and initialize it
 Created directory 'my-project'
@@ -48,12 +48,12 @@ Created directory 'my-project/tests'
 Initialized git repository in my-project
 Created requirements.txt with basic dependencies
 
-```
+
 
 ### 2. System Administration
 
 **System Information**
-```
+
 
 > Show system information and disk usage
 System Information:
@@ -68,10 +68,10 @@ Disk Usage:
 - /: 45GB used, 55GB available
 - /home: 25GB used, 75GB available
 
-```
+
 
 **Network Operations**
-```
+
 
 > Check network connectivity and open ports
 Network connectivity:
@@ -86,12 +86,12 @@ Open ports:
 - 80/tcp: HTTP (nginx)
 - 443/tcp: HTTPS (nginx)
 
-```
+
 
 ### 3. Development Tasks
 
 **Code Generation**
-```
+
 
 > Generate a React component for a user profile
 Created UserProfile.jsx with the following content:
@@ -113,10 +113,10 @@ const UserProfile = ({ user }) => {
 export default UserProfile;
 ```
 
-```
+
 
 **Database Operations**
-```
+
 
 > Create a SQL schema for a blog application
 Created schema.sql with the following content:
@@ -138,14 +138,12 @@ CREATE TABLE posts (
 );
 ```
 
-```
 
 ## Advanced Workflows
 
 ### 1. Multi-Step Project Setup
 
 **Complete Web Application Setup**
-```
 
 > Set up a complete web application with React backend and PostgreSQL database
 
@@ -166,12 +164,10 @@ web-app/
 ├── docker-compose.yml # Docker configuration
 └── .github/           # CI/CD configuration
 
-```
 
 ### 2. Data Processing Pipeline
 
 **Automated Data Analysis**
-```
 
 > Create a data processing pipeline that analyzes sales data and generates reports
 
@@ -190,12 +186,10 @@ Data processing pipeline created:
 - Creates visualizations and charts
 - Saves reports to shared drive
 
-```
 
 ### 3. DevOps Automation
 
 **Infrastructure Setup**
-```
 
 > Set up complete infrastructure on AWS using Terraform
 
@@ -217,74 +211,50 @@ Infrastructure deployed successfully:
 - S3 Buckets: 3
 - CloudWatch Alarms: 5
 
-```
-
 ## Integration Scenarios
 
-### 1. CI/CD Pipeline Integration
+### 1. Docker Integration
 
-**GitHub Actions Example**
-```yaml
-# .github/workflows/agent-go.yml
-name: Agent-Go CI/CD
+The Agent-Go Dockerfile creates a `/workspace` volume for mounting your current directory, allowing seamless file access within the container.
 
-on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main ]
+**Building and Running with Docker**
 
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Set up Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: 1.25
-    
-    - name: Run tests
-      run: |
-        go test -v ./...
-        go vet ./...
-        golangci-lint run
-    
-    - name: Build application
-      run: |
-        make build
-    
-    - name: Run integration tests
-      run: |
-        export OPENAI_KEY=${{ secrets.OPENAI_API_KEY }}
-        ./agent-go --test-mode
+```bash
+# Build the Docker image
+docker build -t agent-go .
+
+# Run with current directory mounted
+docker run -it -v $(pwd):/workspace agent-go
+
+# Run with environment variables
+docker run -it \
+  -v $(pwd):/workspace \
+  -e OPENAI_KEY="your-api-key" \
+  -e OPENAI_MODEL="gpt-4-turbo" \
+  agent-go
+
+# Run with RAG documents
+docker run -it \
+  -v $(pwd):/workspace \
+  -v /path/to/docs:/documents \
+  -e OPENAI_KEY="your-api-key" \
+  -e RAG_ENABLED=1 \
+  -e RAG_PATH="/documents" \
+  agent-go
+
+# Run with persistent configuration
+docker run -it \
+  -v $(pwd):/workspace \
+  -v ~/.config/agent-go:/home/appuser/.config/agent-go \
+  -e OPENAI_KEY="your-api-key" \
+  agent-go
 ```
 
-### 2. Docker Integration
-
-**Dockerfile Example**
-
-```dockerfile
-# Dockerfile
-FROM golang:1.25-alpine AS builder
-
-WORKDIR /app
-COPY go.mod go.sum ./
-RUN go mod download
-
-COPY . .
-RUN go build -o agent-go ./src
-
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates
-WORKDIR /root/
-
-COPY --from=builder /app/agent-go .
-COPY --from=builder /app/config ./config
-
-CMD ["./agent-go"]
-```
+**Docker Volume Configuration:**
+- `/workspace` - Your current directory is mounted here for file operations
+- `/home/appuser/.config/agent-go` - Configuration directory (persists across runs when mounted)
+- Additional volumes for RAG documents or other data
+- Container runs as non-root user `appuser` for security
 
 **docker-compose.yml Example**
 
@@ -298,14 +268,26 @@ services:
       - OPENAI_MODEL=gpt-4-turbo
       - RAG_ENABLED=1
       - RAG_PATH=/documents
+      - AUTO_COMPRESS=1
     volumes:
+      - .:/workspace
       - ./documents:/documents
-      - ./config:/root/.config/agent-go
-    ports:
-      - "8080:8080"
+      - ~/.config/agent-go:/home/appuser/.config/agent-go
+    stdin_open: true
+    tty: true
 ```
 
-### 3. Kubernetes Integration
+**Usage with docker-compose:**
+
+```bash
+# Start the service
+docker-compose run agent-go
+
+# With custom command
+docker-compose run agent-go /bin/sh
+```
+
+### 2. Kubernetes Integration
 
 **Kubernetes Deployment**
 
@@ -591,7 +573,7 @@ export DEBUG=1
 
 **Code Review and Optimization**
 
-```
+
 > Review the following code and suggest improvements
 Code review completed:
 1. Added error handling for file operations
@@ -619,12 +601,11 @@ func processFile(filename string) error {
 }
 ```
 
-```
 
 ### 2. System Administration
 
 **Automated Maintenance**
-```
+
 
 > Perform system maintenance: update packages, clean logs, check disk space
 System maintenance completed:
@@ -642,12 +623,10 @@ System status:
 - Disk Usage: 65%
 - Services: All running
 
-```
 
 ### 3. Data Analysis
 
 **Business Intelligence**
-```
 
 > Analyze sales data from Q1 and generate insights
 Sales analysis completed:
@@ -664,14 +643,12 @@ Recommendations:
 2. Optimize inventory for Product A
 3. Improve customer retention strategies
 
-```
 
 ## Troubleshooting Examples
 
 ### 1. API Connection Issues
 
 **Diagnosing API Problems**
-```
 
 > Check API connectivity and diagnose issues
 API connectivity check:
@@ -690,12 +667,11 @@ Troubleshooting steps:
 3. Check firewall settings
 4. Try alternative API endpoint
 
-```
 
 ### 2. Performance Issues
 
 **Performance Analysis**
-```
+
 
 > Analyze application performance and identify bottlenecks
 Performance analysis completed:
@@ -713,12 +689,10 @@ Optimization recommendations:
 3. Optimize RAG search parameters
 4. Add request batching
 
-```
 
 ### 3. Configuration Issues
 
 **Configuration Validation**
-```
 
 > Validate configuration and identify issues
 Configuration validation:
@@ -741,7 +715,6 @@ Fixes applied:
 2. Set proper file permissions
 3. Updated environment variables
 
-```
 
 ## Best Practices Summary
 
