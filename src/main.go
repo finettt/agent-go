@@ -37,11 +37,12 @@ func main() {
 	}
 
 	agent = &Agent{
+		ID:       "main",
 		Messages: make([]Message, 0),
 	}
 
 	// Base system prompt
-	systemPrompt := "You are an AI assistant. For multi-step tasks, chain commands with && (e.g., 'echo content > file.py && python3 file.py'). Use execute_command for shell tasks."
+	systemPrompt := "You are an AI assistant. You can manage a todo list by using the `create_todo`, `update_todo`, and `get_todo_list` tools. For multi-step tasks, chain commands with && (e.g., 'echo content > file.py && python3 file.py'). Use execute_command for shell tasks."
 	systemPrompt = getSystemInfo() + "\n\n" + systemPrompt
 
 	// Check for AGENTS.md and prepend its content to the system prompt
@@ -207,46 +208,43 @@ func runCLI() {
 			}
 
 			for _, toolCall := range assistantMsg.ToolCalls {
-				if toolCall.Function.Name == "execute_command" {
+				var output string
+				var err error
+
+				switch toolCall.Function.Name {
+				case "execute_command":
 					var args CommandArgs
-					if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err != nil {
-						fmt.Fprintf(os.Stderr, "Tool call argument error: %s\n", err)
-						continue // Next tool call
+					if err = json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err == nil {
+						output, err = executeCommand(args.Command)
 					}
-
-					output, err := executeCommand(args.Command)
-					if err != nil {
-						output = fmt.Sprintf("Command execution error: %s", err)
-					}
-
-					content := "Command output:\n" + output
-					toolMsg := Message{
-						Role:       "tool",
-						ToolCallID: toolCall.ID,
-						Content:    stringp(content),
-					}
-					agent.Messages = append(agent.Messages, toolMsg)
-				} else if toolCall.Function.Name == "spawn_agent" {
+				case "create_todo":
+					output, err = createTodo(agent.ID, toolCall.Function.Arguments)
+				case "update_todo":
+					output, err = updateTodo(agent.ID, toolCall.Function.Arguments)
+				case "get_todo_list":
+					output, err = getTodoList(agent.ID)
+				case "spawn_agent":
 					var args SubAgentTask
-					if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err != nil {
-						fmt.Fprintf(os.Stderr, "Tool call argument error: %s\n", err)
-						continue
+					if err = json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err == nil {
+						fmt.Printf("\033[33mSpawning sub-agent for task: %s\033[0m\n", args.Task)
+						output, err = runSubAgent(args.Task, config)
+						fmt.Printf("\033[33mSub-agent finished with result: %s\033[0m\n", output)
 					}
-
-					fmt.Printf("\033[33mSpawning sub-agent for task: %s\033[0m\n", args.Task)
-					output, err := runSubAgent(args.Task, config)
-					if err != nil {
-						output = fmt.Sprintf("Sub-agent execution error: %s", err)
-					}
-					fmt.Printf("\033[33mSub-agent finished with result: %s\033[0m\n", output)
-
-					toolMsg := Message{
-						Role:       "tool",
-						ToolCallID: toolCall.ID,
-						Content:    stringp("Sub-agent output:\n" + output),
-					}
-					agent.Messages = append(agent.Messages, toolMsg)
 				}
+
+				if err != nil {
+					output = fmt.Sprintf("Tool execution error: %s", err)
+				}
+
+				// Print tool output for visibility
+				fmt.Printf("\033[35m%s\033[0m\n", output)
+
+				toolMsg := Message{
+					Role:       "tool",
+					ToolCallID: toolCall.ID,
+					Content:    stringp(output),
+				}
+				agent.Messages = append(agent.Messages, toolMsg)
 			}
 			// Continue loop to send tool output back to API
 		}
@@ -285,7 +283,15 @@ func handleSlashCommand(command string) {
 		fmt.Println("  /contextlength <value> - Set the model context length (e.g., 131072)")
 		fmt.Println("  /stream on|off     - Toggle streaming mode")
 		fmt.Println("  /subagents on|off  - Toggle sub-agent spawning")
+		fmt.Println("  /todo              - Display the current todo list")
 		fmt.Println("  /quit              - Exit the application")
+	case "/todo":
+		list, err := getTodoList(agent.ID)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error getting todo list: %s\n", err)
+		} else {
+			fmt.Println(list)
+		}
 	case "/contextlength":
 		if len(parts) > 1 {
 			val, err := strconv.Atoi(parts[1])
@@ -426,7 +432,7 @@ func compressAndStartNewChat() {
 		Messages: make([]Message, 0),
 	}
 
-	systemPrompt := fmt.Sprintf("Previous conversation context:\n\n%s\n\nYou are an AI assistant. For multi-step tasks, chain commands with && (e.g., 'echo content > file.py && python3 file.py'). Use execute_command for shell tasks.", compressedContent)
+	systemPrompt := fmt.Sprintf("Previous conversation context:\n\n%s\n\nYou are an AI assistant. You can manage a todo list by using the `create_todo`, `update_todo`, and `get_todo_list` tools. For multi-step tasks, chain commands with && (e.g., 'echo content > file.py && python3 file.py'). Use execute_command for shell tasks.", compressedContent)
 	systemPrompt = getSystemInfo() + "\n\n" + systemPrompt
 
 	agentInstructions, err := readAgentsFile("AGENTS.md")
@@ -475,11 +481,12 @@ func runTask(task string) {
 
 	// Create agent instance
 	agent = &Agent{
+		ID:       "main",
 		Messages: make([]Message, 0),
 	}
 
 	// Base system prompt
-	systemPrompt := "You are an AI assistant. For multi-step tasks, chain commands with && (e.g., 'echo content > file.py && python3 file.py'). Use execute_command for shell tasks."
+	systemPrompt := "You are an AI assistant. You can manage a todo list by using the `create_todo`, `update_todo`, and `get_todo_list` tools. For multi-step tasks, chain commands with && (e.g., 'echo content > file.py && python3 file.py'). Use execute_command for shell tasks."
 	systemPrompt = getSystemInfo() + "\n\n" + systemPrompt
 
 	// Check for AGENTS.md and prepend its content to the system prompt
@@ -538,46 +545,43 @@ func runTask(task string) {
 		}
 
 		for _, toolCall := range assistantMsg.ToolCalls {
-			if toolCall.Function.Name == "execute_command" {
+			var output string
+			var err error
+
+			switch toolCall.Function.Name {
+			case "execute_command":
 				var args CommandArgs
-				if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err != nil {
-					fmt.Fprintf(os.Stderr, "Tool call argument error: %s\n", err)
-					continue // Next tool call
+				if err = json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err == nil {
+					output, err = executeCommand(args.Command)
 				}
-
-				output, err := executeCommand(args.Command)
-				if err != nil {
-					output = fmt.Sprintf("Command execution error: %s", err)
-				}
-
-				content := "Command output:\n" + output
-				toolMsg := Message{
-					Role:       "tool",
-					ToolCallID: toolCall.ID,
-					Content:    stringp(content),
-				}
-				agent.Messages = append(agent.Messages, toolMsg)
-			} else if toolCall.Function.Name == "spawn_agent" {
+			case "create_todo":
+				output, err = createTodo(agent.ID, toolCall.Function.Arguments)
+			case "update_todo":
+				output, err = updateTodo(agent.ID, toolCall.Function.Arguments)
+			case "get_todo_list":
+				output, err = getTodoList(agent.ID)
+			case "spawn_agent":
 				var args SubAgentTask
-				if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err != nil {
-					fmt.Fprintf(os.Stderr, "Tool call argument error: %s\n", err)
-					continue
+				if err = json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err == nil {
+					fmt.Printf("\033[33mSpawning sub-agent for task: %s\033[0m\n", args.Task)
+					output, err = runSubAgent(args.Task, config)
+					fmt.Printf("\033[33mSub-agent finished with result: %s\033[0m\n", output)
 				}
-
-				fmt.Printf("\033[33mSpawning sub-agent for task: %s\033[0m\n", args.Task)
-				output, err := runSubAgent(args.Task, config)
-				if err != nil {
-					output = fmt.Sprintf("Sub-agent execution error: %s", err)
-				}
-				fmt.Printf("\033[33mSub-agent finished with result: %s\033[0m\n", output)
-
-				toolMsg := Message{
-					Role:       "tool",
-					ToolCallID: toolCall.ID,
-					Content:    stringp("Sub-agent output:\n" + output),
-				}
-				agent.Messages = append(agent.Messages, toolMsg)
 			}
+
+			if err != nil {
+				output = fmt.Sprintf("Tool execution error: %s", err)
+			}
+
+			// Print tool output for visibility
+			fmt.Printf("\033[35m%s\033[0m\n", output)
+
+			toolMsg := Message{
+				Role:       "tool",
+				ToolCallID: toolCall.ID,
+				Content:    stringp(output),
+			}
+			agent.Messages = append(agent.Messages, toolMsg)
 		}
 		// Continue loop to send tool output back to API
 	}

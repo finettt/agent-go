@@ -78,7 +78,7 @@ Manages communication with OpenAI-compatible APIs:
 - **Response Handling**: Processes API responses and extracts assistant messages
 - **Error Handling**: Comprehensive error handling for network and API issues
 - **Streaming Support**: Real-time token-by-token streaming for interactive user experience.
-- **Tool Calling**: Supports function/tool calling for command execution
+- **Tool Calling**: Supports function/tool calling for command execution, including todo list management
 - **Model Flexibility**: Works with any OpenAI-compatible API provider
 - **Retry Logic**: Basic retry mechanism for transient failures
 - **Context Compression**: Intelligent conversation summarization using AI
@@ -128,6 +128,7 @@ Defines the core data structures used throughout the application:
 - **API Request/Response**: Structures for API communication
 - **RAG Settings**: Dedicated structures for RAG configuration
 - **Tool Calls**: Function calling structures for command execution
+- **Todo List**: Structures for managing todo lists
 - **Command Arguments**: Structured command parameters for safe execution
 
 ## Enhanced Features
@@ -238,7 +239,7 @@ Agent-Go now supports unlimited conversation history with intelligent compressio
 
 The modular architecture allows for easy extension:
 
-- **New Tools**: Additional tools can be added by extending the executor
+- **New Tools**: Additional tools can be added by extending the executor, such as the new todo list management tools
 - **New APIs**: Support for additional AI providers can be added
 - **New Features**: New features can be added without disrupting existing functionality
 - **Plugin System**: Designed to support future plugin architecture

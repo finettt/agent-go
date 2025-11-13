@@ -69,6 +69,41 @@ func getAvailableTools(includeSpawn bool) []Tool {
 				},
 			},
 		},
+		{
+			Type: "function",
+			Function: FunctionDefinition{
+				Name:        "create_todo",
+				Description: "Create a new todo item.",
+				Parameters: map[string]interface{}{
+					"type":       "object",
+					"properties": map[string]interface{}{"task": map[string]string{"type": "string"}},
+					"required":   []string{"task"},
+				},
+			},
+		},
+		{
+			Type: "function",
+			Function: FunctionDefinition{
+				Name:        "update_todo",
+				Description: "Update a todo item's status.",
+				Parameters: map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"id":     map[string]interface{}{"type": "integer"},
+						"status": map[string]interface{}{"type": "string", "enum": []string{"pending", "in-progress", "completed"}},
+					},
+					"required": []string{"id", "status"},
+				},
+			},
+		},
+		{
+			Type: "function",
+			Function: FunctionDefinition{
+				Name:        "get_todo_list",
+				Description: "Get the current list of todo items.",
+				Parameters:  map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
+			},
+		},
 	}
 
 	if includeSpawn {
