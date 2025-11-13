@@ -283,7 +283,15 @@ func handleSlashCommand(command string) {
 		fmt.Println("  /contextlength <value> - Set the model context length (e.g., 131072)")
 		fmt.Println("  /stream on|off     - Toggle streaming mode")
 		fmt.Println("  /subagents on|off  - Toggle sub-agent spawning")
+		fmt.Println("  /todo              - Display the current todo list")
 		fmt.Println("  /quit              - Exit the application")
+	case "/todo":
+		list, err := getTodoList(agent.ID)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error getting todo list: %s\n", err)
+		} else {
+			fmt.Println(list)
+		}
 	case "/contextlength":
 		if len(parts) > 1 {
 			val, err := strconv.Atoi(parts[1])
