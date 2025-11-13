@@ -42,6 +42,7 @@ func main() {
 
 	// Base system prompt
 	systemPrompt := "You are an AI assistant. For multi-step tasks, chain commands with && (e.g., 'echo content > file.py && python3 file.py'). Use execute_command for shell tasks."
+	systemPrompt = getSystemInfo() + "\n\n" + systemPrompt
 
 	// Check for AGENTS.md and prepend its content to the system prompt
 	agentInstructions, err := readAgentsFile("AGENTS.md")
@@ -167,7 +168,7 @@ func runCLI() {
 				continue // Restart the outer loop to get fresh user input
 			}
 
-			resp, err := sendAPIRequest(agent, config)
+			resp, err := sendAPIRequest(agent, config, true)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 				break // Break from the agentic loop
@@ -213,6 +214,26 @@ func runCLI() {
 						Role:       "tool",
 						ToolCallID: toolCall.ID,
 						Content:    stringp(content),
+					}
+					agent.Messages = append(agent.Messages, toolMsg)
+				} else if toolCall.Function.Name == "spawn_agent" {
+					var args SubAgentTask
+					if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err != nil {
+						fmt.Fprintf(os.Stderr, "Tool call argument error: %s\n", err)
+						continue
+					}
+
+					fmt.Printf("\033[33mSpawning sub-agent for task: %s\033[0m\n", args.Task)
+					output, err := runSubAgent(args.Task, config)
+					if err != nil {
+						output = fmt.Sprintf("Sub-agent execution error: %s", err)
+					}
+					fmt.Printf("\033[33mSub-agent finished with result: %s\033[0m\n", output)
+
+					toolMsg := Message{
+						Role:       "tool",
+						ToolCallID: toolCall.ID,
+						Content:    stringp("Sub-agent output:\n" + output),
 					}
 					agent.Messages = append(agent.Messages, toolMsg)
 				}
@@ -350,6 +371,7 @@ func compressAndStartNewChat() {
 	}
 
 	systemPrompt := fmt.Sprintf("Previous conversation context:\n\n%s\n\nYou are an AI assistant. For multi-step tasks, chain commands with && (e.g., 'echo content > file.py && python3 file.py'). Use execute_command for shell tasks.", compressedContent)
+	systemPrompt = getSystemInfo() + "\n\n" + systemPrompt
 
 	agentInstructions, err := readAgentsFile("AGENTS.md")
 	if err != nil {
@@ -402,6 +424,7 @@ func runTask(task string) {
 
 	// Base system prompt
 	systemPrompt := "You are an AI assistant. For multi-step tasks, chain commands with && (e.g., 'echo content > file.py && python3 file.py'). Use execute_command for shell tasks."
+	systemPrompt = getSystemInfo() + "\n\n" + systemPrompt
 
 	// Check for AGENTS.md and prepend its content to the system prompt
 	agentInstructions, err := readAgentsFile("AGENTS.md")
@@ -426,7 +449,7 @@ func runTask(task string) {
 
 	// Execute the task using the agentic loop
 	for {
-		resp, err := sendAPIRequest(agent, config)
+		resp, err := sendAPIRequest(agent, config, true)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 			break
@@ -466,6 +489,26 @@ func runTask(task string) {
 					Role:       "tool",
 					ToolCallID: toolCall.ID,
 					Content:    stringp(content),
+				}
+				agent.Messages = append(agent.Messages, toolMsg)
+			} else if toolCall.Function.Name == "spawn_agent" {
+				var args SubAgentTask
+				if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err != nil {
+					fmt.Fprintf(os.Stderr, "Tool call argument error: %s\n", err)
+					continue
+				}
+
+				fmt.Printf("\033[33mSpawning sub-agent for task: %s\033[0m\n", args.Task)
+				output, err := runSubAgent(args.Task, config)
+				if err != nil {
+					output = fmt.Sprintf("Sub-agent execution error: %s", err)
+				}
+				fmt.Printf("\033[33mSub-agent finished with result: %s\033[0m\n", output)
+
+				toolMsg := Message{
+					Role:       "tool",
+					ToolCallID: toolCall.ID,
+					Content:    stringp("Sub-agent output:\n" + output),
 				}
 				agent.Messages = append(agent.Messages, toolMsg)
 			}

@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func sendAPIRequest(agent *Agent, config *Config) (*APIResponse, error) {
+func sendAPIRequest(agent *Agent, config *Config, includeSpawn bool) (*APIResponse, error) {
 	apiURL := strings.TrimSuffix(config.APIURL, "/") + "/v1/chat/completions"
 
 	requestBody := APIRequest{
@@ -19,22 +19,7 @@ func sendAPIRequest(agent *Agent, config *Config) (*APIResponse, error) {
 		MaxTokens:   config.MaxTokens,
 		Stream:      false,
 		ToolChoice:  "auto",
-		Tools: []Tool{
-			{
-				Type: "function",
-				Function: FunctionDefinition{
-					Name:        "execute_command",
-					Description: "Execute shell command",
-					Parameters: map[string]interface{}{
-						"type": "object",
-						"properties": map[string]interface{}{
-							"command": map[string]string{"type": "string"},
-						},
-						"required": []string{"command"},
-					},
-				},
-			},
-		},
+		Tools:       getAvailableTools(includeSpawn),
 	}
 
 	jsonData, err := json.Marshal(requestBody)
@@ -67,6 +52,40 @@ func sendAPIRequest(agent *Agent, config *Config) (*APIResponse, error) {
 	}
 
 	return &apiResponse, nil
+}
+
+func getAvailableTools(includeSpawn bool) []Tool {
+	tools := []Tool{
+		{
+			Type: "function",
+			Function: FunctionDefinition{
+				Name:        "execute_command",
+				Description: "Execute shell command",
+				Parameters: map[string]interface{}{
+					"type":       "object",
+					"properties": map[string]interface{}{"command": map[string]string{"type": "string"}},
+					"required":   []string{"command"},
+				},
+			},
+		},
+	}
+
+	if includeSpawn {
+		tools = append(tools, Tool{
+			Type: "function",
+			Function: FunctionDefinition{
+				Name:        "spawn_agent",
+				Description: "Spawn a sub-agent to perform a specific task and return the result.",
+				Parameters: map[string]interface{}{
+					"type":       "object",
+					"properties": map[string]interface{}{"task": map[string]string{"type": "string"}},
+					"required":   []string{"task"},
+				},
+			},
+		})
+	}
+
+	return tools
 }
 
 func compressContext(agent *Agent, config *Config) (string, error) {
