@@ -20,6 +20,7 @@ func loadConfig() *Config {
 		AutoCompressThreshold: 20,
 		ModelContextLength:    131072,
 		Stream:                false,
+		SubagentsEnabled:      true,
 	}
 
 	home, err := os.UserHomeDir()
@@ -68,6 +69,9 @@ func loadConfig() *Config {
 	}
 	if stream := os.Getenv("STREAM_ENABLED"); stream == "1" || stream == "true" {
 		config.Stream = true
+	}
+	if subagents := os.Getenv("SUBAGENTS_ENABLED"); subagents == "0" || subagents == "false" {
+		config.SubagentsEnabled = false
 	}
 
 	return config
