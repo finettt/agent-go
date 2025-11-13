@@ -173,9 +173,9 @@ func runCLI() {
 
 			// Use streaming or regular API based on config
 			if config.Stream {
-				resp, err = sendAPIRequestStreaming(agent, config, true)
+				resp, err = sendAPIRequestStreaming(agent, config, config.SubagentsEnabled)
 			} else {
-				resp, err = sendAPIRequest(agent, config, true)
+				resp, err = sendAPIRequest(agent, config, config.SubagentsEnabled)
 			}
 
 			if err != nil {
@@ -284,6 +284,7 @@ func handleSlashCommand(command string) {
 		fmt.Println("  /compress          - Compress context and start new chat thread")
 		fmt.Println("  /contextlength <value> - Set the model context length (e.g., 131072)")
 		fmt.Println("  /stream on|off     - Toggle streaming mode")
+		fmt.Println("  /subagents on|off  - Toggle sub-agent spawning")
 		fmt.Println("  /quit              - Exit the application")
 	case "/contextlength":
 		if len(parts) > 1 {
@@ -329,6 +330,7 @@ func handleSlashCommand(command string) {
 		fmt.Printf("Auto Compress Threshold: %d\n", config.AutoCompressThreshold)
 		fmt.Printf("Model Context Length: %d\n", config.ModelContextLength)
 		fmt.Printf("Stream Enabled: %t\n", config.Stream)
+		fmt.Printf("Subagents Enabled: %t\n", config.SubagentsEnabled)
 	case "/rag":
 		if len(parts) > 1 {
 			switch parts[1] {
@@ -379,6 +381,27 @@ func handleSlashCommand(command string) {
 		}
 	default:
 		fmt.Printf("Unknown command: %s\n", baseCommand)
+	case "/subagents":
+		if len(parts) > 1 {
+			switch parts[1] {
+			case "on":
+				config.SubagentsEnabled = true
+				saveConfig(config)
+				fmt.Println("Sub-agent spawning enabled.")
+			case "off":
+				config.SubagentsEnabled = false
+				saveConfig(config)
+				fmt.Println("Sub-agent spawning disabled.")
+			default:
+				fmt.Println("Usage: /subagents [on|off]")
+			}
+		} else {
+			if config.SubagentsEnabled {
+				fmt.Println("Sub-agent spawning is currently enabled.")
+			} else {
+				fmt.Println("Sub-agent spawning is currently disabled.")
+			}
+		}
 	}
 }
 
@@ -487,9 +510,9 @@ func runTask(task string) {
 
 		// Use streaming or regular API based on config
 		if config.Stream {
-			resp, err = sendAPIRequestStreaming(agent, config, true)
+			resp, err = sendAPIRequestStreaming(agent, config, config.SubagentsEnabled)
 		} else {
-			resp, err = sendAPIRequest(agent, config, true)
+			resp, err = sendAPIRequest(agent, config, config.SubagentsEnabled)
 		}
 
 		if err != nil {

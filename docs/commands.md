@@ -33,6 +33,7 @@ Available commands:
   /compress          - Compress context and start new chat thread
   /contextlength <value> - Set the model context length
   /stream on|off     - Toggle streaming mode
+  /subagents on|off  - Toggle sub-agent spawning
   /quit              - Exit the application
 ```
 
@@ -457,6 +458,32 @@ Streaming enabled.
 - Reduces perceived latency for long responses
 - Automatically disabled when shell mode is entered
 - Can be toggled at any time during a session
+
+### `/subagents on|off`
+
+Toggles the ability for the main agent to spawn sub-agents for complex tasks.
+
+**Usage:**
+
+```
+/subagents on|off
+```
+
+**Examples:**
+
+```
+> /subagents off
+Sub-agent spawning disabled.
+
+> /subagents on
+Sub-agent spawning enabled.
+```
+
+**Notes:**
+
+- When disabled, the `spawn_agent` tool is not available to the AI, preventing it from delegating tasks.
+- This can be useful for forcing the primary agent to handle all tasks directly.
+- The setting is saved to your configuration file.
 
 ### Token Usage Tracking
 

@@ -96,6 +96,10 @@ func buildCompleter(config *Config) readline.AutoCompleter {
 			readline.PcItem("on"),
 			readline.PcItem("off"),
 		),
+		readline.PcItem("/subagents",
+			readline.PcItem("on"),
+			readline.PcItem("off"),
+		),
 		readline.PcItem("/shell"),
 		readline.PcItem("/quit"),
 	)

@@ -20,6 +20,7 @@ type Config struct {
 	AutoCompressThreshold int     `json:"auto_compress_threshold"`
 	ModelContextLength    int     `json:"model_context_length"`
 	Stream                bool    `json:"stream"`
+	SubagentsEnabled      bool    `json:"subagents_enabled"`
 }
 
 type Agent struct {
