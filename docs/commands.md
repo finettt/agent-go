@@ -34,8 +34,9 @@ Available commands:
   /contextlength <value> - Set the model context length
   /stream on|off     - Toggle streaming mode
   /subagents on|off  - Toggle sub-agent spawning
+  /todo              - Display the current todo list
   /quit              - Exit the application
-```
+ ````
 
 ### `/config`
 

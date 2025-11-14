@@ -3,17 +3,32 @@
 
 Agent-Go is a powerful, command-line AI agent written in Go. It integrates with OpenAI-compatible APIs to provide intelligent command execution, context-aware responses, and a rich set of features for developers and power users. This project is a modern rewrite of the original [Agent-C](https://github.com/finettt/agent-c), redesigned with an improved architecture and enhanced capabilities.
 
+## How It Works
+
+Agent-Go works by interpreting your natural language requests, converting them into actionable commands, and executing them in a secure shell environment. It maintains a continuous conversation with an AI model, using the model's reasoning capabilities to break down complex tasks into smaller, executable steps.
+
+The agent's workflow is as follows:
+1.  **Parse Input**: Your input is processed and, if RAG is enabled, augmented with relevant context from your local files.
+2.  **API Request**: The conversation history is sent to an OpenAI-compatible API.
+3.  **Tool-Assisted Response**: The AI model can use a set of built-in tools, including `execute_command`, `spawn_agent`, and `create_todo`, to perform actions.
+4.  **Command Execution**: If a command is returned, Agent-Go executes it and sends the output back to the model for the next step.
+5.  **Loop or Respond**: The agent continues this loop until the task is complete, then provides a final response.
+
 ## Key Features
 
-- **Intelligent Command Execution**: Natively executes shell commands from AI responses, with support for multi-step command chaining (`&&`) and platform-aware security.
-- **Unlimited Conversation Memory**: Overcomes message limits through intelligent, automatic context compression, ensuring long-running conversations stay within token limits.
-- **Retrieval-Augmented Generation (RAG)**: Enhances AI responses by searching a local knowledge base of your files, providing highly relevant and context-aware answers.
-- **Advanced User Experience**: Features a dedicated shell mode, dynamic command-line auto-completion, built-in slash commands, and a first-time interactive setup wizard.
-- **Streaming Mode**: Real-time response generation for improved user experience.
-- **Cross-Platform**: Compiles and runs seamlessly on macOS, Linux, and Windows.
-- **Highly Configurable**: Manage behavior via environment variables, a central JSON configuration file, or command-line arguments.
-- **Custom Agent Behavior**: Define custom agent instructions and behavior using a simple `AGENTS.md` file.
-- **Real-time Token Tracking**: Monitor token usage for each conversation to manage API costs effectively.
+| Feature | Description |
+| :--- | :--- |
+| **Intelligent Command Execution** | Natively executes shell commands from AI responses, with support for multi-step command chaining (`&&`). |
+| **Sub-agent Delegation** | Spawns autonomous sub-agents to handle complex, multi-step tasks in the background, freeing up the main agent for other work. |
+| **Unlimited Conversation Memory** | Overcomes token limits with automatic context compression, ensuring long-running conversations are never lost. |
+| **Retrieval-Augmented Generation (RAG)** | Enriches AI responses by searching a local knowledge base, providing highly relevant and context-aware answers. |
+| **Todo List Management** | Create, update, and manage a persistent todo list to track tasks and project status. |
+| **Advanced User Experience** | Features a dedicated shell mode, dynamic command auto-completion, and a first-time interactive setup wizard. |
+| **Streaming Mode** | Delivers real-time response generation for an improved, interactive user experience. |
+| **Cross-Platform** | Compiles and runs seamlessly on macOS, Linux, and Windows. |
+| **Highly Configurable** | Manage behavior via environment variables, a central JSON config, or command-line arguments. |
+| **Custom Agent Behavior** | Define custom agent instructions and behavior using a simple `AGENTS.md` file. |
+| **Real-time Token Tracking** | Monitor token usage for each conversation to manage API costs effectively. |
 
 ## Quick Start
 
@@ -120,6 +135,8 @@ Available commands:
   /compress          - Compress context and start new chat thread
   /contextlength <value> - Set the model context length
   /stream on|off     - Toggle streaming mode
+  /subagents on|off  - Toggle sub-agent spawning
+  /todo              - Display the current todo list
   /quit              - Exit the application
 
 > /model gpt-4-turbo
@@ -286,6 +303,8 @@ Agent-Go is built with a clean, modular architecture for maintainability and ext
 - **[api.go](src/api.go)**: Handles all communication with OpenAI-compatible APIs, including tool calling and context compression.
 - **[executor.go](src/executor.go)**: Manages secure, platform-aware shell command execution.
 - **[rag.go](src/rag.go)**: Implements local document search and context retrieval.
+- **[subagent.go](src/subagent.go)**: Manages the lifecycle and execution of sub-agents.
+- **[todo.go](src/todo.go)**: Handles todo list creation, updates, and persistence.
 - **[completion.go](src/completion.go)**: Provides dynamic auto-completion for models and commands.
 - **[types.go](src/types.go)**: Defines shared data structures and type definitions.
 
