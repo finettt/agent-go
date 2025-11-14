@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -41,25 +40,10 @@ func main() {
 		Messages: make([]Message, 0),
 	}
 
-	// Base system prompt
-	systemPrompt := "You are an AI assistant. You can manage a todo list by using the `create_todo`, `update_todo`, and `get_todo_list` tools. For multi-step tasks, chain commands with && (e.g., 'echo content > file.py && python3 file.py'). Use execute_command for shell tasks."
-	systemPrompt = getSystemInfo() + "\n\n" + systemPrompt
-
-	// Check for AGENTS.md and prepend its content to the system prompt
-	agentInstructions, err := readAgentsFile("AGENTS.md")
-	if err != nil {
-		// Log the error but continue, as it's not a fatal issue.
-		fmt.Fprintf(os.Stderr, "Warning: could not read AGENTS.md: %v\n", err)
-	}
-
-	if agentInstructions != "" {
-		systemPrompt = agentInstructions + "\n\n" + systemPrompt
-		fmt.Println("Found and loaded instructions from AGENTS.md")
-	}
-
+	systemPrompt := buildSystemPrompt("")
 	agent.Messages = append(agent.Messages, Message{
 		Role:    "system",
-		Content: stringp(systemPrompt),
+		Content: &systemPrompt,
 	})
 
 	// Handle graceful shutdown
@@ -73,9 +57,8 @@ func main() {
 
 	runCLI()
 }
-
 func printLogo() {
-	fmt.Println(`
+	fmt.Print(`
   /$$$$$$                                  /$$            /$$$$$$
  /$$__  $$                                | $$           /$$__  $$
 | $$  \ $$  /$$$$$$   /$$$$$$  /$$$$$$$  /$$$$$$        | $$  \__/  /$$$$$$
@@ -101,7 +84,12 @@ func runCLI() {
 	if err != nil {
 		panic(err)
 	}
-	defer rl.Close()
+	defer func() {
+		err := rl.Close()
+		if err != nil {
+			fmt.Printf("failed to close readline: %v\n", err)
+		}
+	}()
 
 	fmt.Println("Agent-Go is ready. Type your requests, or /help for a list of commands.")
 
@@ -156,7 +144,7 @@ func runCLI() {
 		}
 
 		// Add user message to agent history
-		agent.Messages = append(agent.Messages, Message{Role: "user", Content: stringp(userInput)})
+		agent.Messages = append(agent.Messages, Message{Role: "user", Content: &userInput})
 
 		// Message history is now unlimited
 
@@ -194,57 +182,19 @@ func runCLI() {
 
 			// Only print content if not streaming (streaming already printed it)
 			if !config.Stream && assistantMsg.Content != nil {
-				fmt.Printf("\033[34m%s\033[0m\n", *assistantMsg.Content)
+				fmt.Printf("%s%s%s\n", ColorBlue, *assistantMsg.Content, ColorReset)
 			}
 
 			// Update and display total tokens
 			if resp.Usage.TotalTokens > 0 {
 				totalTokens += resp.Usage.TotalTokens
-				fmt.Printf("\033[32m[Tokens: %d]\033[0m\n", totalTokens)
+				fmt.Printf("%s[Tokens: %d]%s\n", ColorGreen, totalTokens, ColorReset)
 			}
 
-			if len(assistantMsg.ToolCalls) == 0 {
-				break // No tool calls, so the agent's turn is over
-			}
-
-			for _, toolCall := range assistantMsg.ToolCalls {
-				var output string
-				var err error
-
-				switch toolCall.Function.Name {
-				case "execute_command":
-					var args CommandArgs
-					if err = json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err == nil {
-						output, err = executeCommand(args.Command)
-					}
-				case "create_todo":
-					output, err = createTodo(agent.ID, toolCall.Function.Arguments)
-				case "update_todo":
-					output, err = updateTodo(agent.ID, toolCall.Function.Arguments)
-				case "get_todo_list":
-					output, err = getTodoList(agent.ID)
-				case "spawn_agent":
-					var args SubAgentTask
-					if err = json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err == nil {
-						fmt.Printf("\033[33mSpawning sub-agent for task: %s\033[0m\n", args.Task)
-						output, err = runSubAgent(args.Task, config)
-						fmt.Printf("\033[33mSub-agent finished with result: %s\033[0m\n", output)
-					}
-				}
-
-				if err != nil {
-					output = fmt.Sprintf("Tool execution error: %s", err)
-				}
-
-				// Print tool output for visibility
-				fmt.Printf("\033[35m%s\033[0m\n", output)
-
-				toolMsg := Message{
-					Role:       "tool",
-					ToolCallID: toolCall.ID,
-					Content:    stringp(output),
-				}
-				agent.Messages = append(agent.Messages, toolMsg)
+			if len(assistantMsg.ToolCalls) > 0 {
+				processToolCalls(agent, assistantMsg.ToolCalls, config)
+			} else {
+				break // No more tools to call, end agent turn
 			}
 			// Continue loop to send tool output back to API
 		}
@@ -256,7 +206,7 @@ func readAgentsFile(filename string) (string, error) {
 	content, err := os.ReadFile(filename)
 	if err != nil {
 		if os.IsNotExist(err) {
-			// File not found is not an error in this context.
+			// File not found is not a fatal error.
 			return "", nil
 		}
 		// Any other error while reading the file is a problem.
@@ -297,7 +247,9 @@ func handleSlashCommand(command string) {
 			val, err := strconv.Atoi(parts[1])
 			if err == nil && val > 0 {
 				config.ModelContextLength = val
-				saveConfig(config)
+				if err := saveConfig(config); err != nil {
+					fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
+				}
 				fmt.Printf("Model context length set to: %d\n", config.ModelContextLength)
 			} else {
 				fmt.Println("Usage: /contextlength <positive_integer_value>")
@@ -314,7 +266,9 @@ func handleSlashCommand(command string) {
 	case "/model":
 		if len(parts) > 1 {
 			config.Model = parts[1]
-			saveConfig(config)
+			if err := saveConfig(config); err != nil {
+				fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
+			}
 			fmt.Printf("Model set to: %s\n", config.Model)
 		} else {
 			fmt.Println("Usage: /model <model_name>")
@@ -322,7 +276,9 @@ func handleSlashCommand(command string) {
 	case "/provider":
 		if len(parts) > 1 {
 			config.APIURL = parts[1]
-			saveConfig(config)
+			if err := saveConfig(config); err != nil {
+				fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
+			}
 			fmt.Printf("Provider URL set to: %s\n", config.APIURL)
 		} else {
 			fmt.Println("Usage: /provider <api_url>")
@@ -342,16 +298,22 @@ func handleSlashCommand(command string) {
 			switch parts[1] {
 			case "on":
 				config.RAGEnabled = true
-				saveConfig(config)
+				if err := saveConfig(config); err != nil {
+					fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
+				}
 				fmt.Println("RAG enabled.")
 			case "off":
 				config.RAGEnabled = false
-				saveConfig(config)
+				if err := saveConfig(config); err != nil {
+					fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
+				}
 				fmt.Println("RAG disabled.")
 			case "path":
 				if len(parts) > 2 {
 					config.RAGPath = parts[2]
-					saveConfig(config)
+					if err := saveConfig(config); err != nil {
+						fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
+					}
 					fmt.Printf("RAG path set to: %s\n", config.RAGPath)
 				} else {
 					fmt.Println("Usage: /rag path <path>")
@@ -369,11 +331,15 @@ func handleSlashCommand(command string) {
 			switch parts[1] {
 			case "on":
 				config.Stream = true
-				saveConfig(config)
+				if err := saveConfig(config); err != nil {
+					fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
+				}
 				fmt.Println("Streaming enabled.")
 			case "off":
 				config.Stream = false
-				saveConfig(config)
+				if err := saveConfig(config); err != nil {
+					fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
+				}
 				fmt.Println("Streaming disabled.")
 			default:
 				fmt.Println("Usage: /stream [on|off]")
@@ -385,18 +351,20 @@ func handleSlashCommand(command string) {
 				fmt.Println("Streaming is currently disabled.")
 			}
 		}
-	default:
-		fmt.Printf("Unknown command: %s\n", baseCommand)
 	case "/subagents":
 		if len(parts) > 1 {
 			switch parts[1] {
 			case "on":
 				config.SubagentsEnabled = true
-				saveConfig(config)
+				if err := saveConfig(config); err != nil {
+					fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
+				}
 				fmt.Println("Sub-agent spawning enabled.")
 			case "off":
 				config.SubagentsEnabled = false
-				saveConfig(config)
+				if err := saveConfig(config); err != nil {
+					fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
+				}
 				fmt.Println("Sub-agent spawning disabled.")
 			default:
 				fmt.Println("Usage: /subagents [on|off]")
@@ -408,11 +376,35 @@ func handleSlashCommand(command string) {
 				fmt.Println("Sub-agent spawning is currently disabled.")
 			}
 		}
+	default:
+		fmt.Printf("Unknown command: %s\n", baseCommand)
 	}
 }
 
-func stringp(s string) *string {
-	return &s
+func buildSystemPrompt(contextSummary string) string {
+	// Base system prompt
+	basePrompt := "You are an AI assistant. You can manage a todo list by using the `create_todo`, `update_todo`, and `get_todo_list` tools. For multi-step tasks, chain commands with && (e.g., 'echo content > file.py && python3 file.py'). Use execute_command for shell tasks."
+
+	// Add compressed context if available
+	if contextSummary != "" {
+		basePrompt = fmt.Sprintf("Previous conversation context:\n\n%s\n\n%s", contextSummary, basePrompt)
+	}
+	
+	systemPrompt := getSystemInfo() + "\n\n" + basePrompt
+
+	// Check for AGENTS.md and prepend its content to the system prompt
+	agentInstructions, err := readAgentsFile("AGENTS.md")
+	if err != nil {
+		// Log the error but continue, as it's not a fatal issue.
+		fmt.Fprintf(os.Stderr, "Warning: could not read AGENTS.md: %v\n", err)
+	}
+
+	if agentInstructions != "" {
+		systemPrompt = agentInstructions + "\n\n" + systemPrompt
+		fmt.Println("Found and loaded instructions from AGENTS.md")
+	}
+
+	return systemPrompt
 }
 
 func compressAndStartNewChat() {
@@ -428,25 +420,16 @@ func compressAndStartNewChat() {
 		return
 	}
 
+	// Create a new agent with the compressed context
 	agent = &Agent{
+		ID:       "main",
 		Messages: make([]Message, 0),
 	}
-
-	systemPrompt := fmt.Sprintf("Previous conversation context:\n\n%s\n\nYou are an AI assistant. You can manage a todo list by using the `create_todo`, `update_todo`, and `get_todo_list` tools. For multi-step tasks, chain commands with && (e.g., 'echo content > file.py && python3 file.py'). Use execute_command for shell tasks.", compressedContent)
-	systemPrompt = getSystemInfo() + "\n\n" + systemPrompt
-
-	agentInstructions, err := readAgentsFile("AGENTS.md")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: could not read AGENTS.md: %v\n", err)
-	}
-
-	if agentInstructions != "" {
-		systemPrompt = agentInstructions + "\n\n" + systemPrompt
-	}
-
+	
+	systemPrompt := buildSystemPrompt(compressedContent)
 	agent.Messages = append(agent.Messages, Message{
 		Role:    "system",
-		Content: stringp(systemPrompt),
+		Content: &systemPrompt,
 	})
 
 	fmt.Println("Context compressed. Starting new chat with compressed summary as system message.")
@@ -485,29 +468,16 @@ func runTask(task string) {
 		Messages: make([]Message, 0),
 	}
 
-	// Base system prompt
-	systemPrompt := "You are an AI assistant. You can manage a todo list by using the `create_todo`, `update_todo`, and `get_todo_list` tools. For multi-step tasks, chain commands with && (e.g., 'echo content > file.py && python3 file.py'). Use execute_command for shell tasks."
-	systemPrompt = getSystemInfo() + "\n\n" + systemPrompt
-
-	// Check for AGENTS.md and prepend its content to the system prompt
-	agentInstructions, err := readAgentsFile("AGENTS.md")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: could not read AGENTS.md: %v\n", err)
-	}
-
-	if agentInstructions != "" {
-		systemPrompt = agentInstructions + "\n\n" + systemPrompt
-	}
-
+	systemPrompt := buildSystemPrompt("")
 	agent.Messages = append(agent.Messages, Message{
 		Role:    "system",
-		Content: stringp(systemPrompt),
+		Content: &systemPrompt,
 	})
 
 	// Add the task as a user message
 	agent.Messages = append(agent.Messages, Message{
 		Role:    "user",
-		Content: stringp(task),
+		Content: &task,
 	})
 
 	// Execute the task using the agentic loop
@@ -540,48 +510,10 @@ func runTask(task string) {
 			fmt.Printf("%s\n", *assistantMsg.Content)
 		}
 
-		if len(assistantMsg.ToolCalls) == 0 {
-			break // No tool calls, so the agent's turn is over
-		}
-
-		for _, toolCall := range assistantMsg.ToolCalls {
-			var output string
-			var err error
-
-			switch toolCall.Function.Name {
-			case "execute_command":
-				var args CommandArgs
-				if err = json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err == nil {
-					output, err = executeCommand(args.Command)
-				}
-			case "create_todo":
-				output, err = createTodo(agent.ID, toolCall.Function.Arguments)
-			case "update_todo":
-				output, err = updateTodo(agent.ID, toolCall.Function.Arguments)
-			case "get_todo_list":
-				output, err = getTodoList(agent.ID)
-			case "spawn_agent":
-				var args SubAgentTask
-				if err = json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err == nil {
-					fmt.Printf("\033[33mSpawning sub-agent for task: %s\033[0m\n", args.Task)
-					output, err = runSubAgent(args.Task, config)
-					fmt.Printf("\033[33mSub-agent finished with result: %s\033[0m\n", output)
-				}
-			}
-
-			if err != nil {
-				output = fmt.Sprintf("Tool execution error: %s", err)
-			}
-
-			// Print tool output for visibility
-			fmt.Printf("\033[35m%s\033[0m\n", output)
-
-			toolMsg := Message{
-				Role:       "tool",
-				ToolCallID: toolCall.ID,
-				Content:    stringp(output),
-			}
-			agent.Messages = append(agent.Messages, toolMsg)
+		if len(assistantMsg.ToolCalls) > 0 {
+			processToolCalls(agent, assistantMsg.ToolCalls, config)
+		} else {
+			break // No more tools to call, end agent turn
 		}
 		// Continue loop to send tool output back to API
 	}

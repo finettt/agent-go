@@ -40,7 +40,12 @@ func sendAPIRequest(agent *Agent, config *Config, includeSpawn bool) (*APIRespon
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			fmt.Printf("failed to close response body: %v\n", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -55,78 +60,9 @@ func sendAPIRequest(agent *Agent, config *Config, includeSpawn bool) (*APIRespon
 	return &apiResponse, nil
 }
 
-func getAvailableTools(includeSpawn bool) []Tool {
-	tools := []Tool{
-		{
-			Type: "function",
-			Function: FunctionDefinition{
-				Name:        "execute_command",
-				Description: "Execute shell command",
-				Parameters: map[string]interface{}{
-					"type":       "object",
-					"properties": map[string]interface{}{"command": map[string]string{"type": "string"}},
-					"required":   []string{"command"},
-				},
-			},
-		},
-		{
-			Type: "function",
-			Function: FunctionDefinition{
-				Name:        "create_todo",
-				Description: "Create a new todo item.",
-				Parameters: map[string]interface{}{
-					"type":       "object",
-					"properties": map[string]interface{}{"task": map[string]string{"type": "string"}},
-					"required":   []string{"task"},
-				},
-			},
-		},
-		{
-			Type: "function",
-			Function: FunctionDefinition{
-				Name:        "update_todo",
-				Description: "Update a todo item's status.",
-				Parameters: map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"id":     map[string]interface{}{"type": "integer"},
-						"status": map[string]interface{}{"type": "string", "enum": []string{"pending", "in-progress", "completed"}},
-					},
-					"required": []string{"id", "status"},
-				},
-			},
-		},
-		{
-			Type: "function",
-			Function: FunctionDefinition{
-				Name:        "get_todo_list",
-				Description: "Get the current list of todo items.",
-				Parameters:  map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
-			},
-		},
-	}
-
-	if includeSpawn {
-		tools = append(tools, Tool{
-			Type: "function",
-			Function: FunctionDefinition{
-				Name:        "spawn_agent",
-				Description: "Spawn a sub-agent to perform a specific task and return the result.",
-				Parameters: map[string]interface{}{
-					"type":       "object",
-					"properties": map[string]interface{}{"task": map[string]string{"type": "string"}},
-					"required":   []string{"task"},
-				},
-			},
-		})
-	}
-
-	return tools
-}
-
 func compressContext(agent *Agent, config *Config) (string, error) {
 	if len(agent.Messages) <= 1 {
-		return "", fmt.Errorf("no messages to compress")
+		return "", fmt.Errorf("not enough messages to compress")
 	}
 
 	var messagesToCompress []Message
@@ -136,23 +72,26 @@ func compressContext(agent *Agent, config *Config) (string, error) {
 		}
 	}
 
-	// Формируем промпт для сжатия
-	compressionPrompt := "Сжати следующую беседу в краткое резюме (1-3 предложения), сохраняя ключевые детали и контекст:\n\n"
+	// Build the prompt for compression
+	var compressionBuilder strings.Builder
+	compressionBuilder.WriteString("Compress the following conversation into a brief summary (1-3 sentences), preserving key details and context:\n\n")
 	for _, msg := range messagesToCompress {
-		if msg.Role == "user" {
-			compressionPrompt += fmt.Sprintf("Пользователь: %s\n", *msg.Content)
-		} else if msg.Role == "assistant" {
-			compressionPrompt += fmt.Sprintf("Ассистент: %s\n", *msg.Content)
+		switch msg.Role {
+		case "user":
+			compressionBuilder.WriteString(fmt.Sprintf("User: %s\n", *msg.Content))
+		case "assistant":
+			compressionBuilder.WriteString(fmt.Sprintf("Assistant: %s\n", *msg.Content))
 		}
 	}
-	compressionPrompt += "\nКраткое резюме:"
+	compressionBuilder.WriteString("\nBrief summary:")
+	compressionPrompt := compressionBuilder.String()
 
-	// Создаем запрос для сжатия
+	// Create the compression request
 	requestBody := APIRequest{
 		Model:       config.Model,
 		Messages:    []Message{{Role: "user", Content: &compressionPrompt}},
-		Temperature: 0.3, // Низкая температура для более точного сжатия
-		MaxTokens:   500, // Ограничение на длину сжатого текста
+		Temperature: CompressionTemp,      // Low temperature for more precise compression
+		MaxTokens:   CompressionMaxTokens, // Limit the length of the compressed text
 		Stream:      false,
 	}
 
@@ -174,7 +113,12 @@ func compressContext(agent *Agent, config *Config) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to send compression request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			fmt.Printf("failed to close response body: %v\n", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -230,7 +174,12 @@ func sendAPIRequestStreaming(agent *Agent, config *Config, includeSpawn bool) (*
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			fmt.Printf("failed to close response body: %v\n", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -241,58 +190,65 @@ func sendAPIRequestStreaming(agent *Agent, config *Config, includeSpawn bool) (*
 	scanner := bufio.NewScanner(resp.Body)
 	var fullContent strings.Builder
 	var toolCalls []ToolCall
-	var role string = "assistant"
-	var promptTokens, completionTokens, totalTokens int
+	finalRole := "assistant"
+	var finalUsage Usage
 
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		// Skip empty lines
 		if line == "" {
-			continue
+			continue // Skip empty lines
+		}
+		if !strings.HasPrefix(line, StreamDataPrefix) {
+			continue // Skip non-data lines
 		}
 
-		// Check for data lines
-		if !strings.HasPrefix(line, "data: ") {
-			continue
+		data := strings.TrimPrefix(line, StreamDataPrefix)
+		if data == StreamDoneMarker {
+			break // End of stream
 		}
 
-		data := strings.TrimPrefix(line, "data: ")
-
-		// Check for stream end
-		if data == "[DONE]" {
-			break
-		}
-
-		// Parse the JSON chunk
 		var chunk StreamChunk
 		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
-			// Skip invalid JSON chunks
+			// Silently skip invalid JSON chunks
+			continue
+		}
+		
+		if len(chunk.Choices) == 0 {
 			continue
 		}
 
-		// Process each choice
-		for _, choice := range chunk.Choices {
-			// Handle content delta
-			if choice.Delta.Content != nil {
-				content := *choice.Delta.Content
-				fullContent.WriteString(content)
-				// Print the content as it arrives with blue color
-				fmt.Printf("\033[34m%s\033[0m", content)
-			}
-
-			// Handle tool calls
-			if len(choice.Delta.ToolCalls) > 0 {
-				// Accumulate tool calls
-				for _, tc := range choice.Delta.ToolCalls {
-					toolCalls = append(toolCalls, tc)
+		delta := chunk.Choices[0].Delta
+		if delta.Role != "" {
+			finalRole = delta.Role
+		}
+		if delta.Content != "" {
+			fullContent.WriteString(delta.Content)
+			fmt.Printf("%s%s%s", ColorBlue, delta.Content, ColorReset)
+		}
+		if len(delta.ToolCalls) > 0 {
+			// In streaming, tool calls can be sent incrementally.
+			// We need to merge them based on their index.
+			for _, toolCallChunk := range delta.ToolCalls {
+				if toolCallChunk.Index >= len(toolCalls) {
+					toolCalls = append(toolCalls, ToolCall{
+						ID:       toolCallChunk.ID,
+						Type:     toolCallChunk.Type,
+						Function: FunctionCall{},
+					})
+				}
+				if toolCallChunk.Function.Name != "" {
+					toolCalls[toolCallChunk.Index].Function.Name = toolCallChunk.Function.Name
+				}
+				if toolCallChunk.Function.Arguments != "" {
+					toolCalls[toolCallChunk.Index].Function.Arguments += toolCallChunk.Function.Arguments
 				}
 			}
+		}
 
-			// Handle role if present
-			if choice.Delta.Role != nil {
-				role = *choice.Delta.Role
-			}
+		// Check for usage data in the stream (some providers send it)
+		if chunk.Usage != nil {
+			finalUsage = *chunk.Usage
 		}
 	}
 
@@ -306,22 +262,18 @@ func sendAPIRequestStreaming(agent *Agent, config *Config, includeSpawn bool) (*
 	}
 
 	// Construct the final response
-	finalContent := fullContent.String()
+	finalContentStr := fullContent.String()
 	response := &APIResponse{
 		Choices: []Choice{
 			{
 				Message: Message{
-					Role:      role,
-					Content:   &finalContent,
+					Role:      finalRole,
+					Content:   &finalContentStr,
 					ToolCalls: toolCalls,
 				},
 			},
 		},
-		Usage: Usage{
-			PromptTokens:     promptTokens,
-			CompletionTokens: completionTokens,
-			TotalTokens:      totalTokens,
-		},
+		Usage: finalUsage,
 	}
 
 	return response, nil

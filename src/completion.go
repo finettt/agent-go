@@ -36,7 +36,12 @@ func fetchAvailableModels(config *Config) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not send request to %s: %w", url, err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			fmt.Printf("failed to close response body: %v\n", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to fetch models, status: %s", resp.Status)

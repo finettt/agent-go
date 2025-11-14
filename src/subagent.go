@@ -7,23 +7,28 @@ import (
 	"github.com/google/uuid"
 )
 
+// runSubAgent executes a task in a separate sub-agent context
 func runSubAgent(task string, config *Config) (string, error) {
+	systemPrompt := getSystemInfo() + "\n\nYou are a sub-agent tasked with completing a specific goal. You have access to the 'execute_command' and todo list management tools. Plan your steps and execute them sequentially. When you have finished the task, output the final result as a single response."
+
 	subAgent := &Agent{
 		ID: uuid.New().String(),
 		Messages: []Message{
 			{
 				Role:    "system",
-				Content: stringp(getSystemInfo() + "\n\nYou are a sub-agent tasked with completing a specific goal. You have access to the 'execute_command' and todo list management tools. Plan your steps and execute them sequentially. When you have finished the task, output the final result as a single response."),
+				Content: &systemPrompt,
 			},
 			{
 				Role:    "user",
-				Content: stringp(task),
+				Content: &task,
 			},
 		},
 	}
 
-	for {
-		resp, err := sendAPIRequest(subAgent, config, true) // true: include all tools for sub-agents
+	// Limit iterations to prevent infinite loops
+	for iteration := 0; iteration < MaxSubAgentIterations; iteration++ {
+		// Use false for includeSpawn to prevent sub-agents from creating more sub-agents
+		resp, err := sendAPIRequest(subAgent, config, false)
 		if err != nil {
 			return "", fmt.Errorf("sub-agent API request failed: %w", err)
 		}
@@ -36,8 +41,7 @@ func runSubAgent(task string, config *Config) (string, error) {
 		subAgent.Messages = append(subAgent.Messages, assistantMsg)
 
 		if len(assistantMsg.ToolCalls) == 0 {
-			// If there are no more tool calls, the sub-agent's work is done.
-			// The last message's content is considered the final result.
+			// If there are no more tool calls, the sub-agent's work is done
 			if assistantMsg.Content != nil {
 				return *assistantMsg.Content, nil
 			}
@@ -51,7 +55,9 @@ func runSubAgent(task string, config *Config) (string, error) {
 			switch toolCall.Function.Name {
 			case "execute_command":
 				var args CommandArgs
-				if err = json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err == nil {
+				if unmarshalErr := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); unmarshalErr != nil {
+					output = fmt.Sprintf("Failed to parse arguments: %s", unmarshalErr)
+				} else {
 					output, err = executeCommand(args.Command)
 				}
 			case "create_todo":
@@ -60,6 +66,8 @@ func runSubAgent(task string, config *Config) (string, error) {
 				output, err = updateTodo(subAgent.ID, toolCall.Function.Arguments)
 			case "get_todo_list":
 				output, err = getTodoList(subAgent.ID)
+			default:
+				output = fmt.Sprintf("Unknown tool: %s", toolCall.Function.Name)
 			}
 
 			if err != nil {
@@ -69,9 +77,11 @@ func runSubAgent(task string, config *Config) (string, error) {
 			toolMsg := Message{
 				Role:       "tool",
 				ToolCallID: toolCall.ID,
-				Content:    stringp(output),
+				Content:    &output,
 			}
 			subAgent.Messages = append(subAgent.Messages, toolMsg)
 		}
 	}
+
+	return "", fmt.Errorf("sub-agent exceeded maximum iterations (%d)", MaxSubAgentIterations)
 }

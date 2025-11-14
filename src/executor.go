@@ -6,9 +6,9 @@ import (
 	"runtime"
 )
 
-// executeCommand выполняет команду оболочки и возвращает ее вывод.
+// executeCommand executes a shell command and returns its output
 func executeCommand(command string) (string, error) {
-	fmt.Printf("\033[31m$ %s\033[0m\n", command)
+	fmt.Printf("%s$ %s%s\n", ColorRed, command, ColorReset)
 
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
@@ -18,9 +18,12 @@ func executeCommand(command string) (string, error) {
 	}
 
 	output, err := cmd.CombinedOutput()
+	outputStr := string(output)
+	
 	if err != nil {
-		return "", fmt.Errorf("command execution failed: %s, output: %s", err, string(output))
+		// Return output even on error - useful for diagnostics
+		return outputStr, fmt.Errorf("command execution failed: %w", err)
 	}
 
-	return string(output), nil
+	return outputStr, nil
 }

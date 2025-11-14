@@ -23,10 +23,10 @@ type Config struct {
 	SubagentsEnabled      bool    `json:"subagents_enabled"`
 }
 
+// Agent represents an AI agent with its properties and message history
 type Agent struct {
-	ID       string
-	Messages []Message
-	MsgCount int
+	ID       string    // Unique identifier for the agent
+	Messages []Message // List of messages in the conversation
 }
 
 type APIRequest struct {
@@ -91,16 +91,25 @@ type StreamChunk struct {
 	Created int64          `json:"created"`
 	Model   string         `json:"model"`
 	Choices []StreamChoice `json:"choices"`
+	Usage   *Usage         `json:"usage,omitempty"`
 }
 
 type StreamChoice struct {
-	Index        int     `json:"index"`
-	Delta        Delta   `json:"delta"`
-	FinishReason *string `json:"finish_reason"`
+	Index        int          `json:"index"`
+	Delta        Delta        `json:"delta"`
+	FinishReason *string      `json:"finish_reason"`
 }
 
 type Delta struct {
-	Role      *string    `json:"role,omitempty"`
-	Content   *string    `json:"content,omitempty"`
-	ToolCalls []ToolCall `json:"tool_calls,omitempty"`
+	Role      string         `json:"role,omitempty"`
+	Content   string         `json:"content,omitempty"`
+	ToolCalls []ToolCallChunk `json:"tool_calls,omitempty"`
+}
+
+// ToolCallChunk represents a chunk of a tool call in a streaming response
+type ToolCallChunk struct {
+	Index    int          `json:"index"`
+	ID       string       `json:"id,omitempty"`
+	Type     string       `json:"type,omitempty"`
+	Function FunctionCall `json:"function,omitempty"`
 }

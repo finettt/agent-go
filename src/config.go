@@ -2,23 +2,23 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 )
 
 func loadConfig() *Config {
-
 	config := &Config{
-		Temp:                  0.1,
-		MaxTokens:             1000,
-		APIURL:                "https://api.openai.com",
-		Model:                 "gpt-3.5-turbo",
+		Temp:                  DefaultTemp,
+		MaxTokens:             DefaultMaxTokens,
+		APIURL:                DefaultAPIURL,
+		Model:                 DefaultModel,
 		RAGEnabled:            false,
-		RAGSnippets:           5,
+		RAGSnippets:           DefaultRAGSnippets,
 		AutoCompress:          true,
-		AutoCompressThreshold: 20,
-		ModelContextLength:    131072,
+		AutoCompressThreshold: DefaultAutoCompressThreshold,
+		ModelContextLength:    DefaultModelContextLength,
 		Stream:                false,
 		SubagentsEnabled:      true,
 	}
@@ -29,7 +29,9 @@ func loadConfig() *Config {
 		if _, err := os.Stat(configPath); err == nil {
 			file, err := os.ReadFile(configPath)
 			if err == nil {
-				json.Unmarshal(file, config)
+				if err := json.Unmarshal(file, &config); err != nil {
+					fmt.Fprintf(os.Stderr, "Warning: failed to parse config file: %v\n", err)
+				}
 			}
 		}
 	}
