@@ -69,6 +69,24 @@ func getAvailableTools(includeSpawn bool) []Tool {
 		},
 	}
 
+	// Add generic MCP tool
+	tools = append(tools, Tool{
+		Type: "function",
+		Function: FunctionDefinition{
+			Name:        "use_mcp_tool",
+			Description: "Call a tool on a connected MCP server.",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"server_name": map[string]string{"type": "string"},
+					"tool_name":   map[string]string{"type": "string"},
+					"arguments":   map[string]interface{}{"type": "object"},
+				},
+				"required": []string{"server_name", "tool_name", "arguments"},
+			},
+		},
+	})
+
 	if includeSpawn {
 		tools = append(tools, Tool{
 			Type: "function",

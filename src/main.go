@@ -234,7 +234,58 @@ func handleSlashCommand(command string) {
 		fmt.Println("  /stream on|off     - Toggle streaming mode")
 		fmt.Println("  /subagents on|off  - Toggle sub-agent spawning")
 		fmt.Println("  /todo              - Display the current todo list")
+		fmt.Println("  /mcp add <name> <command> - Add an MCP server")
+		fmt.Println("  /mcp remove <name> - Remove an MCP server")
+		fmt.Println("  /mcp list          - List MCP servers")
 		fmt.Println("  /quit              - Exit the application")
+	case "/mcp":
+		if len(parts) < 2 {
+			fmt.Println("Usage: /mcp [add|remove|list]")
+			return
+		}
+		switch parts[1] {
+		case "add":
+			if len(parts) < 4 {
+				fmt.Println("Usage: /mcp add <name> <command>")
+				return
+			}
+			name := parts[2]
+			command := strings.Join(parts[3:], " ")
+			if config.MCPs == nil {
+				config.MCPs = make(map[string]MCPServer)
+			}
+			config.MCPs[name] = MCPServer{Name: name, Command: command}
+			if err := saveConfig(config); err != nil {
+				fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
+			}
+			fmt.Printf("MCP server '%s' added.\n", name)
+		case "remove":
+			if len(parts) < 3 {
+				fmt.Println("Usage: /mcp remove <name>")
+				return
+			}
+			name := parts[2]
+			if _, ok := config.MCPs[name]; ok {
+				delete(config.MCPs, name)
+				if err := saveConfig(config); err != nil {
+					fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
+				}
+				fmt.Printf("MCP server '%s' removed.\n", name)
+			} else {
+				fmt.Printf("MCP server '%s' not found.\n", name)
+			}
+		case "list":
+			if len(config.MCPs) == 0 {
+				fmt.Println("No MCP servers configured.")
+				return
+			}
+			fmt.Println("Configured MCP servers:")
+			for name, server := range config.MCPs {
+				fmt.Printf("- %s: %s\n", name, server.Command)
+			}
+		default:
+			fmt.Println("Usage: /mcp [add|remove|list]")
+		}
 	case "/todo":
 		list, err := getTodoList(agent.ID)
 		if err != nil {
@@ -293,6 +344,12 @@ func handleSlashCommand(command string) {
 		fmt.Printf("Model Context Length: %d\n", config.ModelContextLength)
 		fmt.Printf("Stream Enabled: %t\n", config.Stream)
 		fmt.Printf("Subagents Enabled: %t\n", config.SubagentsEnabled)
+		if len(config.MCPs) > 0 {
+			fmt.Println("MCP Servers:")
+			for name, server := range config.MCPs {
+				fmt.Printf("  - %s: %s\n", name, server.Command)
+			}
+		}
 	case "/rag":
 		if len(parts) > 1 {
 			switch parts[1] {
@@ -389,6 +446,9 @@ func buildSystemPrompt(contextSummary string) string {
 	if contextSummary != "" {
 		basePrompt = fmt.Sprintf("Previous conversation context:\n\n%s\n\n%s", contextSummary, basePrompt)
 	}
+	
+	// Add detailed MCP server and tool info to the prompt
+	basePrompt += getMCPToolInfo()
 	
 	systemPrompt := getSystemInfo() + "\n\n" + basePrompt
 

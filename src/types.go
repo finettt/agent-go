@@ -21,6 +21,7 @@ type Config struct {
 	ModelContextLength    int     `json:"model_context_length"`
 	Stream                bool    `json:"stream"`
 	SubagentsEnabled      bool    `json:"subagents_enabled"`
+	MCPs                  map[string]MCPServer `json:"mcp_servers"`
 }
 
 // Agent represents an AI agent with its properties and message history
@@ -84,6 +85,12 @@ type SubAgentTask struct {
 	Task string `json:"task"`
 }
 
+type UseMCPToolArgs struct {
+	ServerName string                 `json:"server_name"`
+	ToolName   string                 `json:"tool_name"`
+	Arguments  map[string]interface{} `json:"arguments"`
+}
+
 // Streaming response types
 type StreamChunk struct {
 	ID      string         `json:"id"`
@@ -112,4 +119,10 @@ type ToolCallChunk struct {
 	ID       string       `json:"id,omitempty"`
 	Type     string       `json:"type,omitempty"`
 	Function FunctionCall `json:"function,omitempty"`
+}
+
+// MCPServer defines the configuration for a single MCP server
+type MCPServer struct {
+	Name    string `json:"name"`
+	Command string `json:"command"`
 }

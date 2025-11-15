@@ -82,6 +82,15 @@ func buildCompleter(config *Config) readline.AutoCompleter {
 	// Create the main completer with static and semi-static items.
 	// Dynamic file path completion is not implemented to maintain compatibility
 	// with readline v1.5.1 without a custom completer implementation.
+
+	// Prepare MCP server completions for the /mcp remove command
+	mcpServerCompleters := make([]readline.PrefixCompleterInterface, 0)
+	if config.MCPs != nil {
+		for name := range config.MCPs {
+			mcpServerCompleters = append(mcpServerCompleters, readline.PcItem(name))
+		}
+	}
+
 	var completer = readline.NewPrefixCompleter(
 		readline.PcItem("/help"),
 		readline.PcItem("/model", modelCompleters...),
@@ -94,6 +103,11 @@ func buildCompleter(config *Config) readline.AutoCompleter {
 			readline.PcItem("on"),
 			readline.PcItem("off"),
 			readline.PcItem("path"), // Only suggests the "path" keyword.
+		),
+		readline.PcItem("/mcp",
+			readline.PcItem("add"),
+			readline.PcItem("remove", mcpServerCompleters...),
+			readline.PcItem("list"),
 		),
 		readline.PcItem("/compress"),
 		readline.PcItem("/contextlength"),

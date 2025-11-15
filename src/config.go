@@ -22,6 +22,7 @@ func loadConfig() *Config {
 		Stream:                false,
 		SubagentsEnabled:      true,
 	}
+	config.MCPs = make(map[string]MCPServer)
 
 	home, err := os.UserHomeDir()
 	if err == nil {
@@ -33,6 +34,17 @@ func loadConfig() *Config {
 					fmt.Fprintf(os.Stderr, "Warning: failed to parse config file: %v\n", err)
 				}
 			}
+		}
+	}
+
+	// Add default context7 MCP if no other MCPs are configured after loading
+	if config.MCPs == nil || len(config.MCPs) == 0 {
+		if config.MCPs == nil {
+			config.MCPs = make(map[string]MCPServer)
+		}
+		config.MCPs["context7"] = MCPServer{
+			Name:    "context7",
+			Command: "npx -y @upstash/context7-mcp",
 		}
 	}
 

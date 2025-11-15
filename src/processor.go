@@ -34,6 +34,13 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 				output, err = runSubAgent(args.Task, config)
 				fmt.Printf("%sSub-agent finished with result: %s%s\n", ColorYellow, output, ColorReset)
 			}
+		case "use_mcp_tool":
+			var args UseMCPToolArgs
+			if unmarshalErr := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); unmarshalErr != nil {
+				output = fmt.Sprintf("Failed to parse arguments for use_mcp_tool: %s", unmarshalErr)
+			} else {
+				output, err = useMCPTool(args.ServerName, args.ToolName, args.Arguments)
+			}
 		default:
 			output = fmt.Sprintf("Unknown tool: %s", toolCall.Function.Name)
 		}
