@@ -14,6 +14,10 @@ jobs:
       matrix:
         goos: [linux, windows, darwin]
         goarch: [amd64, arm64]
+        # Exclude unsupported combinations if needed, though the 'if' condition below is more targeted
+        # exclude:
+        #   - goos: windows
+        #     goarch: arm64
     steps:
     - name: Set up Go
       uses: actions/setup-go@v5
@@ -22,28 +26,32 @@ jobs:
 
     - name: Check out code
       uses: actions/checkout@v5
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y upx-ucl
 
-    - name: Build and Compress
+    - name: Build
       env:
         GOOS: ${{ matrix.goos }}
         GOARCH: ${{ matrix.goarch }}
       run: |
-        # Install UPX
-        sudo apt-get update
-        sudo apt-get install -y upx-ucl
-
-        # Create binary name variable
         mkdir -p bin
         BINARY_NAME="bin/agent-go-${{ matrix.goos }}-${{ matrix.goarch }}"
         if [ "${{ matrix.goos }}" = "windows" ]; then
           BINARY_NAME+=".exe"
         fi
-
-        # Build the Go binary
         go build -v -o $BINARY_NAME ./src
 
-        # Compress the binary with UPX for best compression
-        upx --best --lzma --force-macos $BINARY_NAME
+    - name: Compress binary with UPX
+      if: matrix.goos != 'windows' && matrix.goarch != 'arm64'
+      run: |
+        BINARY_NAME="bin/agent-go-${{ matrix.goos }}-${{ matrix.goarch }}"
+        if [ "${{ matrix.goos }}" = "windows" ]; then
+          BINARY_NAME+=".exe"
+        fi
+        upx --best --lzma $BINARY_NAME
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
