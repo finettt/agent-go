@@ -51,7 +51,7 @@ jobs:
         if [ "${{ matrix.goos }}" = "windows" ]; then
           BINARY_NAME+=".exe"
         fi
-        upx --best --lzma $BINARY_NAME
+        upx --best --lzma --force-macos $BINARY_NAME
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
