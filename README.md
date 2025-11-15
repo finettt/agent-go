@@ -1,4 +1,11 @@
-# Agent-Go
+<div align="center">
+    <img width="300" height="300" alt="agent-go" src="https://github.com/user-attachments/assets/b8914faa-998d-487e-9173-7008d75b36df" />
+    <h1>Agent-Go</h1>
+</div>
+
+
+
+
 <img width="730" height="216" alt="image" src="https://github.com/user-attachments/assets/c2586899-0dcf-4544-9ed3-bb8a3c9a2bcc" />
 
 Agent-Go is a powerful, command-line AI agent written in Go. It integrates with OpenAI-compatible APIs to provide intelligent command execution, context-aware responses, and a rich set of features for developers and power users. This project is a modern rewrite of the original [Agent-C](https://github.com/finettt/agent-c), redesigned with an improved architecture and enhanced capabilities.
