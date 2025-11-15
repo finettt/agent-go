@@ -23,17 +23,27 @@ jobs:
     - name: Check out code
       uses: actions/checkout@v5
 
-    - name: Build
+    - name: Build and Compress
       env:
         GOOS: ${{ matrix.goos }}
         GOARCH: ${{ matrix.goarch }}
       run: |
+        # Install UPX
+        sudo apt-get update
+        sudo apt-get install -y upx-ucl
+
+        # Create binary name variable
         mkdir -p bin
         BINARY_NAME="bin/agent-go-${{ matrix.goos }}-${{ matrix.goarch }}"
         if [ "${{ matrix.goos }}" = "windows" ]; then
           BINARY_NAME+=".exe"
         fi
+
+        # Build the Go binary
         go build -v -o $BINARY_NAME ./src
+
+        # Compress the binary with UPX for best compression
+        upx --best --lzma $BINARY_NAME
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4

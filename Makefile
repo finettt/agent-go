@@ -18,4 +18,4 @@ clean:
 
 compress:
 	@echo "Compressing..."
-	@upx ./$(BINARY_NAME)
+	@upx --best --lzma ./$(BINARY_NAME)
