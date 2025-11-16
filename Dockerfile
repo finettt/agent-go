@@ -11,6 +11,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -ldflags "-w -s" -o agent-go ./src
 
 FROM alpine:latest
 
+RUN apk add nodejs
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 RUN mkdir -p /home/appuser/.config/agent-go && chown -R appuser:appgroup /home/appuser/.config/agent-go

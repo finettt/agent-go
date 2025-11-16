@@ -34,7 +34,15 @@ The configuration file is automatically created on first run or when settings ar
   "rag_snippets": 5,
   "auto_compress": true,
   "auto_compress_threshold": 20,
-  "model_context_length": 131072
+  "model_context_length": 131072,
+  "stream": false,
+  "subagents_enabled": true,
+  "mcp_servers": {
+    "context7": {
+      "name": "context7",
+      "command": "npx -y @upstash/context7-mcp"
+    }
+  }
 }
 ```
 
@@ -66,6 +74,32 @@ The configuration file is automatically created on first run or when settings ar
 | `auto_compress_threshold` | int | `20` | Threshold for auto compression (percentage of context length) |
 | `model_context_length` | int | `131072` | Maximum context length for the AI model |
 
+#### Streaming and Sub-agent Configuration
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `stream` | bool | `false` | Enable/disable streaming mode for real-time responses |
+| `subagents_enabled` | bool | `true` | Enable/disable sub-agent spawning capability |
+
+#### MCP Server Configuration
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `mcp_servers` | object | `{"context7": {...}}` | Map of MCP server configurations |
+
+**MCP Server Object Structure:**
+```json
+{
+  "server_name": {
+    "name": "server_name",
+    "command": "command to launch server"
+  }
+}
+```
+
+**Default MCP Server:**
+The `context7` server is automatically configured for accessing up-to-date library documentation.
+
 ## Environment Variables
 
 Environment variables provide a way to override configuration settings without modifying the configuration file. This is particularly useful for:
@@ -88,6 +122,8 @@ Environment variables provide a way to override configuration settings without m
 | `AUTO_COMPRESS` | Enable auto context compression (`1`=enabled, `0`=disabled) | `1` |
 | `AUTO_COMPRESS_THRESHOLD` | Threshold for auto compression | `20` |
 | `MODEL_CONTEXT_LENGTH` | Model context length | `131072` |
+| `STREAM_ENABLED` | Enable streaming mode (`1`=enabled, `0`=disabled) | `1` or `true` |
+| `SUBAGENTS_ENABLED` | Enable sub-agent spawning (`1`=enabled, `0`=disabled) | `1` or `true` |
 
 ### Environment Variable Examples
 
@@ -289,6 +325,29 @@ RAG path set to: /home/user/documents
 
 > /contextlength 131072
 Model context length set to: 131072
+
+> /stream on
+Streaming enabled.
+
+> /subagents on
+Sub-agent spawning enabled.
+```
+
+#### Managing MCP Servers (Interactive)
+
+```bash
+> /mcp list
+Configured MCP servers:
+- context7: npx -y @upstash/context7-mcp
+
+> /mcp add time uvx mcp-server-time
+MCP server 'time' added.
+
+> /mcp add weather npx -y @weather/mcp-server
+MCP server 'weather' added.
+
+> /mcp remove weather
+MCP server 'weather' removed.
 ```
 
 #### Manual Configuration File Editing
@@ -343,6 +402,12 @@ docker run -it \
   -v ~/.config/agent-go:/home/appuser/.config/agent-go \
   -e OPENAI_KEY="your-api-key" \
   agent-go
+
+# With MCP server configuration
+docker run -it \
+  -v $(pwd):/workspace \
+  -e OPENAI_KEY="your-api-key" \
+  agent-go /mcp add custom-server "npx -y @custom/mcp-server"
 ```
 
 **Docker Volume Configuration:**
@@ -486,6 +551,74 @@ export CONFIG_FILE=~/.config/agent-go/prod.json
 
 # Override with environment variables
 export OPENAI_KEY="dev-key" && ./agent-go
+```
+
+### MCP Server Management
+
+Configure MCP servers for extended functionality:
+
+```bash
+# Add MCP servers programmatically
+export MCP_SERVERS='{"time":{"name":"time","command":"uvx mcp-server-time"}}'
+
+# Or via configuration file
+cat > ~/.config/agent-go/config.json <<EOF
+{
+  "api_key": "${OPENAI_KEY}",
+  "mcp_servers": {
+    "context7": {
+      "name": "context7",
+      "command": "npx -y @upstash/context7-mcp"
+    },
+    "time": {
+      "name": "time",
+      "command": "uvx mcp-server-time"
+    }
+  }
+}
+EOF
+```
+
+**Common MCP Servers:**
+- **context7**: Library documentation (default)
+- **time**: Time and timezone utilities
+- **filesystem**: File system operations
+- **database**: Database query tools
+- **weather**: Weather information
+
+### Todo List Storage
+
+Todo lists are stored per-agent:
+
+```bash
+# Todo list location
+~/.config/agent-go/todos/{agent-id}.json
+
+# Main agent todos
+~/.config/agent-go/todos/main.json
+
+# Sub-agent todos (UUID-based)
+~/.config/agent-go/todos/550e8400-e29b-41d4-a716-446655440000.json
+```
+
+**Todo List Structure:**
+```json
+{
+  "agent_id": "main",
+  "todos": [
+    {
+      "id": 1,
+      "task": "Set up development environment",
+      "status": "completed"
+    },
+    {
+      "id": 2,
+      "task": "Write documentation",
+      "status": "in-progress"
+    }
+  ],
+  "next_id": 3
+}
 ```
 
 ### Secret Management

@@ -22,9 +22,10 @@ This comprehensive guide provides instructions for setting up the development en
 
 ### System Requirements
 
-- **Go**: 1.25.3 (recommended)
+- **Go**: 1.25 or later
 - **Git**: For version control
 - **Make**: For build automation (optional, but recommended)
+- **Node.js/npm**: For MCP servers (optional, but recommended for full functionality)
 - **Text Editor**: VS Code, GoLand, or any editor with Go support
 
 ### Recommended Tools
@@ -100,9 +101,16 @@ agent-go/
 │   ├── main.go            # Application entry point
 │   ├── api.go             # API communication logic
 │   ├── config.go          # Configuration management
+│   ├── constants.go       # Constants and default values
 │   ├── executor.go        # Command execution
+│   ├── processor.go       # Tool call processing
+│   ├── tools.go           # Tool definitions
 │   ├── rag.go             # RAG functionality
+│   ├── mcp.go             # MCP server integration
+│   ├── subagent.go        # Sub-agent management
+│   ├── todo.go            # Todo list management
 │   ├── completion.go      # Auto-completion
+│   ├── system.go          # System information
 │   └── types.go           # Data structures
 ├── docs/                  # Documentation
 │   ├── README.md          # Developer documentation
@@ -120,11 +128,18 @@ agent-go/
 ### Key Components
 
 - **`src/main.go`**: Application entry point, CLI loop, and signal handling
-- **`src/api.go`**: OpenAI API integration and response processing
+- **`src/api.go`**: OpenAI API integration, streaming, and response processing
 - **`src/config.go`**: Configuration loading and validation
+- **`src/constants.go`**: Application constants and defaults
 - **`src/executor.go`**: Secure command execution
+- **`src/processor.go`**: Tool call processing and coordination
+- **`src/tools.go`**: Tool definitions and schemas
 - **`src/rag.go`**: Document search and context retrieval
+- **`src/mcp.go`**: MCP server connection and tool management
+- **`src/subagent.go`**: Sub-agent spawning and lifecycle management
+- **`src/todo.go`**: Todo list CRUD operations
 - **`src/completion.go`**: CLI auto-completion functionality
+- **`src/system.go`**: System information gathering
 - **`src/types.go`**: Type definitions and data structures
 
 ## Building and Running
@@ -204,6 +219,16 @@ go run -mod=mod ./src
 
 ## Testing
 
+### Installing Test Dependencies
+
+```bash
+# Install testing tools
+go install gotest.tools/gotestsum@latest
+
+# Install MCP testing tools (for MCP integration tests)
+npm install -g @modelcontextprotocol/inspector
+```
+
 ### Running Tests
 
 ```bash
@@ -263,6 +288,58 @@ func BenchmarkAPIRequest(b *testing.B) {
     // Note: Actual benchmark would require mock setup
     for i := 0; i < b.N; i++ {
         // Benchmark code would go here
+    }
+}
+
+// Test MCP integration
+func TestMCPConnection(t *testing.T) {
+    // Setup mock MCP server
+    config := &Config{
+        MCPs: map[string]MCPServer{
+            "test": {
+                Name: "test",
+                Command: "npx -y @test/mcp-server",
+            },
+        },
+    }
+    
+    // Test connection
+    mgr := newMCPManager()
+    session, err := mgr.ensureMCP("test")
+    
+    if err != nil {
+        t.Errorf("Expected successful connection, got error: %v", err)
+    }
+    
+    if session == nil {
+        t.Error("Expected valid session, got nil")
+    }
+}
+
+// Test todo list operations
+func TestTodoOperations(t *testing.T) {
+    agentID := "test-agent"
+    
+    // Create todo
+    result, err := createTodo(agentID, `{"task":"Test task"}`)
+    if err != nil {
+        t.Errorf("Failed to create todo: %v", err)
+    }
+    
+    // Verify todo was created
+    if !strings.Contains(result, "Test task") {
+        t.Error("Todo not found in result")
+    }
+    
+    // Update todo
+    result, err = updateTodo(agentID, `{"id":1,"status":"completed"}`)
+    if err != nil {
+        t.Errorf("Failed to update todo: %v", err)
+    }
+    
+    // Verify update
+    if !strings.Contains(result, "completed") {
+        t.Error("Todo status not updated")
     }
 }
 ```

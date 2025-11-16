@@ -5,6 +5,8 @@ This document provides practical examples and best practices for using Agent-Go 
 ## Table of Contents
 
 - [Basic Usage Examples](#basic-usage-examples)
+- [MCP Integration Examples](#mcp-integration-examples)
+- [Todo List Management Examples](#todo-list-management-examples)
 - [Advanced Workflows](#advanced-workflows)
 - [Integration Scenarios](#integration-scenarios)
 - [Performance Optimization](#performance-optimization)
@@ -502,7 +504,73 @@ Context compressed. Starting new chat with compressed summary as system message.
 - Auto-compression triggers at 75% of `model_context_length`
 - Manual compression with `/compress` resets the token counter
 
-### 2. Command-Line Task Execution
+### 2. MCP-Enhanced Development Workflow
+
+```
+> /mcp add context7 npx -y @upstash/context7-mcp
+> /mcp add time uvx mcp-server-time
+
+> Create a React component that shows the current time in multiple timezones
+[Using MCP: Getting React documentation]
+[Using MCP: Getting timezone utilities]
+
+Created TimeZones.jsx:
+```jsx
+import React, { useState, useEffect } from 'react';
+
+const TimeZones = () => {
+  const [times, setTimes] = useState({});
+  
+  useEffect(() => {
+    // Component implementation using latest React patterns
+    ...
+  });
+  
+  return (
+    <div className="timezones">
+      <h2>World Clocks</h2>
+      {/* Display times for multiple zones */}
+    </div>
+  );
+};
+
+export default TimeZones;
+```
+
+Based on latest React documentation and timezone utilities.
+```
+
+### 3. Todo-Driven Development
+
+```
+> Create a development plan for a new API endpoint
+Created todo list:
+- [ID: 1] Design API schema (pending)
+- [ID: 2] Write route handler (pending)
+- [ID: 3] Add validation middleware (pending)
+- [ID: 4] Write unit tests (pending)
+- [ID: 5] Update API documentation (pending)
+
+> Let's work through these step by step. Start with the schema design.
+Updated: [ID: 1] Design API schema (in-progress)
+
+Created schema.ts:
+```typescript
+interface UserRequest {
+  email: string;
+  name: string;
+  role: 'admin' | 'user';
+}
+```
+
+Updated: [ID: 1] Design API schema (completed)
+
+> Now the route handler
+Updated: [ID: 2] Write route handler (in-progress)
+...
+```
+
+### 4. Command-Line Task Execution
 
 Execute tasks directly without interactive mode:
 
@@ -690,7 +758,71 @@ Optimization recommendations:
 4. Add request batching
 
 
-### 3. Configuration Issues
+### 3. MCP Server Issues
+
+**Problem: MCP server not connecting**
+
+```
+> /mcp list
+Configured MCP servers:
+- custom-server: npx -y @custom/server (connection failed: command not found)
+
+# Solution: Check if the package is available
+> /shell
+shell> npm search @custom/server
+shell> npx -y @custom/server --version
+shell> exit
+
+# Update the MCP server command
+> /mcp remove custom-server
+> /mcp add custom-server "node /path/to/custom-server/index.js"
+MCP server 'custom-server' added.
+```
+
+**Problem: MCP tool not working**
+
+```
+# Enable debug mode to see detailed MCP communication
+> Ask the agent to use a specific MCP tool
+[MCP Debug: Connecting to server 'time']
+[MCP Debug: Calling tool 'get_current_time']
+[MCP Debug: Error - invalid arguments]
+
+# Check the tool schema
+> /mcp list
+# Review the tool documentation
+```
+
+### 4. Todo List Issues
+
+**Problem: Todos not persisting**
+
+```
+# Check todo file location
+> /shell
+shell> ls -la ~/.config/agent-go/todos/
+shell> cat ~/.config/agent-go/todos/main.json
+shell> exit
+
+# Verify permissions
+shell> chmod 644 ~/.config/agent-go/todos/*.json
+```
+
+**Problem: Wrong agent todo list**
+
+```
+# Each agent has its own todo list
+# Main agent: ~/.config/agent-go/todos/main.json
+# Sub-agents: ~/.config/agent-go/todos/{uuid}.json
+
+# To view main agent todos only:
+> /todo
+Current Todo List:
+- [ID: 1] Main task (pending)
+...
+```
+
+### 5. Configuration Issues
 
 **Configuration Validation**
 
@@ -742,7 +874,63 @@ Fixes applied:
 - Use proper error handling
 - Document complex logic
 
-### 5. Deployment
+### 5. MCP Integration
+
+**Best Practice: Organize MCP servers by purpose**
+
+```json
+{
+  "mcp_servers": {
+    "context7": {
+      "name": "context7",
+      "command": "npx -y @upstash/context7-mcp"
+    },
+    "time": {
+      "name": "time",
+      "command": "uvx mcp-server-time"
+    },
+    "fs-projects": {
+      "name": "fs-projects",
+      "command": "npx -y @modelcontextprotocol/server-filesystem /home/user/projects"
+    },
+    "fs-docs": {
+      "name": "fs-docs",
+      "command": "npx -y @modelcontextprotocol/server-filesystem /home/user/docs"
+    }
+  }
+}
+```
+
+**Best Practice: Use MCP for external integrations**
+
+- Use MCP servers for accessing external APIs
+- Keep sensitive credentials in MCP server configuration
+- Use filesystem MCP servers for controlled file access
+- Leverage existing MCP servers before building custom tools
+
+### 6. Todo Management
+
+**Best Practice: Use todos for complex multi-step tasks**
+
+- Create todos at the start of complex projects
+- Update status as you progress
+- Review completed todos for project documentation
+- Use separate todo lists for different agents/contexts
+
+**Best Practice: Structured todo descriptions**
+
+```
+> Create detailed todos for the deployment process
+- [ID: 1] Run tests and ensure all pass (pending)
+- [ID: 2] Build production bundle (pending)
+- [ID: 3] Run database migrations on staging (pending)
+- [ID: 4] Deploy to staging and verify (pending)
+- [ID: 5] Run smoke tests on staging (pending)
+- [ID: 6] Deploy to production (pending)
+- [ID: 7] Monitor production metrics (pending)
+```
+
+### 7. Deployment
 - Use containerization for consistency
 - Implement proper logging
 - Set up monitoring and alerting

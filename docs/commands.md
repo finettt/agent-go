@@ -35,6 +35,9 @@ Available commands:
   /stream on|off     - Toggle streaming mode
   /subagents on|off  - Toggle sub-agent spawning
   /todo              - Display the current todo list
+  /mcp add <name> <command> - Add an MCP server
+  /mcp remove <name> - Remove an MCP server
+  /mcp list          - List MCP servers
   /quit              - Exit the application
  ````
 
@@ -251,6 +254,164 @@ RAG path set to: ./docs
 - File paths are validated for security
 - Gracefully handles permission errors and inaccessible files
 
+## MCP (Model Context Protocol) Commands
+
+### `/mcp add <name> <command>`
+
+Adds a new MCP (Model Context Protocol) server to extend Agent-Go's capabilities with external tools and resources.
+
+**Usage:**
+
+```
+/mcp add <name> <command>
+```
+
+**Parameters:**
+
+- `name`: Unique identifier for the MCP server
+- `command`: Command to launch the MCP server
+
+**Examples:**
+
+```
+> /mcp add time uvx mcp-server-time
+MCP server 'time' added.
+
+> /mcp add weather npx -y @weather/mcp-server
+MCP server 'weather' added.
+
+> /mcp add filesystem npx -y @modelcontextprotocol/server-filesystem /path/to/files
+MCP server 'filesystem' added.
+```
+
+**Notes:**
+
+- The server is immediately available for use by the AI agent
+- Server configuration is persisted to the config file
+- The AI automatically discovers available tools from connected servers
+- Common MCP server commands use `npx -y` or `uvx` for package execution
+
+### `/mcp remove <name>`
+
+Removes a configured MCP server.
+
+**Usage:**
+
+```
+/mcp remove <name>
+```
+
+**Parameters:**
+
+- `name`: Name of the MCP server to remove
+
+**Examples:**
+
+```
+> /mcp remove weather
+MCP server 'weather' removed.
+
+> /mcp remove old-server
+MCP server 'old-server' removed.
+```
+
+**Notes:**
+
+- Removes the server from configuration
+- Changes are saved immediately
+- The server will no longer be available for tool calls
+
+### `/mcp list`
+
+Lists all configured MCP servers and their commands.
+
+**Usage:**
+
+```
+/mcp list
+```
+
+**Example:**
+
+```
+> /mcp list
+Configured MCP servers:
+- context7: npx -y @upstash/context7-mcp
+- time: uvx mcp-server-time
+- weather: npx -y @weather/mcp-server
+```
+
+**Notes:**
+
+- Shows all configured servers
+- Displays the command used to launch each server
+- The `context7` server is configured by default for library documentation
+
+**Default MCP Server:**
+
+Agent-Go comes pre-configured with the **context7** MCP server for accessing up-to-date library documentation:
+
+```
+> Ask the agent to get React documentation
+[Using MCP: Connecting to context7 server]
+[Fetching documentation for React...]
+Based on the latest React documentation...
+```
+
+**Available Tools from context7:**
+
+- `resolve-library-id`: Finds the correct library identifier
+- `get-library-docs`: Retrieves up-to-date documentation for a library
+
+### `/todo`
+
+Displays the current todo list for the active agent.
+
+**Usage:**
+
+```
+/todo
+```
+
+**Example:**
+
+```
+> /todo
+Current Todo List:
+- [ID: 1] Set up development environment (in-progress)
+- [ID: 2] Write documentation (pending)
+- [ID: 3] Run tests (completed)
+```
+
+**Notes:**
+
+- Todo lists are persistent across sessions
+- Each agent (main and sub-agents) has its own todo list
+- Todo lists are stored in `~/.config/agent-go/todos/`
+- You can also ask the AI to create, update, or view todos
+
+**Todo Management via AI:**
+
+```
+> Create a todo for setting up the database
+Created new todo:
+- [ID: 4] Set up the database (pending)
+
+> Update todo 4 to in-progress
+Updated todo:
+- [ID: 4] Set up the database (in-progress)
+
+> Mark todo 4 as completed
+Updated todo:
+- [ID: 4] Set up the database (completed)
+```
+
+**Todo Statuses:**
+
+- `pending`: Not yet started
+- `in-progress`: Currently being worked on
+- `completed`: Finished
+
 ## Advanced Usage
 
 ### Command Chaining
@@ -312,6 +473,7 @@ Model context length set to: 131072
 ```
 
 **Common Model Context Lengths:**
+
 - GPT-4: 8192 or 131072 (depending on variant)
 - GPT-3.5 Turbo: 16384
 - Claude 3: 200000
@@ -450,11 +612,13 @@ Streaming enabled.
 ```
 
 **Usage:**
+
 ```
 /stream on|off
 ```
 
 **Notes:**
+
 - When enabled, responses are streamed token by token for better user experience
 - Reduces perceived latency for long responses
 - Automatically disabled when shell mode is entered
@@ -500,9 +664,62 @@ Agent-Go tracks and displays token usage in real-time:
 > /compress
 Context compressed. Starting new chat with compressed summary as system message.
 [Tokens: 0]  # Token counter resets after compression
+
+### MCP Tool Usage
+
+The AI agent can automatically use tools from connected MCP servers:
+
+```
+
+> What time is it in Tokyo?
+[Using MCP tool: get_current_time from server 'time']
+Current time in Tokyo: 3:45 PM JST
+
+> Get the latest documentation for Next.js routing
+[Using MCP tool: resolve-library-id from server 'context7']
+[Using MCP tool: get-library-docs from server 'context7']
+Based on the Next.js documentation, routing works as follows...
+
+```
+
+**How MCP Tools Work:**
+- The AI automatically detects when an MCP tool can help
+- Tools are called transparently during conversation
+- Tool results are incorporated into the AI's response
+- No special syntax required - just ask naturally
+
+### Todo List Management
+
+Create and manage todos through natural conversation:
+
+```
+
+> Create a todo list for today's tasks
+Created todo list:
+
+- [ID: 1] Review pull requests (pending)
+- [ID: 2] Update documentation (pending)
+- [ID: 3] Deploy to staging (pending)
+
+> Mark todo 1 as in-progress
+Updated: Review pull requests (in-progress)
+
+> Show my todo list
+Current Todo List:
+
+- [ID: 1] Review pull requests (in-progress)
+- [ID: 2] Update documentation (pending)
+- [ID: 3] Deploy to staging (pending)
+
+> Complete todo 1
+Updated: Review pull requests (completed)
+
+```
+[Tokens: 0]  # Token counter resets after compression
 ```
 
 **Understanding Token Usage:**
+
 - Tokens are cumulative throughout the session
 - Each API call adds to the total token count
 - Auto-compression triggers at 75% of `model_context_length`
@@ -520,6 +737,7 @@ Execute tasks directly without interactive mode:
 ```
 
 **Benefits:**
+
 - Ideal for scripting and automation
 - No interactive prompts
 - Returns exit code 0 on success, non-zero on failure
@@ -583,6 +801,28 @@ If you encounter issues not covered here:
 3. Review the [Architecture](architecture.md) and [Configuration](configuration.md) documents
 4. For bugs or feature requests, check the GitHub repository
 
+### MCP Server Debugging
+
+If MCP servers aren't connecting:
+
+```
+> /mcp list
+Configured MCP servers:
+- context7: npx -y @upstash/context7-mcp
+
+# Check if the MCP command works standalone
+> /shell
+shell> npx -y @upstash/context7-mcp
+# Should see MCP server output
+shell> exit
+```
+
+**Common MCP Issues:**
+
+- **Server not found**: Ensure the command is correct and the package is available
+- **Connection failed**: Check network connectivity and package installation
+- **Tool call errors**: Verify the tool name and arguments match the server's schema
+
 ### Debug Mode
 
 For troubleshooting configuration issues:
@@ -594,4 +834,3 @@ export DEBUG=1
 ```
 
 This will provide detailed logging information to help diagnose issues.
-

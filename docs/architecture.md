@@ -96,6 +96,25 @@ Handles secure shell command execution:
 - **Command Display**: Shows executed commands with color coding for user feedback
 
 ### 5. RAG System (`rag.go`)
+### 5. Tool Management (`tools.go` and `processor.go`)
+
+Defines and processes available tools for the AI agent:
+
+**tools.go:**
+- **Tool Definitions**: Defines schemas for all available tools
+- **Tool Registry**: Manages which tools are available to the agent
+- **Conditional Tools**: Some tools (like `spawn_agent`) are conditionally available
+- **Built-in Tools**: `execute_command`, `create_todo`, `update_todo`, `get_todo_list`, `use_mcp_tool`
+- **Schema Validation**: Ensures tool parameters match expected types
+
+**processor.go:**
+- **Tool Call Processing**: Handles execution of tool calls from API responses
+- **Error Handling**: Manages tool execution errors gracefully
+- **Result Formatting**: Formats tool output for the AI
+- **Tool Coordination**: Coordinates between different tool types
+- **Sub-agent Integration**: Handles `spawn_agent` tool calls
+
+### 6. RAG System (`rag.go`)
 
 Implements Retrieval-Augmented Generation for local document search:
 
@@ -107,8 +126,48 @@ Implements Retrieval-Augmented Generation for local document search:
 - **Recursive Search**: Searches subdirectories for comprehensive document coverage
 - **Error Resilience**: Gracefully handles file access errors and permission issues
 
-### 6. Auto-completion (`completion.go`)
+### 7. MCP Integration (`mcp.go`)
 
+Manages Model Context Protocol server connections and tool calls:
+
+- **Server Management**: Manages connections to multiple MCP servers
+- **Client Sessions**: Maintains persistent client sessions for each server
+- **Tool Discovery**: Automatically discovers available tools from connected servers
+- **Tool Execution**: Executes MCP tool calls and returns results
+- **Default Configuration**: Auto-configures context7 server for library documentation
+- **Connection Pooling**: Reuses connections for better performance
+- **Error Handling**: Graceful handling of server connection and tool call errors
+- **Dynamic Tool Loading**: Tools are loaded dynamically from server schemas
+
+**MCP Server Types:**
+- **stdio-based**: Local servers using standard input/output (e.g., `npx -y @upstash/context7-mcp`)
+- **Command-based**: Servers launched via shell commands
+
+### 8. Sub-agent System (`subagent.go`)
+
+Manages autonomous sub-agents for complex task delegation:
+
+- **Isolated Execution**: Each sub-agent has its own message history and context
+- **Iteration Limits**: Maximum 50 iterations per sub-agent to prevent infinite loops
+- **Tool Access**: Sub-agents have access to `execute_command` and todo tools
+- **No Nested Spawning**: Sub-agents cannot spawn additional sub-agents
+- **UUID Tracking**: Each sub-agent has a unique identifier
+- **Result Aggregation**: Sub-agent results are returned to the main agent
+- **Independent Todo Lists**: Each sub-agent maintains its own todo list
+
+### 9. Todo List Management (`todo.go`)
+
+Provides persistent task tracking across sessions:
+
+- **Persistent Storage**: Todos stored in `~/.config/agent-go/todos/{agent_id}.json`
+- **Per-Agent Lists**: Each agent (main and sub-agents) has separate todo lists
+- **Status Tracking**: Supports pending, in-progress, and completed statuses
+- **Auto-increment IDs**: Automatic ID assignment for new todos
+- **CRUD Operations**: Create, read, update operations via tools
+- **Data Validation**: Validates todo statuses and prevents invalid updates
+- **JSON Storage**: Human-readable JSON format for easy inspection
+
+### 10. Auto-completion (`completion.go`)
 Provides intelligent command-line autocompletion:
 
 - **Model Completion**: Fetches available models from the API for autocompletion
@@ -119,7 +178,17 @@ Provides intelligent command-line autocompletion:
 - **Prefix-based Completion**: Uses readline library for efficient completion matching
 - **Fallback Support**: Provides default completions when API is unavailable
 
-### 7. Data Types (`types.go`)
+### 11. System Information (`system.go`)
+
+Gathers system context for the AI:
+
+- **OS Detection**: Identifies operating system and architecture
+- **Distribution Info**: Detects Linux distribution from `/etc/os-release`
+- **Current Directory**: Provides working directory context
+- **Timestamp**: Includes current time in system prompt
+- **Cross-platform**: Works on Windows, macOS, and Linux
+
+### 12. Data Types (`types.go`)
 
 Defines the core data structures used throughout the application:
 
@@ -130,6 +199,9 @@ Defines the core data structures used throughout the application:
 - **Tool Calls**: Function calling structures for command execution
 - **Todo List**: Structures for managing todo lists
 - **Command Arguments**: Structured command parameters for safe execution
+- **MCP Types**: MCP server configuration and tool arguments
+- **Streaming Types**: Structures for handling streaming responses
+- **Agent Type**: Agent structure with ID and message history
 
 ## Enhanced Features
 
@@ -141,6 +213,25 @@ The application includes an interactive setup wizard for first-time users:
 2. Prompts user for API key input
 3. Validates and saves configuration
 4. Provides user feedback throughout the process
+
+### MCP (Model Context Protocol) Integration
+
+Agent-Go integrates with MCP servers to extend functionality:
+
+- **Server Registry**: Maintains a registry of configured MCP servers
+- **Automatic Connection**: Connects to servers on-demand when tools are needed
+- **Tool Discovery**: Automatically discovers and includes MCP tools in system prompt
+- **Default Server**: context7 server is auto-configured for library documentation
+- **Dynamic Configuration**: Users can add/remove servers via `/mcp` commands
+- **Tool Information**: MCP tools and descriptions are injected into the system prompt
+
+**MCP Workflow:**
+1. Server configuration stored in config.json
+2. On startup or tool use, client connects to server
+3. Server capabilities are queried (tools, resources)
+4. Tool information is added to system prompt
+5. AI can call MCP tools via `use_mcp_tool` function
+6. Results are processed and returned to the conversation
 
 ### Custom Agent Instructions
 
@@ -239,10 +330,11 @@ Agent-Go now supports unlimited conversation history with intelligent compressio
 
 The modular architecture allows for easy extension:
 
-- **New Tools**: Additional tools can be added by extending the executor, such as the new todo list management tools
+- **New Tools**: Additional tools can be added to tools.go and processor.go
+- **New MCP Servers**: Any MCP-compatible server can be integrated
 - **New APIs**: Support for additional AI providers can be added
 - **New Features**: New features can be added without disrupting existing functionality
-- **Plugin System**: Designed to support future plugin architecture
+- **Plugin System**: MCP provides a plugin-like architecture
 - **Custom Commands**: Easy addition of new slash commands
 - **Custom Prompts**: AGENTS.md support for personalized agent behavior
 - **Configuration Extensibility**: Easy addition of new configuration options
