@@ -188,7 +188,7 @@ func runCLI() {
 			// Update and display total tokens
 			if resp.Usage.TotalTokens > 0 {
 				totalTokens += resp.Usage.TotalTokens
-				fmt.Printf("%s[Tokens: %d]%s\n", ColorGreen, totalTokens, ColorReset)
+				fmt.Printf("Used %s%d%s tokens on %s\n", ColorGreen, totalTokens, ColorReset, config.Model)
 			}
 
 			if len(assistantMsg.ToolCalls) > 0 {
@@ -458,10 +458,10 @@ func buildSystemPrompt(contextSummary string) string {
 	if contextSummary != "" {
 		basePrompt = fmt.Sprintf("Previous conversation context:\n\n%s\n\n%s", contextSummary, basePrompt)
 	}
-	
+
 	// Add detailed MCP server and tool info to the prompt
 	basePrompt += getMCPToolInfo()
-	
+
 	systemPrompt := getSystemInfo() + "\n\n" + basePrompt
 
 	// Check for AGENTS.md and prepend its content to the system prompt
@@ -497,7 +497,7 @@ func compressAndStartNewChat() {
 		ID:       "main",
 		Messages: make([]Message, 0),
 	}
-	
+
 	systemPrompt := buildSystemPrompt(compressedContent)
 	agent.Messages = append(agent.Messages, Message{
 		Role:    "system",
