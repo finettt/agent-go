@@ -20,9 +20,19 @@ type Config struct {
 	AutoCompressThreshold int     `json:"auto_compress_threshold"`
 	ModelContextLength    int     `json:"model_context_length"`
 	Stream                bool    `json:"stream"`
-	SubagentsEnabled      bool    `json:"subagents_enabled"`
+	SubagentsEnabled      bool        `json:"subagents_enabled"`
+	ExecutionMode         ExecuteMode `json:"execution_mode"`
 	MCPs                  map[string]MCPServer `json:"mcp_servers"`
 }
+const (
+	// Ask is the default execution mode, which asks the user for confirmation before executing a command.
+	Ask ExecuteMode = "ask"
+	// YOLO is the execution mode that executes a command without asking for confirmation.
+	YOLO ExecuteMode = "yolo"
+)
+
+// ExecuteMode is the mode for executing a command.
+type ExecuteMode string
 
 // Agent represents an AI agent with its properties and message history
 type Agent struct {

@@ -21,6 +21,7 @@ func loadConfig() *Config {
 		ModelContextLength:    DefaultModelContextLength,
 		Stream:                false,
 		SubagentsEnabled:      true,
+		ExecutionMode:         Ask,
 	}
 	config.MCPs = make(map[string]MCPServer)
 
@@ -86,6 +87,13 @@ func loadConfig() *Config {
 	}
 	if subagents := os.Getenv("SUBAGENTS_ENABLED"); subagents == "0" || subagents == "false" {
 		config.SubagentsEnabled = false
+	}
+	if executionMode := os.Getenv("EXECUTION_MODE"); executionMode != "" {
+		if executionMode == "yolo" {
+			config.ExecutionMode = YOLO
+		} else {
+			config.ExecutionMode = Ask
+		}
 	}
 
 	return config

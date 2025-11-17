@@ -118,7 +118,7 @@ func runCLI() {
 			if userInput == "" {
 				continue
 			}
-			output, err := executeCommand(userInput)
+			output, err := confirmAndExecute(config, userInput)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 			}
@@ -237,7 +237,19 @@ func handleSlashCommand(command string) {
 		fmt.Println("  /mcp add <name> <command> - Add an MCP server")
 		fmt.Println("  /mcp remove <name> - Remove an MCP server")
 		fmt.Println("  /mcp list          - List MCP servers")
+		fmt.Println("  /mode              - Switch between ASK and YOLO mode")
 		fmt.Println("  /quit              - Exit the application")
+	case "/mode":
+		if config.ExecutionMode == Ask {
+			config.ExecutionMode = YOLO
+			fmt.Println("Switched to YOLO mode.")
+		} else {
+			config.ExecutionMode = Ask
+			fmt.Println("Switched to ASK mode.")
+		}
+		if err := saveConfig(config); err != nil {
+			fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
+		}
 	case "/mcp":
 		if len(parts) < 2 {
 			fmt.Println("Usage: /mcp [add|remove|list]")

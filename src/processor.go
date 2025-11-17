@@ -17,7 +17,7 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 			if unmarshalErr := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); unmarshalErr != nil {
 				output = fmt.Sprintf("Failed to parse arguments: %s", unmarshalErr)
 			} else {
-				output, err = executeCommand(args.Command)
+				output, err = confirmAndExecute(config, args.Command)
 			}
 		case "create_todo":
 			output, err = createTodo(agent.ID, toolCall.Function.Arguments)
