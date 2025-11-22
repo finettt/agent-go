@@ -109,6 +109,9 @@ func runCLI() {
 
 		userInput = strings.TrimSpace(userInput)
 
+		// Process @filename mentions
+		userInput = processFileMentions(userInput)
+
 		if shellMode {
 			if userInput == "exit" {
 				shellMode = false
