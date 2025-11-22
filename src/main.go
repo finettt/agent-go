@@ -229,6 +229,7 @@ func handleSlashCommand(command string) {
 		fmt.Println("  /rag on|off        - Toggle RAG feature")
 		fmt.Println("  /rag path <path>   - Set the RAG documents path")
 		fmt.Println("  /shell             - Enter shell mode for direct command execution")
+		fmt.Println("  /clear             - Clear context without compressing")
 		fmt.Println("  /compress          - Compress context and start new chat thread")
 		fmt.Println("  /contextlength <value> - Set the model context length (e.g., 131072)")
 		fmt.Println("  /stream on|off     - Toggle streaming mode")
@@ -395,6 +396,18 @@ func handleSlashCommand(command string) {
 		}
 	case "/compress":
 		compressAndStartNewChat()
+	case "/clear":
+		agent = &Agent{
+			ID:       "main",
+			Messages: make([]Message, 0),
+		}
+		systemPrompt := buildSystemPrompt("")
+		agent.Messages = append(agent.Messages, Message{
+			Role:    "system",
+			Content: &systemPrompt,
+		})
+		totalTokens = 0
+		fmt.Println("Context cleared.")
 	case "/stream":
 		if len(parts) > 1 {
 			switch parts[1] {

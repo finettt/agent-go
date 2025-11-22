@@ -110,6 +110,7 @@ func buildCompleter(config *Config) readline.AutoCompleter {
 			readline.PcItem("list"),
 		),
 		readline.PcItem("/compress"),
+		readline.PcItem("/clear"),
 		readline.PcItem("/contextlength"),
 		readline.PcItem("/stream",
 			readline.PcItem("on"),
