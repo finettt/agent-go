@@ -238,6 +238,8 @@ func handleSlashCommand(command string) {
 		fmt.Println("  /stream on|off     - Toggle streaming mode")
 		fmt.Println("  /subagents on|off  - Toggle sub-agent spawning")
 		fmt.Println("  /todo              - Display the current todo list")
+		fmt.Println("  /notes list        - List all notes")
+		fmt.Println("  /notes view <name> - View a specific note")
 		fmt.Println("  /mcp add <name> <command> - Add an MCP server")
 		fmt.Println("  /mcp remove <name> - Remove an MCP server")
 		fmt.Println("  /mcp list          - List MCP servers")
@@ -308,6 +310,24 @@ func handleSlashCommand(command string) {
 			fmt.Fprintf(os.Stderr, "Error getting todo list: %s\n", err)
 		} else {
 			fmt.Println(list)
+		}
+	case "/notes":
+		if len(parts) < 2 {
+			fmt.Println("Usage: /notes [list|view <name>]")
+			return
+		}
+		switch parts[1] {
+		case "list":
+			fmt.Println(formatNotesList())
+		case "view":
+			if len(parts) < 3 {
+				fmt.Println("Usage: /notes view <name>")
+				return
+			}
+			noteName := strings.Join(parts[2:], " ")
+			fmt.Println(formatNoteView(noteName))
+		default:
+			fmt.Println("Usage: /notes [list|view <name>]")
 		}
 	case "/contextlength":
 		if len(parts) > 1 {
@@ -468,7 +488,7 @@ func handleSlashCommand(command string) {
 
 func buildSystemPrompt(contextSummary string) string {
 	// Base system prompt
-	basePrompt := "You are an AI assistant. You can manage a todo list by using the `create_todo`, `update_todo`, and `get_todo_list` tools. For multi-step tasks, chain commands with && (e.g., 'echo content > file.py && python3 file.py'). Use execute_command for shell tasks."
+	basePrompt := "You are an AI assistant. You can manage a todo list by using the `create_todo`, `update_todo`, and `get_todo_list` tools. You can also create notes using `create_note`, `update_note`, and `delete_note` tools. Notes persist across sessions. For multi-step tasks, chain commands with && (e.g., 'echo content > file.py && python3 file.py'). Use execute_command for shell tasks."
 
 	// Add compressed context if available
 	if contextSummary != "" {
@@ -477,6 +497,12 @@ func buildSystemPrompt(contextSummary string) string {
 
 	// Add detailed MCP server and tool info to the prompt
 	basePrompt += getMCPToolInfo()
+
+	// Add notes to the prompt
+	notesContent := getNotesForSystemPrompt()
+	if notesContent != "" {
+		basePrompt += notesContent
+	}
 
 	systemPrompt := getSystemInfo() + "\n\n" + basePrompt
 

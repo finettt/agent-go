@@ -41,6 +41,12 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 			} else {
 				output, err = useMCPTool(args.ServerName, args.ToolName, args.Arguments)
 			}
+		case "create_note":
+			output, err = createNote(toolCall.Function.Arguments)
+		case "update_note":
+			output, err = updateNote(toolCall.Function.Arguments)
+		case "delete_note":
+			output, err = deleteNote(toolCall.Function.Arguments)
 		default:
 			output = fmt.Sprintf("Unknown tool: %s", toolCall.Function.Name)
 		}
