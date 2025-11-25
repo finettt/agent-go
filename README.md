@@ -3,6 +3,9 @@
     <h1>Agent-Go</h1>
 </div>
 
+```bash
+curl -O https://raw.githubusercontent.com/finettt/agent-go/main/install-agent-go.sh && ./install-agent-go.sh
+```
 <img width="1110" height="600" alt="showcase" src="https://github.com/user-attachments/assets/80304a7c-7026-4f8a-8618-f152814d7b14" />
 
 Agent-Go is a powerful, command-line AI agent written in Go. It integrates with OpenAI-compatible APIs to provide intelligent command execution, context-aware responses, and a rich set of features for developers and power users. This project is a modern rewrite of the original [Agent-C](https://github.com/finettt/agent-c), redesigned with an improved architecture and enhanced capabilities.
