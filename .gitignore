@@ -27,3 +27,6 @@ agent-go
 # Env files
 .env
 .devcontainer
+
+# Agent local data
+.agent-go/

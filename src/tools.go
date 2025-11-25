@@ -67,6 +67,50 @@ func getAvailableTools(includeSpawn bool) []Tool {
 				Parameters:  map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
 			},
 		},
+		{
+			Type: "function",
+			Function: FunctionDefinition{
+				Name:        "create_note",
+				Description: "Create a note. Notes persist across sessions and are injected into the system prompt.",
+				Parameters: map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"name":    map[string]string{"type": "string", "description": "Unique name for the note"},
+						"content": map[string]string{"type": "string", "description": "Content of the note"},
+					},
+					"required": []string{"name", "content"},
+				},
+			},
+		},
+		{
+			Type: "function",
+			Function: FunctionDefinition{
+				Name:        "update_note",
+				Description: "Update an existing note's content.",
+				Parameters: map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"name":    map[string]string{"type": "string", "description": "Name of the note to update"},
+						"content": map[string]string{"type": "string", "description": "New content for the note"},
+					},
+					"required": []string{"name", "content"},
+				},
+			},
+		},
+		{
+			Type: "function",
+			Function: FunctionDefinition{
+				Name:        "delete_note",
+				Description: "Delete a note.",
+				Parameters: map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"name": map[string]string{"type": "string", "description": "Name of the note to delete"},
+					},
+					"required": []string{"name"},
+				},
+			},
+		},
 	}
 
 	// Add generic MCP tool

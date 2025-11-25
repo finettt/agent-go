@@ -76,15 +76,15 @@ func (c *AgentCompleter) Do(line []rune, pos int) (newLine [][]rune, length int)
 	// Check if we are in a slash command context (line starts with /)
 	// But wait, we might want to autocomplete files even inside a slash command (e.g. /somecmd @file)
 	// However, readline's PrefixCompleter expects to handle the whole line if it matches.
-	
+
 	// Let's check the word being typed.
 	word, _ := getLastWord(line, pos)
-	
+
 	if strings.HasPrefix(word, "@") {
 		// File completion logic
 		prefix := word[1:] // remove @
 		matches, _ := filepath.Glob(prefix + "*")
-		
+
 		// If no matches, maybe it's a directory inside?
 		// Simple implementation: list current directory and filter
 		if matches == nil {
@@ -100,14 +100,14 @@ func (c *AgentCompleter) Do(line []rune, pos int) (newLine [][]rune, length int)
 			}
 		}
 
-		// We want to return candidates without the @ if we are appending, 
+		// We want to return candidates without the @ if we are appending,
 		// but readline expects the replacement.
 		// Actually, readline's Do returns valid suffixes usually?
 		// No, it returns the full string to replace the input "length" characters back?
 		// Let's look at standard behavior.
 		// If I type "@fil", I expect suggestions like "filename.txt".
 		// If I select it, it becomes "@filename.txt".
-		
+
 		var candidates [][]rune
 		for _, m := range matches {
 			// We suggest the full filename
@@ -166,6 +166,15 @@ func buildCompleter(config *Config) readline.AutoCompleter {
 		}
 	}
 
+	// Prepare note name completions for the /notes view command
+	noteNameCompleters := make([]readline.PrefixCompleterInterface, 0)
+	noteNames, err := listNoteNames()
+	if err == nil {
+		for _, name := range noteNames {
+			noteNameCompleters = append(noteNameCompleters, readline.PcItem(name))
+		}
+	}
+
 	var slashCompleter = readline.NewPrefixCompleter(
 		readline.PcItem("/help"),
 		readline.PcItem("/model", modelCompleters...),
@@ -183,6 +192,10 @@ func buildCompleter(config *Config) readline.AutoCompleter {
 			readline.PcItem("add"),
 			readline.PcItem("remove", mcpServerCompleters...),
 			readline.PcItem("list"),
+		),
+		readline.PcItem("/notes",
+			readline.PcItem("list"),
+			readline.PcItem("view", noteNameCompleters...),
 		),
 		readline.PcItem("/compress"),
 		readline.PcItem("/clear"),
