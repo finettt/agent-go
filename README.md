@@ -4,7 +4,7 @@
 </div>
 
 ```bash
-curl -O https://raw.githubusercontent.com/finettt/agent-go/main/install-agent-go.sh && ./install-agent-go.sh
+curl -O https://raw.githubusercontent.com/finettt/agent-go/main/install-agent-go.sh; chmod +x ./install-agent-go.sh; ./install-agent-go.sh
 ```
 <img width="1110" height="600" alt="showcase" src="https://github.com/user-attachments/assets/80304a7c-7026-4f8a-8618-f152814d7b14" />
 
