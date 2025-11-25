@@ -32,6 +32,7 @@ The agent's workflow is as follows:
 | **Unlimited Conversation Memory** | Overcomes token limits with automatic context compression, ensuring long-running conversations are never lost. |
 | **Retrieval-Augmented Generation (RAG)** | Enriches AI responses by searching a local knowledge base, providing highly relevant and context-aware answers. |
 | **Todo List Management** | Create, update, and manage a persistent todo list to track tasks and project status across sessions. |
+| **Project Memory with Notes** | Create, update, and delete persistent notes that are automatically injected into the system prompt for context across sessions. |
 | **Advanced User Experience** | Features a dedicated shell mode, dynamic command auto-completion, and a first-time interactive setup wizard. |
 | **Streaming Mode** | Delivers real-time response generation for an improved, interactive user experience. |
 | **Cross-Platform** | Compiles and runs seamlessly on macOS, Linux, and Windows. |
@@ -159,6 +160,8 @@ Available commands:
     /stream on|off     - Toggle streaming mode
     /subagents on|off  - Toggle sub-agent spawning
     /todo              - Display the current todo list
+    /notes list        - List all notes
+    /notes view <name> - View a specific note
     /mcp add <name> <command> - Add an MCP server
     /mcp remove <name> - Remove an MCP server
     /mcp list          - List MCP servers
@@ -305,6 +308,38 @@ Current Todo List:
 - Status tracking: pending, in-progress, completed
 - Create, update, and view todos via AI commands or `/todo` slash command
 
+### Notes (Project Memory)
+
+Agent-Go provides a notes feature for persistent project memory that carries across sessions:
+
+```
+> Ask the agent to remember something
+> Remember that our API uses JWT authentication with RS256
+
+Created note 'api_authentication':
+The API uses JWT authentication with RS256 algorithm.
+
+> /notes list
+Notes:
+  - api_authentication (updated: 2025-11-25 12:30)
+
+> /notes view api_authentication
+=== api_authentication ===
+Created: 2025-11-25 12:30:00
+Updated: 2025-11-25 12:30:00
+
+The API uses JWT authentication with RS256 algorithm.
+```
+
+**Notes Features:**
+
+- Persistent storage in `.agent-go/notes/` directory (per-project)
+- Automatic injection into system prompt for cross-session context
+- Agent tools: `create_note`, `update_note`, `delete_note`
+- User commands: `/notes list`, `/notes view <name>`
+- Tab autocomplete support for note names
+- See [Notes Documentation](docs/notes.md) for complete details
+
 ### Command-Line Task Execution
 
 Execute tasks directly without interactive mode:
@@ -415,6 +450,7 @@ Agent-Go is built with a clean, modular architecture for maintainability and ext
 - **[mcp.go](src/mcp.go)**: Manages MCP (Model Context Protocol) client connections and tool calls.
 - **[subagent.go](src/subagent.go)**: Manages the lifecycle and execution of sub-agents (max 50 iterations per sub-agent).
 - **[todo.go](src/todo.go)**: Handles todo list creation, updates, and persistence.
+- **[notes.go](src/notes.go)**: Manages persistent notes for project memory across sessions.
 - **[completion.go](src/completion.go)**: Provides dynamic auto-completion for models and commands.
 - **[system.go](src/system.go)**: Gathers system information for context.
 - **[types.go](src/types.go)**: Defines shared data structures and type definitions.
@@ -435,6 +471,7 @@ For a deeper dive into the project's design and features, please see the `/docs`
 - [Configuration](docs/configuration.md) - Configuration options
 - [Development Guide](docs/development.md) - Contributing guidelines
 - [Examples and Best Practices](docs/examples.md) - Practical use cases and examples
+- [Notes Feature](docs/notes.md) - Persistent project memory documentation
 
 ## Contributing
 
