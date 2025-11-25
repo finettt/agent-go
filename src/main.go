@@ -184,7 +184,7 @@ func runCLI() {
 			agent.Messages = append(agent.Messages, assistantMsg)
 
 			// Only print content if not streaming (streaming already printed it)
-			if !config.Stream && assistantMsg.Content != nil {
+			if !config.Stream && assistantMsg.Content != nil && *assistantMsg.Content != "" {
 				fmt.Printf("%s%s%s\n", ColorBlue, *assistantMsg.Content, ColorReset)
 			}
 
@@ -197,6 +197,10 @@ func runCLI() {
 			if len(assistantMsg.ToolCalls) > 0 {
 				processToolCalls(agent, assistantMsg.ToolCalls, config)
 			} else {
+				// Check if we got an empty response
+				if assistantMsg.Content == nil || *assistantMsg.Content == "" {
+					fmt.Printf("%sWarning: Received empty response from model%s\n", ColorYellow, ColorReset)
+				}
 				break // No more tools to call, end agent turn
 			}
 			// Continue loop to send tool output back to API
@@ -620,13 +624,17 @@ func runTask(task string) {
 		agent.Messages = append(agent.Messages, assistantMsg)
 
 		// Only print content if not streaming (streaming already printed it)
-		if !config.Stream && assistantMsg.Content != nil {
+		if !config.Stream && assistantMsg.Content != nil && *assistantMsg.Content != "" {
 			fmt.Printf("%s\n", *assistantMsg.Content)
 		}
 
 		if len(assistantMsg.ToolCalls) > 0 {
 			processToolCalls(agent, assistantMsg.ToolCalls, config)
 		} else {
+			// Check if we got an empty response
+			if assistantMsg.Content == nil || *assistantMsg.Content == "" {
+				fmt.Printf("%sWarning: Received empty response from model%s\n", ColorYellow, ColorReset)
+			}
 			break // No more tools to call, end agent turn
 		}
 		// Continue loop to send tool output back to API
