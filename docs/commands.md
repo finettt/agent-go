@@ -35,6 +35,8 @@ Available commands:
   /stream on|off     - Toggle streaming mode
   /subagents on|off  - Toggle sub-agent spawning
   /todo              - Display the current todo list
+  /notes list        - List all notes
+  /notes view <name> - View a specific note
   /mcp add <name> <command> - Add an MCP server
   /mcp remove <name> - Remove an MCP server
   /mcp list          - List MCP servers
@@ -411,6 +413,83 @@ Updated todo:
 - `pending`: Not yet started
 - `in-progress`: Currently being worked on
 - `completed`: Finished
+
+## Notes Management Commands
+
+### `/notes list`
+
+Lists all existing notes with their last update time.
+
+**Usage:**
+
+```
+/notes list
+```
+
+**Example:**
+
+```
+> /notes list
+Notes:
+  - api_endpoint (updated: 2025-11-25 08:30)
+  - database_schema (updated: 2025-11-25 09:15)
+  - deployment_instructions (updated: 2025-11-25 10:45)
+```
+
+**Notes:**
+
+- Shows all stored notes with their last modification timestamp
+- Notes are stored in `.agent-go/notes/` directory
+- Useful for quickly finding existing notes
+
+### `/notes view <name>`
+
+Displays the full content of a specific note.
+
+**Usage:**
+
+```
+/notes view <name>
+```
+
+**Parameters:**
+
+- `name`: Name of the note to view
+
+**Example:**
+
+```
+> /notes view api_endpoint
+=== api_endpoint ===
+Created: 2025-11-25 08:30:00
+Updated: 2025-11-25 08:30:00
+
+The API endpoint is https://api.example.com/v1
+```
+
+**Notes:**
+
+- Shows the complete note content with metadata
+- Includes creation and update timestamps
+- Useful for reviewing stored information
+
+### Notes Management via AI
+
+You can also ask the AI to create, update, or delete notes through natural conversation:
+
+> Create a note called "api_endpoint" with content "The API endpoint is https://api.example.com/v1"
+Created note: api_endpoint
+
+> Update the api_endpoint note to use v2
+Updated note: api_endpoint
+
+> Delete the old_database_config note
+Deleted note: old_database_config
+
+> Show me all my notes
+Notes:
+  - api_endpoint (updated: 2025-11-25 08:30)
+  - database_schema (updated: 2025-11-25 09:15)
 
 ## Advanced Usage
 

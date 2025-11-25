@@ -7,12 +7,170 @@ This document provides practical examples and best practices for using Agent-Go 
 - [Basic Usage Examples](#basic-usage-examples)
 - [MCP Integration Examples](#mcp-integration-examples)
 - [Todo List Management Examples](#todo-list-management-examples)
+- [Notes Management Examples](#notes-management-examples)
 - [Advanced Workflows](#advanced-workflows)
 - [Integration Scenarios](#integration-scenarios)
 - [Performance Optimization](#performance-optimization)
 - [Security Best Practices](#security-best-practices)
 - [Common Use Cases](#common-use-cases)
 - [Troubleshooting Examples](#troubleshooting-examples)
+
+## Notes Management Examples
+
+### 1. Project Documentation Storage
+
+**API Endpoint Management**
+
+> Create a note for the production API endpoint
+Created note: api_endpoint
+
+> Add the staging API endpoint to notes
+Created note: staging_api_endpoint
+
+> View the production API endpoint
+> /notes view api_endpoint
+=== api_endpoint ===
+Created: 2025-11-25 08:30:00
+Updated: 2025-11-25 08:30:00
+
+The production API endpoint is https://api.example.com/v1
+
+**Database Configuration**
+
+> Create notes for database connection details
+Created note: db_production
+Created note: db_staging
+
+> Update database configuration notes
+Updated note: db_production
+Updated note: db_staging
+
+### 2. Development Workflow Integration
+
+**Project Setup Notes**
+
+> Create comprehensive project setup notes
+Created note: project_setup
+Created note: deployment_guide
+Created note: troubleshooting_common_issues
+
+> Reference project setup during development
+[Using stored notes: project_setup, deployment_guide]
+
+Based on your project setup notes, I can see you're working with a microservices architecture. Let me help you set up the development environment...
+
+**Code Conventions**
+
+> Store coding standards and conventions
+Created note: coding_standards
+Created note: naming_conventions
+Created note: review_checklist
+
+> Apply stored conventions during code generation
+[Using stored notes: coding_standards, naming_conventions]
+
+Generated code following your established coding standards and naming conventions.
+
+### 3. Knowledge Management
+
+**Personal Preferences**
+
+> Store frequently used commands and shortcuts
+Created note:常用命令
+Created note: debugging_commands
+Created note: deployment_commands
+
+> Store troubleshooting patterns
+Created note: common_errors_solutions
+Created note: performance_optimization_tips
+
+**Project-Specific Knowledge**
+
+> Store project-specific information
+Created note: architecture_decisions
+Created note: tech_stack_details
+Created note: third_party_integrations
+
+> Reference stored knowledge during development
+[Using stored notes: architecture_decisions, tech_stack_details]
+
+Based on your architecture decisions document, I can see you're using event-driven microservices. Let me help you implement the event publisher...
+
+### 4. Cross-Session Persistence
+
+**Session Continuity**
+
+> Create notes at the end of a session
+Created note: session_summary_20251125
+Created note: next_session_tasks
+
+> Continue work in next session
+[Using stored notes: session_summary_20251125, next_session_tasks]
+
+Welcome back! Based on your previous session notes, you were working on implementing the user authentication service. Here's what we accomplished and what's next...
+
+**Documentation Updates**
+
+> Update notes as project evolves
+Updated note: architecture_decisions
+Updated note: deployment_guide
+
+> Maintain living documentation
+Created note: api_changes_log
+Created note: dependency_versions
+
+### 5. Notes Management Best Practices
+
+**Organized Note Structure**
+
+```
+# Optimal note organization for projects:
+project_setup/          # Project initialization
+├── api_endpoints       # API URLs and documentation
+├── database_config     # Database connection details
+├── deployment          # Deployment procedures
+└── troubleshooting     # Common issues and solutions
+
+development/            # Development workflow
+├── coding_standards    # Code style and conventions
+├── testing             # Testing procedures
+├── debugging           # Debugging techniques
+└── tools              # Development tools and setup
+
+knowledge/              # Personal and team knowledge
+├── best_practices      # Industry best practices
+├── patterns            # Design patterns
+├── performance         # Optimization techniques
+└── security            # Security considerations
+```
+
+**Note Content Guidelines**
+
+- **Be specific**: Use clear, descriptive names for notes
+- **Include metadata**: Add timestamps and context
+- **Keep updated**: Regularly review and update notes
+- **Use consistent format**: Standardize note structure across projects
+- **Separate concerns**: Different types of notes in different categories
+- **Include examples**: Provide practical examples where helpful
+
+**Integration with Other Features**
+
+```
+> Create a note and use it with RAG
+Created note: project_context
+
+Based on your project context note and the RAG documents, I can see you're working with a React application using TypeScript. Let me help you create a component...
+
+> Create a note and reference it in todos
+Created note: research_topics
+
+Created todo: [ID: 1] Research new authentication methods (pending)
+Created todo: [ID: 2] Update security documentation (pending)
+
+[Using stored notes: research_topics]
+
+Based on your research topics note, let me start with investigating OAuth 2.0 implementation...
+```
 
 ## Basic Usage Examples
 
@@ -822,7 +980,53 @@ Current Todo List:
 ...
 ```
 
-### 5. Configuration Issues
+### 5. Notes Management Issues
+
+**Problem: Notes not persisting**
+
+```
+# Check notes directory location
+> /shell
+shell> ls -la .agent-go/notes/
+shell> cat .agent-go/notes/api_endpoint.json
+shell> exit
+
+# Verify permissions
+shell> chmod 644 .agent-go/notes/*.json
+```
+
+**Problem: Notes not appearing in system prompt**
+
+```
+# Check if notes are being loaded properly
+> Create a test note
+Created note: test_note
+
+> Ask about the test note
+[Using stored notes: test_note]
+
+Based on your test note, I can see...
+```
+
+If notes aren't appearing, check:
+1. Notes directory exists and is readable
+2. Notes are valid JSON format
+3. System prompt is being built correctly
+4. No permission issues preventing file access
+
+**Problem: Notes command not working**
+
+```
+# Check if notes commands are available
+> /help
+# Look for /notes commands in the help output
+
+# Try basic notes command
+> /notes list
+# Should show all notes or error if directory doesn't exist
+```
+
+### 6. Configuration Issues
 
 **Configuration Validation**
 
@@ -930,7 +1134,15 @@ Fixes applied:
 - [ID: 7] Monitor production metrics (pending)
 ```
 
-### 7. Deployment
+### 7. Notes Management
+- **Organize by purpose**: Create separate categories for different types of information
+- **Use consistent naming**: Follow a naming convention for easy discovery
+- **Keep updated**: Regularly review and update stored information
+- **Include context**: Add relevant metadata and examples
+- **Cross-reference**: Link related notes where appropriate
+- **Backup important notes**: Consider version control for critical documentation
+
+### 8. Deployment
 - Use containerization for consistency
 - Implement proper logging
 - Set up monitoring and alerting

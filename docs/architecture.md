@@ -167,7 +167,19 @@ Provides persistent task tracking across sessions:
 - **Data Validation**: Validates todo statuses and prevents invalid updates
 - **JSON Storage**: Human-readable JSON format for easy inspection
 
-### 10. Auto-completion (`completion.go`)
+### 10. Notes Management (`notes.go`)
+
+Provides persistent knowledge storage across sessions:
+
+- **Persistent Storage**: Notes stored in `.agent-go/notes/` as JSON files
+- **System Integration**: Notes automatically injected into system prompt for context
+- **CRUD Operations**: Create, read, update, delete operations via tools
+- **Autocomplete Support**: Tab completion for note names and commands
+- **Metadata Tracking**: Tracks creation and update timestamps
+- **Cross-Session Persistence**: Notes available across different agent sessions
+- **JSON Storage**: Human-readable JSON format for easy inspection
+
+### 11. Auto-completion (`completion.go`)
 Provides intelligent command-line autocompletion:
 
 - **Model Completion**: Fetches available models from the API for autocompletion
@@ -198,6 +210,7 @@ Defines the core data structures used throughout the application:
 - **RAG Settings**: Dedicated structures for RAG configuration
 - **Tool Calls**: Function calling structures for command execution
 - **Todo List**: Structures for managing todo lists
+- **Note**: Structures for managing persistent notes
 - **Command Arguments**: Structured command parameters for safe execution
 - **MCP Types**: MCP server configuration and tool arguments
 - **Streaming Types**: Structures for handling streaming responses

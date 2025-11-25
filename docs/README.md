@@ -4,11 +4,11 @@ This directory contains the full documentation for Agent-Go. For a quick start, 
 
 ## Table of Contents
 
-- [**Architecture**](architecture.md): A deep dive into the system architecture, components, and data flow, including MCP integration and sub-agent systems.
-- [**Commands**](commands.md): A complete reference for all slash commands and CLI features, including MCP management and todo commands.
+- [**Architecture**](architecture.md): A deep dive into the system architecture, components, and data flow, including MCP integration, sub-agent systems, and notes management.
+- [**Commands**](commands.md): A complete reference for all slash commands and CLI features, including MCP management, todo commands, and notes management.
 - [**Configuration**](configuration.md): Detailed guidance on configuration options, environment variables, and file-based settings, including MCP server configuration.
 - [**Development Guide**](development.md): Instructions for setting up the development environment, running tests, and contributing to the project.
-- [**Examples and Best Practices**](examples.md): Practical examples, advanced workflows, and tips for using Agent-Go effectively, including MCP and todo management examples.
+- [**Examples and Best Practices**](examples.md): Practical examples, advanced workflows, and tips for using Agent-Go effectively, including MCP, todo management, and notes management examples.
 
 ## What's New
 
@@ -31,6 +31,16 @@ Built-in todo list management for tracking tasks across sessions:
 - **AI-driven management**: Create, update, and view todos through natural conversation
 - **Slash command**: Quick access with `/todo` command
 
+### Notes Management
+
+Persistent notes feature for storing and retrieving important information across sessions:
+
+- **Persistent storage**: Notes stored in `.agent-go/notes/` in JSON format
+- **AI-driven management**: Create, update, and delete notes through natural conversation
+- **System integration**: Notes automatically injected into system prompt for context
+- **Slash commands**: Quick access with `/notes list` and `/notes view <name>`
+- **Autocomplete support**: Tab completion for note names and commands
+
 ### Enhanced Features
 
 - **Streaming mode**: Real-time response generation with `/stream on`
@@ -47,6 +57,7 @@ Built-in todo list management for tracking tasks across sessions:
 2. Learn about [Commands](commands.md) for interactive usage
 3. Review [Configuration](configuration.md) for customization options
 4. Check [Examples](examples.md) for practical use cases
+5. Explore [Notes Management](notes.md) for persistent information storage
 
 ### For Developers
 
@@ -59,5 +70,6 @@ Built-in todo list management for tracking tasks across sessions:
 
 1. Learn about [MCP Integration](commands.md#mcp-model-context-protocol-commands) to extend functionality
 2. Master [Todo Management](commands.md#todo) for project tracking
-3. Explore [Advanced Workflows](examples.md#advanced-workflows) for complex scenarios
-4. Optimize [Configuration](configuration.md) for your use case
+3. Explore [Notes Management](notes.md) for persistent knowledge storage
+4. Explore [Advanced Workflows](examples.md#advanced-workflows) for complex scenarios
+5. Optimize [Configuration](configuration.md) for your use case
