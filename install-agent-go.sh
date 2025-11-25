@@ -1,4 +1,4 @@
-echo "Welcome to agent-go installation script"
+echo "Welcome to agent-go installer"
 mkdir ~/.tmp
 cd ~/.tmp
 git clone https://github.com/finettt/agent-go agent-go
