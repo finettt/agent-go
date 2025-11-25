@@ -63,9 +63,11 @@ jobs:
 
   release:
     name: Create GitHub Release
-    needs: build 
+    needs: build
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout Code
