@@ -175,6 +175,15 @@ func buildCompleter(config *Config) readline.AutoCompleter {
 		}
 	}
 
+	// Prepare session completions
+	sessionCompleters := make([]readline.PrefixCompleterInterface, 0)
+	sessions, err := listSessions()
+	if err == nil {
+		for _, session := range sessions {
+			sessionCompleters = append(sessionCompleters, readline.PcItem(session.ID))
+		}
+	}
+
 	var slashCompleter = readline.NewPrefixCompleter(
 		readline.PcItem("/help"),
 		readline.PcItem("/model", modelCompleters...),
@@ -196,6 +205,11 @@ func buildCompleter(config *Config) readline.AutoCompleter {
 		readline.PcItem("/notes",
 			readline.PcItem("list"),
 			readline.PcItem("view", noteNameCompleters...),
+		),
+		readline.PcItem("/session",
+			readline.PcItem("list"),
+			readline.PcItem("restore", sessionCompleters...),
+			readline.PcItem("rm", sessionCompleters...),
 		),
 		readline.PcItem("/compress"),
 		readline.PcItem("/clear"),

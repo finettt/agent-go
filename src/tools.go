@@ -111,6 +111,20 @@ func getAvailableTools(includeSpawn bool) []Tool {
 				},
 			},
 		},
+		{
+			Type: "function",
+			Function: FunctionDefinition{
+				Name:        "name_session",
+				Description: "Give the current session a name. This helps organize and restore sessions later.",
+				Parameters: map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"name": map[string]string{"type": "string", "description": "New name for the session (use dashes for spaces, e.g., 'implement-auth-feature')"},
+					},
+					"required": []string{"name"},
+				},
+			},
+		},
 	}
 
 	// Add generic MCP tool

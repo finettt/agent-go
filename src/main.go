@@ -51,6 +51,13 @@ func main() {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
+		if agent != nil && len(agent.Messages) > 1 {
+			if err := saveSession(agent); err != nil {
+				fmt.Fprintf(os.Stderr, "\nFailed to save session: %v\n", err)
+			} else {
+				fmt.Printf("\nSession '%s' saved.\n", agent.ID)
+			}
+		}
 		fmt.Println("\nBye!")
 		os.Exit(0)
 	}()
@@ -244,11 +251,72 @@ func handleSlashCommand(command string) {
 		fmt.Println("  /todo              - Display the current todo list")
 		fmt.Println("  /notes list        - List all notes")
 		fmt.Println("  /notes view <name> - View a specific note")
+		fmt.Println("  /session list      - List saved sessions")
+		fmt.Println("  /session restore <name> - Restore a session")
+		fmt.Println("  /session rm <name> - Delete a saved session")
 		fmt.Println("  /mcp add <name> <command> - Add an MCP server")
 		fmt.Println("  /mcp remove <name> - Remove an MCP server")
 		fmt.Println("  /mcp list          - List MCP servers")
 		fmt.Println("  /mode              - Switch between ASK and YOLO mode")
 		fmt.Println("  /quit              - Exit the application")
+	case "/session":
+		if len(parts) < 2 {
+			fmt.Println("Usage: /session [list|restore <name>|rm <name>]")
+			return
+		}
+		switch parts[1] {
+		case "list":
+			fmt.Println(formatSessionsList())
+		case "restore":
+			if len(parts) < 3 {
+				fmt.Println("Usage: /session restore <name>")
+				return
+			}
+			name := parts[2]
+			// Save current session first if it has content
+			if len(agent.Messages) > 1 {
+				if err := saveSession(agent); err != nil {
+					fmt.Fprintf(os.Stderr, "Error saving current session: %v\n", err)
+				} else {
+					fmt.Printf("Current session '%s' saved.\n", agent.ID)
+				}
+			}
+			
+			loadedSession, err := loadSession(name)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error loading session '%s': %v\n", name, err)
+				return
+			}
+
+			// Reconstruct agent from session
+			agent = &Agent{
+				ID:       loadedSession.ID,
+				Messages: loadedSession.Messages,
+			}
+			// Recalculate tokens? We don't store them, so they'll reset to 0
+			// Ideally we should probably estimate them or store them in session.
+			// For now, resetting to 0 is acceptable behavior, though auto-compress might trigger late.
+			totalTokens = 0
+			fmt.Printf("Session '%s' restored.\n", name)
+		case "rm":
+			if len(parts) < 3 {
+				fmt.Println("Usage: /session rm <name>")
+				return
+			}
+			name := parts[2]
+			if agent.ID == name {
+				fmt.Println("Cannot delete the active session.")
+				return
+			}
+			if err := deleteSession(name); err != nil {
+				fmt.Fprintf(os.Stderr, "Error deleting session: %v\n", err)
+			} else {
+				fmt.Printf("Session '%s' deleted.\n", name)
+			}
+		default:
+			fmt.Println("Usage: /session [list|restore <name>|rm <name>]")
+		}
+
 	case "/mode":
 		if config.ExecutionMode == Ask {
 			config.ExecutionMode = YOLO
@@ -352,6 +420,13 @@ func handleSlashCommand(command string) {
 		shellMode = true
 		fmt.Println("Entered shell mode. Type 'exit' to return.")
 	case "/quit":
+		if agent != nil && len(agent.Messages) > 1 {
+			if err := saveSession(agent); err != nil {
+				fmt.Fprintf(os.Stderr, "Failed to save session: %v\n", err)
+			} else {
+				fmt.Printf("Session '%s' saved.\n", agent.ID)
+			}
+		}
 		fmt.Println("Bye!")
 		os.Exit(0)
 	case "/model":
@@ -424,8 +499,23 @@ func handleSlashCommand(command string) {
 	case "/compress":
 		compressAndStartNewChat()
 	case "/clear":
+		// Requirement: Note user that the /clear command not deleting the session but just clear messages
+		fmt.Println("Clearing context (messages). This does NOT delete the saved session from disk.")
+		// Should we save before clearing? Maybe not if user explicitly wants to clear.
+		// But if they restore later, they might want the pre-clear state?
+		// Let's save before clearing to be safe.
+		if len(agent.Messages) > 1 {
+			if err := saveSession(agent); err != nil {
+				fmt.Fprintf(os.Stderr, "Error saving session before clear: %v\n", err)
+			} else {
+				fmt.Printf("Session '%s' saved before clearing.\n", agent.ID)
+			}
+		}
+
+		// Maintain the same ID so we are "in the same session" but cleared
+		currentID := agent.ID
 		agent = &Agent{
-			ID:       "main",
+			ID:       currentID,
 			Messages: make([]Message, 0),
 		}
 		systemPrompt := buildSystemPrompt("")

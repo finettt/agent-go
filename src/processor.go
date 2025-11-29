@@ -47,6 +47,8 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 			output, err = updateNote(toolCall.Function.Arguments)
 		case "delete_note":
 			output, err = deleteNote(toolCall.Function.Arguments)
+		case "name_session":
+			output, err = nameSession(agent, toolCall.Function.Arguments)
 		default:
 			output = fmt.Sprintf("Unknown tool: %s", toolCall.Function.Name)
 		}
