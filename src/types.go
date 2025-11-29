@@ -22,6 +22,7 @@ type Config struct {
 	Stream                bool    `json:"stream"`
 	SubagentsEnabled      bool        `json:"subagents_enabled"`
 	ExecutionMode         ExecuteMode `json:"execution_mode"`
+	Verbose               bool        `json:"verbose"`
 	MCPs                  map[string]MCPServer `json:"mcp_servers"`
 }
 const (

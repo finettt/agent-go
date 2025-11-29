@@ -248,6 +248,7 @@ func handleSlashCommand(command string) {
 		fmt.Println("  /contextlength <value> - Set the model context length (e.g., 131072)")
 		fmt.Println("  /stream on|off     - Toggle streaming mode")
 		fmt.Println("  /subagents on|off  - Toggle sub-agent spawning")
+		fmt.Println("  /verbose on|off    - Toggle verbose logging")
 		fmt.Println("  /todo              - Display the current todo list")
 		fmt.Println("  /notes list        - List all notes")
 		fmt.Println("  /notes view <name> - View a specific note")
@@ -459,6 +460,7 @@ func handleSlashCommand(command string) {
 		fmt.Printf("Model Context Length: %d\n", config.ModelContextLength)
 		fmt.Printf("Stream Enabled: %t\n", config.Stream)
 		fmt.Printf("Subagents Enabled: %t\n", config.SubagentsEnabled)
+		fmt.Printf("Verbose Logging: %t\n", config.Verbose)
 		if len(config.MCPs) > 0 {
 			fmt.Println("MCP Servers:")
 			for name, server := range config.MCPs {

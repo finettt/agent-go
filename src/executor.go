@@ -5,10 +5,18 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+	"sync"
 )
+
+var executionMutex sync.Mutex
 
 // confirmAndExecute checks the execution mode and prompts for confirmation if necessary.
 func confirmAndExecute(config *Config, command string) (string, error) {
+	// We need to lock here because multiple sub-agents might try to execute commands
+	// or ask for confirmation simultaneously, which would mess up the console I/O.
+	executionMutex.Lock()
+	defer executionMutex.Unlock()
+
 	if config.ExecutionMode == Ask {
 		// The command is already printed as part of the tool call, so we just ask for confirmation.
 		fmt.Printf("%s%s%s\nDo you want to execute the above command? [y/N]: ", ColorRed, command, ColorReset)
