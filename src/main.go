@@ -65,7 +65,7 @@ func main() {
 	runCLI()
 }
 func printLogo() {
-	fmt.Print(`
+	fmt.Print(ColorHighlight + `
   /$$$$$$                                  /$$            /$$$$$$
  /$$__  $$                                | $$           /$$__  $$
 | $$  \ $$  /$$$$$$   /$$$$$$  /$$$$$$$  /$$$$$$        | $$  \__/  /$$$$$$
@@ -77,7 +77,7 @@ func printLogo() {
            /$$  \ $$
           |  $$$$$$/
            \______/
-`)
+` + ColorReset)
 }
 
 func runCLI() {
@@ -192,13 +192,13 @@ func runCLI() {
 
 			// Only print content if not streaming (streaming already printed it)
 			if !config.Stream && assistantMsg.Content != nil && *assistantMsg.Content != "" {
-				fmt.Printf("%s%s%s\n", ColorBlue, *assistantMsg.Content, ColorReset)
+				fmt.Printf("%s%s%s\n", ColorMain, *assistantMsg.Content, ColorReset)
 			}
 
 			// Update and display total tokens
 			if resp.Usage.TotalTokens > 0 {
 				totalTokens += resp.Usage.TotalTokens
-				fmt.Printf("Used %s%d%s tokens on %s\n", ColorGreen, totalTokens, ColorReset, config.Model)
+				fmt.Printf("%sUsed %s%d%s tokens on %s\n", ColorMeta, ColorHighlight, totalTokens, ColorReset, config.Model)
 			}
 
 			if len(assistantMsg.ToolCalls) > 0 {
@@ -206,7 +206,7 @@ func runCLI() {
 			} else {
 				// Check if we got an empty response
 				if assistantMsg.Content == nil || *assistantMsg.Content == "" {
-					fmt.Printf("%sWarning: Received empty response from model%s\n", ColorYellow, ColorReset)
+					fmt.Printf("%sWarning: Received empty response from model%s\n", ColorMeta, ColorReset)
 				}
 				break // No more tools to call, end agent turn
 			}
@@ -281,7 +281,7 @@ func handleSlashCommand(command string) {
 					fmt.Printf("Current session '%s' saved.\n", agent.ID)
 				}
 			}
-			
+
 			loadedSession, err := loadSession(name)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error loading session '%s': %v\n", name, err)
@@ -499,11 +499,7 @@ func handleSlashCommand(command string) {
 	case "/compress":
 		compressAndStartNewChat()
 	case "/clear":
-		// Requirement: Note user that the /clear command not deleting the session but just clear messages
 		fmt.Println("Clearing context (messages). This does NOT delete the saved session from disk.")
-		// Should we save before clearing? Maybe not if user explicitly wants to clear.
-		// But if they restore later, they might want the pre-clear state?
-		// Let's save before clearing to be safe.
 		if len(agent.Messages) > 1 {
 			if err := saveSession(agent); err != nil {
 				fmt.Fprintf(os.Stderr, "Error saving session before clear: %v\n", err)

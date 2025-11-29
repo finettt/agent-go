@@ -2,12 +2,15 @@ package main
 
 // ANSI color codes for terminal output
 const (
-	ColorRed    = "\033[31m"
-	ColorGreen  = "\033[32m"
-	ColorBlue   = "\033[34m"
-	ColorYellow = "\033[33m"
-	ColorPurple = "\033[35m"
-	ColorReset  = "\033[0m"
+	ColorRed       = "\033[31m"
+	ColorGreen     = "\033[32m"
+	ColorBlue      = "\033[34m"
+	ColorYellow    = "\033[33m"
+	ColorPurple    = "\033[35m"
+	ColorReset     = "\033[0m"
+	ColorHighlight = "\033[38;2;255;147;251m" // #FF93FB - Highlighting
+	ColorMain      = "\033[38;2;255;255;255m" // #FFF    - Main color
+	ColorMeta      = "\033[38;2;170;170;170m" // #AAA    - Unnecessary things
 )
 
 // Streaming constants

@@ -51,6 +51,7 @@ func runSubAgent(task string, config *Config) (string, error) {
 		for _, toolCall := range assistantMsg.ToolCalls {
 			var output string
 			var err error
+			var logMessage string
 
 			switch toolCall.Function.Name {
 			case "execute_command":
@@ -59,19 +60,34 @@ func runSubAgent(task string, config *Config) (string, error) {
 					output = fmt.Sprintf("Failed to parse arguments: %s", unmarshalErr)
 				} else {
 					output, err = confirmAndExecute(config, args.Command)
+					if err == nil {
+						logMessage = "Executed bash command"
+					}
 				}
 			case "create_todo":
 				output, err = createTodo(subAgent.ID, toolCall.Function.Arguments)
+				if err == nil {
+					logMessage = "Created todo item"
+				}
 			case "update_todo":
 				output, err = updateTodo(subAgent.ID, toolCall.Function.Arguments)
+				if err == nil {
+					logMessage = "Updated todo item"
+				}
 			case "get_todo_list":
 				output, err = getTodoList(subAgent.ID)
+				if err == nil {
+					logMessage = "Retrieved todo list"
+				}
 			default:
 				output = fmt.Sprintf("Unknown tool: %s", toolCall.Function.Name)
 			}
 
 			if err != nil {
 				output = fmt.Sprintf("Tool execution error: %s", err)
+				fmt.Printf("%s%s%s\n", ColorRed, output, ColorReset)
+			} else if logMessage != "" {
+				fmt.Printf("%s(SubAgent) %s%s\n", ColorHighlight, logMessage, ColorReset)
 			}
 
 			toolMsg := Message{

@@ -224,7 +224,7 @@ func sendAPIRequestStreaming(agent *Agent, config *Config, includeSpawn bool) (*
 		}
 		if delta.Content != "" {
 			fullContent.WriteString(delta.Content)
-			fmt.Printf("%s%s%s", ColorBlue, delta.Content, ColorReset)
+			fmt.Printf("%s%s%s", ColorMain, delta.Content, ColorReset)
 		}
 		if len(delta.ToolCalls) > 0 {
 			// In streaming, tool calls can be sent incrementally.

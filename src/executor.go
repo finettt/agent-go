@@ -25,8 +25,6 @@ func confirmAndExecute(config *Config, command string) (string, error) {
 
 // executeCommand executes a shell command and returns its output
 func executeCommand(command string) (string, error) {
-	fmt.Printf("%s$ %s%s\n", ColorRed, command, ColorReset)
-
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
 		cmd = exec.Command("pwsh", "-CommandWithArgs", command)

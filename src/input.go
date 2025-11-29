@@ -24,18 +24,18 @@ func processFileMentions(input string) string {
 			// If file not found or error, warn user and keep original text
 			// Only warn if it looks like a specific file request, to avoid noise
 			// on accidental @ usage, but here explicit @filename implies intent.
-			fmt.Fprintf(os.Stderr, "%sWarning: could not find file '%s': %v%s\n", ColorYellow, filename, err, ColorReset)
+			fmt.Fprintf(os.Stderr, "%sWarning: could not find file '%s': %v%s\n", ColorMeta, filename, err, ColorReset)
 			return match
 		}
 		if info.IsDir() {
-			fmt.Fprintf(os.Stderr, "%sWarning: '%s' is a directory, not a file%s\n", ColorYellow, filename, ColorReset)
+			fmt.Fprintf(os.Stderr, "%sWarning: '%s' is a directory, not a file%s\n", ColorMeta, filename, ColorReset)
 			return match
 		}
 
 		// Read the file
 		content, err := os.ReadFile(filename)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%sWarning: could not read file '%s': %v%s\n", ColorYellow, filename, err, ColorReset)
+			fmt.Fprintf(os.Stderr, "%sWarning: could not read file '%s': %v%s\n", ColorMeta, filename, err, ColorReset)
 			return match
 		}
 
