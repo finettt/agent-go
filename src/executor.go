@@ -28,6 +28,11 @@ var (
 
 // confirmAndExecute checks the execution mode and prompts for confirmation if necessary.
 func confirmAndExecute(config *Config, command string, background bool) (string, error) {
+	// Check operation mode first
+	if config.OperationMode == Plan {
+		return "", fmt.Errorf("command execution is blocked in Plan mode. Switch to Build mode to execute commands")
+	}
+
 	// We need to lock here because multiple sub-agents might try to execute commands
 	// or ask for confirmation simultaneously, which would mess up the console I/O.
 	executionMutex.Lock()

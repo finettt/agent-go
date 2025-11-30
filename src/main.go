@@ -289,7 +289,9 @@ func handleSlashCommand(command string) {
 		fmt.Println("  /mcp add <name> <command> - Add an MCP server")
 		fmt.Println("  /mcp remove <name> - Remove an MCP server")
 		fmt.Println("  /mcp list          - List MCP servers")
-		fmt.Println("  /mode              - Switch between ASK and YOLO mode")
+		fmt.Println("  /mode              - Toggle between Plan and Build operation modes")
+		fmt.Println("  /plan              - Toggle between Plan and Build operation modes")
+		fmt.Println("  /ask on|off        - Enable/Disable confirmation for commands (Ask vs YOLO)")
 		fmt.Println("  /quit              - Exit the application")
 	case "/session":
 		if len(parts) < 2 {
@@ -350,15 +352,48 @@ func handleSlashCommand(command string) {
 		}
 
 	case "/mode":
-		if config.ExecutionMode == Ask {
-			config.ExecutionMode = YOLO
-			fmt.Println("Switched to YOLO mode.")
+		if config.OperationMode == Build {
+			config.OperationMode = Plan
+			fmt.Println("Switched to Plan mode.")
 		} else {
-			config.ExecutionMode = Ask
-			fmt.Println("Switched to ASK mode.")
+			config.OperationMode = Build
+			fmt.Println("Switched to Build mode.")
 		}
 		if err := saveConfig(config); err != nil {
 			fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
+		}
+	case "/plan":
+		if config.OperationMode == Build {
+			config.OperationMode = Plan
+			fmt.Println("Switched to Plan mode.")
+		} else {
+			config.OperationMode = Build
+			fmt.Println("Switched to Build mode.")
+		}
+		if err := saveConfig(config); err != nil {
+			fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
+		}
+	case "/ask":
+		if len(parts) > 1 {
+			switch parts[1] {
+			case "on":
+				config.ExecutionMode = Ask
+				fmt.Println("Switched to Ask mode.")
+			case "off":
+				config.ExecutionMode = YOLO
+				fmt.Println("Switched to YOLO mode.")
+			default:
+				fmt.Println("Usage: /ask [on|off]")
+			}
+			if err := saveConfig(config); err != nil {
+				fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
+			}
+		} else {
+			if config.ExecutionMode == Ask {
+				fmt.Println("Ask mode is currently enabled.")
+			} else {
+				fmt.Println("Ask mode is currently disabled (YOLO mode).")
+			}
 		}
 	case "/mcp":
 		if len(parts) < 2 {
@@ -497,6 +532,8 @@ func handleSlashCommand(command string) {
 		fmt.Printf("Provider: %s\n", config.APIURL)
 		fmt.Printf("RAG Enabled: %t\n", config.RAGEnabled)
 		fmt.Printf("RAG Path: %s\n", config.RAGPath)
+		fmt.Printf("Operation Mode: %s\n", config.OperationMode)
+		fmt.Printf("Execution Mode: %s\n", config.ExecutionMode)
 		fmt.Printf("Auto Compress Enabled: %t\n", config.AutoCompress)
 		fmt.Printf("Auto Compress Threshold: %d\n", config.AutoCompressThreshold)
 		fmt.Printf("Model Context Length: %d\n", config.ModelContextLength)
@@ -620,8 +657,12 @@ func handleSlashCommand(command string) {
 }
 
 func buildSystemPrompt(contextSummary string) string {
-	// Base system prompt
-	basePrompt := "You are an AI assistant. You can manage a todo list by using the `create_todo`, `update_todo`, and `get_todo_list` tools. You can also create notes using `create_note`, `update_note`, and `delete_note` tools. Notes persist across sessions. For multi-step tasks, chain commands with && (e.g., 'echo content > file.py && python3 file.py'). Use execute_command for shell tasks."
+	var basePrompt string
+	if config.OperationMode == Plan {
+		basePrompt = "You are an AI assistant in PLAN mode. Your goals are to:\n1. Analyze the user's request.\n2. Create a detailed implementation plan.\n3. Generate a comprehensive TODO list using the `create_todo` tool.\n4. Present the plan to the user using the `suggest_plan` tool for approval.\n\nIMPORTANT: You CANNOT execute shell commands in this mode. Focus purely on planning. Use the `suggest_plan` tool to show your plan and ask for confirmation. If the user approves (answers 'y' to the prompt), the system will automatically switch to 'build' mode for you to start implementation."
+	} else {
+		basePrompt = "You are an AI assistant in BUILD mode. You can execute commands, write code, and implement solutions. You can manage a todo list by using the `create_todo`, `update_todo`, and `get_todo_list` tools. You can also create notes using `create_note`, `update_note`, and `delete_note` tools. Notes persist across sessions. For multi-step tasks, chain commands with && (e.g., 'echo content > file.py && python3 file.py'). Use execute_command for shell tasks."
+	}
 
 	// Add compressed context if available
 	if contextSummary != "" {
