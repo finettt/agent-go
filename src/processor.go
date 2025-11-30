@@ -34,9 +34,7 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 				if unmarshalErr := json.Unmarshal([]byte(tc.Function.Arguments), &args); unmarshalErr != nil {
 					output = fmt.Sprintf("Failed to parse arguments: %s", unmarshalErr)
 				} else {
-					if config.Verbose {
-						fmt.Printf("%sSpawning sub-agent for task: %s%s%s\n", ColorMeta, ColorHighlight, args.Task, ColorReset)
-					}
+					fmt.Printf("%sSpawning sub-agent for task: %s%s%s\n", ColorMeta, ColorHighlight, args.Task, ColorReset)
 					output, err = runSubAgent(args.Task, config)
 					logMessage = "Sub-agent finished task"
 				}
@@ -45,9 +43,7 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 					output = fmt.Sprintf("Tool execution error: %s", err)
 					fmt.Printf("%s%s%s\n", ColorRed, output, ColorReset)
 				} else if logMessage != "" {
-					if config.Verbose {
-						fmt.Printf("%s%s%s\n", ColorMeta, logMessage, ColorReset)
-					}
+					fmt.Printf("%s%s%s\n", ColorMeta, logMessage, ColorReset)
 				}
 
 				toolMsg := Message{
@@ -78,11 +74,41 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 			if unmarshalErr := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); unmarshalErr != nil {
 				output = fmt.Sprintf("Failed to parse arguments: %s", unmarshalErr)
 			} else {
-				output, err = confirmAndExecute(config, args.Command)
+				// Always show what's happening
+				fmt.Printf("%sExecuting command: %s (Background: %t)%s\n", ColorMeta, args.Command, args.Background, ColorReset)
+
+				output, err = confirmAndExecute(config, args.Command, args.Background)
 				if err == nil {
-					logMessage = "Executed bash command"
+					if args.Background {
+						logMessage = fmt.Sprintf("Started background command: %s", args.Command)
+					} else {
+						logMessage = fmt.Sprintf("Executed bash command: %s", args.Command)
+					}
 				}
 			}
+		case "kill_background_command":
+			var args KillBackgroundCommandArgs
+			if unmarshalErr := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); unmarshalErr != nil {
+				output = fmt.Sprintf("Failed to parse arguments: %s", unmarshalErr)
+			} else {
+				output, err = killBackgroundCommand(args.PID)
+				if err == nil {
+					logMessage = fmt.Sprintf("Killed background process %d", args.PID)
+				}
+			}
+		case "get_background_logs":
+			var args GetBackgroundLogsArgs
+			if unmarshalErr := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); unmarshalErr != nil {
+				output = fmt.Sprintf("Failed to parse arguments: %s", unmarshalErr)
+			} else {
+				output, err = getBackgroundLogs(args.PID)
+				if err == nil {
+					logMessage = fmt.Sprintf("Retrieved logs for PID %d", args.PID)
+				}
+			}
+		case "list_background_commands":
+			output = listBackgroundCommands()
+			logMessage = "Listed background commands"
 		case "create_todo":
 			output, err = createTodo(agent.ID, toolCall.Function.Arguments)
 			if err == nil {
@@ -138,10 +164,13 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 			// Print error in meta color or red?
 			fmt.Printf("%s%s%s\n", ColorRed, output, ColorReset)
 		} else if logMessage != "" {
-			// Only log if verbose or if it's a significant action
-			if config.Verbose {
-				fmt.Printf("%s%s%s\n", ColorMeta, logMessage, ColorReset)
-			}
+			// Always log the action summary (formerly only in verbose)
+			// In verbose mode, we might want even more details, but for now let's make the summary always visible
+			// as requested: "what is currently output in verbose mode should be output always".
+			// The previous code only printed logMessage if config.Verbose.
+			// Now we print it always.
+			fmt.Printf("%s%s%s\n", ColorMeta, logMessage, ColorReset)
+			
 		}
 
 		toolMsg := Message{

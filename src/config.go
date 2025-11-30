@@ -22,7 +22,6 @@ func loadConfig() *Config {
 		Stream:                false,
 		SubagentsEnabled:      true,
 		ExecutionMode:         Ask,
-		Verbose:               false,
 	}
 	config.MCPs = make(map[string]MCPServer)
 
@@ -96,10 +95,6 @@ func loadConfig() *Config {
 			config.ExecutionMode = Ask
 		}
 	}
-	if verbose := os.Getenv("VERBOSE"); verbose == "1" || verbose == "true" {
-		config.Verbose = true
-	}
-
 	return config
 }
 

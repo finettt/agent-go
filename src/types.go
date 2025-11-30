@@ -22,7 +22,6 @@ type Config struct {
 	Stream                bool    `json:"stream"`
 	SubagentsEnabled      bool        `json:"subagents_enabled"`
 	ExecutionMode         ExecuteMode `json:"execution_mode"`
-	Verbose               bool        `json:"verbose"`
 	MCPs                  map[string]MCPServer `json:"mcp_servers"`
 }
 const (
@@ -89,7 +88,8 @@ type FunctionCall struct {
 }
 
 type CommandArgs struct {
-	Command string `json:"command"`
+	Command    string `json:"command"`
+	Background bool   `json:"background,omitempty"`
 }
 
 type SubAgentTask struct {
@@ -136,4 +136,12 @@ type ToolCallChunk struct {
 type MCPServer struct {
 	Name    string `json:"name"`
 	Command string `json:"command"`
+}
+
+type KillBackgroundCommandArgs struct {
+	PID int `json:"pid"`
+}
+
+type GetBackgroundLogsArgs struct {
+	PID int `json:"pid"`
 }

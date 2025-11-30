@@ -26,9 +26,12 @@ func getAvailableTools(includeSpawn bool) []Tool {
 				Name:        "execute_command",
 				Description: "Execute shell command",
 				Parameters: map[string]interface{}{
-					"type":       "object",
-					"properties": map[string]interface{}{"command": map[string]string{"type": "string"}},
-					"required":   []string{"command"},
+					"type": "object",
+					"properties": map[string]interface{}{
+						"command":    map[string]string{"type": "string"},
+						"background": map[string]string{"type": "boolean", "description": "Run command in background"},
+					},
+					"required": []string{"command"},
 				},
 			},
 		},
@@ -126,6 +129,40 @@ func getAvailableTools(includeSpawn bool) []Tool {
 			},
 		},
 	}
+
+	// Add background command tools
+	tools = append(tools, Tool{
+		Type: "function",
+		Function: FunctionDefinition{
+			Name:        "kill_background_command",
+			Description: "Kill a running background command by PID.",
+			Parameters: map[string]interface{}{
+				"type":       "object",
+				"properties": map[string]interface{}{"pid": map[string]interface{}{"type": "integer"}},
+				"required":   []string{"pid"},
+			},
+		},
+	})
+	tools = append(tools, Tool{
+		Type: "function",
+		Function: FunctionDefinition{
+			Name:        "get_background_logs",
+			Description: "Get the logs (stdout/stderr) of a background command by PID.",
+			Parameters: map[string]interface{}{
+				"type":       "object",
+				"properties": map[string]interface{}{"pid": map[string]interface{}{"type": "integer"}},
+				"required":   []string{"pid"},
+			},
+		},
+	})
+	tools = append(tools, Tool{
+		Type: "function",
+		Function: FunctionDefinition{
+			Name:        "list_background_commands",
+			Description: "List all running background commands.",
+			Parameters:  map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
+		},
+	})
 
 	// Add generic MCP tool
 	tools = append(tools, Tool{

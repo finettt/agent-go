@@ -59,7 +59,7 @@ func runSubAgent(task string, config *Config) (string, error) {
 				if unmarshalErr := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); unmarshalErr != nil {
 					output = fmt.Sprintf("Failed to parse arguments: %s", unmarshalErr)
 				} else {
-					output, err = confirmAndExecute(config, args.Command)
+					output, err = confirmAndExecute(config, args.Command, false) // Sub-agents don't support background commands yet
 					if err == nil {
 						logMessage = "Executed bash command"
 					}
@@ -87,9 +87,7 @@ func runSubAgent(task string, config *Config) (string, error) {
 				output = fmt.Sprintf("Tool execution error: %s", err)
 				fmt.Printf("%s%s%s\n", ColorRed, output, ColorReset)
 			} else if logMessage != "" {
-				if config.Verbose {
-					fmt.Printf("%s(SubAgent) %s%s\n", ColorHighlight, logMessage, ColorReset)
-				}
+				fmt.Printf("%s(SubAgent) %s%s\n", ColorHighlight, logMessage, ColorReset)
 			}
 
 			toolMsg := Message{

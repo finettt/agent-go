@@ -58,6 +58,12 @@ func main() {
 				fmt.Printf("\nSession '%s' saved.\n", agent.ID)
 			}
 		}
+		// Check for running background processes
+		if hasRunningBackgroundProcesses() {
+			fmt.Println("\nWarning: There are running background processes. They will be terminated.")
+			// We could ask for confirmation or list them, but for now let's just warn and exit.
+		}
+
 		fmt.Println("\nBye!")
 		os.Exit(0)
 	}()
@@ -128,7 +134,8 @@ func runCLI() {
 			if userInput == "" {
 				continue
 			}
-			output, err := confirmAndExecute(config, userInput)
+			// Shell mode commands are foreground by default
+			output, err := confirmAndExecute(config, userInput, false)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 			}
@@ -211,6 +218,16 @@ func runCLI() {
 				break // No more tools to call, end agent turn
 			}
 			// Continue loop to send tool output back to API
+
+			// Inject reminder if background processes are running
+			if hasRunningBackgroundProcesses() {
+				reminder := fmt.Sprintf("REMINDER: You have running background processes:\n%s", listBackgroundCommands())
+				agent.Messages = append(agent.Messages, Message{
+					Role:    "system",
+					Content: &reminder,
+				})
+				// We don't print this to the user, it's just for the agent's context
+			}
 		}
 	}
 }
@@ -248,7 +265,6 @@ func handleSlashCommand(command string) {
 		fmt.Println("  /contextlength <value> - Set the model context length (e.g., 131072)")
 		fmt.Println("  /stream on|off     - Toggle streaming mode")
 		fmt.Println("  /subagents on|off  - Toggle sub-agent spawning")
-		fmt.Println("  /verbose on|off    - Toggle verbose logging")
 		fmt.Println("  /todo              - Display the current todo list")
 		fmt.Println("  /notes list        - List all notes")
 		fmt.Println("  /notes view <name> - View a specific note")
@@ -421,6 +437,17 @@ func handleSlashCommand(command string) {
 		shellMode = true
 		fmt.Println("Entered shell mode. Type 'exit' to return.")
 	case "/quit":
+		if hasRunningBackgroundProcesses() {
+			fmt.Println("Warning: You have running background processes.")
+			fmt.Println(listBackgroundCommands())
+			fmt.Print("Are you sure you want to quit? [y/N]: ")
+			var response string
+			fmt.Scanln(&response)
+			if strings.ToLower(strings.TrimSpace(response)) != "y" {
+				return
+			}
+		}
+
 		if agent != nil && len(agent.Messages) > 1 {
 			if err := saveSession(agent); err != nil {
 				fmt.Fprintf(os.Stderr, "Failed to save session: %v\n", err)
@@ -460,7 +487,6 @@ func handleSlashCommand(command string) {
 		fmt.Printf("Model Context Length: %d\n", config.ModelContextLength)
 		fmt.Printf("Stream Enabled: %t\n", config.Stream)
 		fmt.Printf("Subagents Enabled: %t\n", config.SubagentsEnabled)
-		fmt.Printf("Verbose Logging: %t\n", config.Verbose)
 		if len(config.MCPs) > 0 {
 			fmt.Println("MCP Servers:")
 			for name, server := range config.MCPs {
