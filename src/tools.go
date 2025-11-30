@@ -17,10 +17,16 @@ type UpdateTodoArgs struct {
 	Status string `json:"status"`
 }
 
+type SuggestPlanArgs struct {
+	Plan string `json:"plan"`
+}
+
 // getAvailableTools returns the list of tools available to the agent
-func getAvailableTools(includeSpawn bool) []Tool {
-	tools := []Tool{
-		{
+func getAvailableTools(includeSpawn bool, operationMode OperationMode) []Tool {
+	tools := []Tool{}
+
+	if operationMode == Build {
+		tools = append(tools, Tool{
 			Type: "function",
 			Function: FunctionDefinition{
 				Name:        "execute_command",
@@ -34,135 +40,163 @@ func getAvailableTools(includeSpawn bool) []Tool {
 					"required": []string{"command"},
 				},
 			},
-		},
-		{
-			Type: "function",
-			Function: FunctionDefinition{
-				Name:        "create_todo",
-				Description: "Create a new todo item.",
-				Parameters: map[string]interface{}{
-					"type":       "object",
-					"properties": map[string]interface{}{"task": map[string]string{"type": "string"}},
-					"required":   []string{"task"},
-				},
-			},
-		},
-		{
-			Type: "function",
-			Function: FunctionDefinition{
-				Name:        "update_todo",
-				Description: "Update a todo item's status.",
-				Parameters: map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"id":     map[string]interface{}{"type": "integer"},
-						"status": map[string]interface{}{"type": "string", "enum": []string{"pending", "in-progress", "completed"}},
-					},
-					"required": []string{"id", "status"},
-				},
-			},
-		},
-		{
-			Type: "function",
-			Function: FunctionDefinition{
-				Name:        "get_todo_list",
-				Description: "Get the current list of todo items.",
-				Parameters:  map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
-			},
-		},
-		{
-			Type: "function",
-			Function: FunctionDefinition{
-				Name:        "create_note",
-				Description: "Create a note. Notes persist across sessions and are injected into the system prompt.",
-				Parameters: map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"name":    map[string]string{"type": "string", "description": "Unique name for the note"},
-						"content": map[string]string{"type": "string", "description": "Content of the note"},
-					},
-					"required": []string{"name", "content"},
-				},
-			},
-		},
-		{
-			Type: "function",
-			Function: FunctionDefinition{
-				Name:        "update_note",
-				Description: "Update an existing note's content.",
-				Parameters: map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"name":    map[string]string{"type": "string", "description": "Name of the note to update"},
-						"content": map[string]string{"type": "string", "description": "New content for the note"},
-					},
-					"required": []string{"name", "content"},
-				},
-			},
-		},
-		{
-			Type: "function",
-			Function: FunctionDefinition{
-				Name:        "delete_note",
-				Description: "Delete a note.",
-				Parameters: map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"name": map[string]string{"type": "string", "description": "Name of the note to delete"},
-					},
-					"required": []string{"name"},
-				},
-			},
-		},
-		{
-			Type: "function",
-			Function: FunctionDefinition{
-				Name:        "name_session",
-				Description: "Give the current session a name. This helps organize and restore sessions later.",
-				Parameters: map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"name": map[string]string{"type": "string", "description": "New name for the session (use dashes for spaces, e.g., 'implement-auth-feature')"},
-					},
-					"required": []string{"name"},
-				},
-			},
-		},
+		})
 	}
 
-	// Add background command tools
 	tools = append(tools, Tool{
 		Type: "function",
 		Function: FunctionDefinition{
-			Name:        "kill_background_command",
-			Description: "Kill a running background command by PID.",
+			Name:        "create_todo",
+			Description: "Create a new todo item.",
 			Parameters: map[string]interface{}{
 				"type":       "object",
-				"properties": map[string]interface{}{"pid": map[string]interface{}{"type": "integer"}},
-				"required":   []string{"pid"},
+				"properties": map[string]interface{}{"task": map[string]string{"type": "string"}},
+				"required":   []string{"task"},
 			},
 		},
 	})
+
 	tools = append(tools, Tool{
 		Type: "function",
 		Function: FunctionDefinition{
-			Name:        "get_background_logs",
-			Description: "Get the logs (stdout/stderr) of a background command by PID.",
+			Name:        "update_todo",
+			Description: "Update a todo item's status.",
 			Parameters: map[string]interface{}{
-				"type":       "object",
-				"properties": map[string]interface{}{"pid": map[string]interface{}{"type": "integer"}},
-				"required":   []string{"pid"},
+				"type": "object",
+				"properties": map[string]interface{}{
+					"id":     map[string]interface{}{"type": "integer"},
+					"status": map[string]interface{}{"type": "string", "enum": []string{"pending", "in-progress", "completed"}},
+				},
+				"required": []string{"id", "status"},
 			},
 		},
 	})
+
 	tools = append(tools, Tool{
 		Type: "function",
 		Function: FunctionDefinition{
-			Name:        "list_background_commands",
-			Description: "List all running background commands.",
+			Name:        "get_todo_list",
+			Description: "Get the current list of todo items.",
 			Parameters:  map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
 		},
 	})
+
+	tools = append(tools, Tool{
+		Type: "function",
+		Function: FunctionDefinition{
+			Name:        "create_note",
+			Description: "Create a note. Notes persist across sessions and are injected into the system prompt.",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"name":    map[string]string{"type": "string", "description": "Unique name for the note"},
+					"content": map[string]string{"type": "string", "description": "Content of the note"},
+				},
+				"required": []string{"name", "content"},
+			},
+		},
+	})
+
+	tools = append(tools, Tool{
+		Type: "function",
+		Function: FunctionDefinition{
+			Name:        "update_note",
+			Description: "Update an existing note's content.",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"name":    map[string]string{"type": "string", "description": "Name of the note to update"},
+					"content": map[string]string{"type": "string", "description": "New content for the note"},
+				},
+				"required": []string{"name", "content"},
+			},
+		},
+	})
+
+	tools = append(tools, Tool{
+		Type: "function",
+		Function: FunctionDefinition{
+			Name:        "delete_note",
+			Description: "Delete a note.",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"name": map[string]string{"type": "string", "description": "Name of the note to delete"},
+				},
+				"required": []string{"name"},
+			},
+		},
+	})
+
+	tools = append(tools, Tool{
+		Type: "function",
+		Function: FunctionDefinition{
+			Name:        "name_session",
+			Description: "Give the current session a name. This helps organize and restore sessions later.",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"name": map[string]string{"type": "string", "description": "New name for the session (use dashes for spaces, e.g., 'implement-auth-feature')"},
+				},
+				"required": []string{"name"},
+			},
+		},
+	})
+
+	// Add background command tools only in Build mode
+	if operationMode == Build {
+		tools = append(tools, Tool{
+			Type: "function",
+			Function: FunctionDefinition{
+				Name:        "kill_background_command",
+				Description: "Kill a running background command by PID.",
+				Parameters: map[string]interface{}{
+					"type":       "object",
+					"properties": map[string]interface{}{"pid": map[string]interface{}{"type": "integer"}},
+					"required":   []string{"pid"},
+				},
+			},
+		})
+		tools = append(tools, Tool{
+			Type: "function",
+			Function: FunctionDefinition{
+				Name:        "get_background_logs",
+				Description: "Get the logs (stdout/stderr) of a background command by PID.",
+				Parameters: map[string]interface{}{
+					"type":       "object",
+					"properties": map[string]interface{}{"pid": map[string]interface{}{"type": "integer"}},
+					"required":   []string{"pid"},
+				},
+			},
+		})
+		tools = append(tools, Tool{
+			Type: "function",
+			Function: FunctionDefinition{
+				Name:        "list_background_commands",
+				Description: "List all running background commands.",
+				Parameters:  map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
+			},
+		})
+	}
+
+
+	// Add suggest_plan tool only in Plan mode
+	if operationMode == Plan {
+		tools = append(tools, Tool{
+			Type: "function",
+			Function: FunctionDefinition{
+				Name:        "suggest_plan",
+				Description: "Suggest a plan to the user and ask for approval.",
+				Parameters: map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"plan": map[string]string{"type": "string", "description": "The detailed plan to present to the user"},
+					},
+					"required": []string{"plan"},
+				},
+			},
+		})
+	}
 
 	// Add generic MCP tool
 	tools = append(tools, Tool{

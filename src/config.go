@@ -22,6 +22,7 @@ func loadConfig() *Config {
 		Stream:                false,
 		SubagentsEnabled:      true,
 		ExecutionMode:         Ask,
+		OperationMode:         Build,
 	}
 	config.MCPs = make(map[string]MCPServer)
 
@@ -93,6 +94,13 @@ func loadConfig() *Config {
 			config.ExecutionMode = YOLO
 		} else {
 			config.ExecutionMode = Ask
+		}
+	}
+	if operationMode := os.Getenv("OPERATION_MODE"); operationMode != "" {
+		if operationMode == "plan" {
+			config.OperationMode = Plan
+		} else {
+			config.OperationMode = Build
 		}
 	}
 	return config

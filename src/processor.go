@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"strings"
 	"sync"
 )
 
@@ -74,17 +76,12 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 			if unmarshalErr := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); unmarshalErr != nil {
 				output = fmt.Sprintf("Failed to parse arguments: %s", unmarshalErr)
 			} else {
-				// Always show what's happening
-				fmt.Printf("%sExecuting command: %s (Background: %t)%s\n", ColorMeta, args.Command, args.Background, ColorReset)
+				// Only show execution message if not in Plan mode
+				if config.OperationMode != Plan {
+					logMessage = fmt.Sprintf("%sExecuting command: %s (Background: %t)%s\n", ColorMeta, args.Command, args.Background, ColorReset)
+				}
 
 				output, err = confirmAndExecute(config, args.Command, args.Background)
-				if err == nil {
-					if args.Background {
-						logMessage = fmt.Sprintf("Started background command: %s", args.Command)
-					} else {
-						logMessage = fmt.Sprintf("Executed bash command: %s", args.Command)
-					}
-				}
 			}
 		case "kill_background_command":
 			var args KillBackgroundCommandArgs
@@ -109,6 +106,27 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 		case "list_background_commands":
 			output = listBackgroundCommands()
 			logMessage = "Listed background commands"
+		case "suggest_plan":
+			var args SuggestPlanArgs
+			if unmarshalErr := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); unmarshalErr != nil {
+				output = fmt.Sprintf("Failed to parse arguments: %s", unmarshalErr)
+			} else {
+				fmt.Printf("\n%sSuggested Plan:%s\n%s\n", ColorHighlight, ColorReset, args.Plan)
+				fmt.Printf("%sApprove this plan? [y/N]: %s", ColorRed, ColorReset)
+				var response string
+				fmt.Scanln(&response)
+				if strings.ToLower(strings.TrimSpace(response)) == "y" {
+					config.OperationMode = Build
+					output = "Plan approved by user. Switched to Build mode. You may now execute commands."
+					logMessage = "Plan approved - Switched to Build mode"
+					if err := saveConfig(config); err != nil {
+						fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
+					}
+				} else {
+					output = "Plan rejected by user."
+					logMessage = "Plan rejected"
+				}
+			}
 		case "create_todo":
 			output, err = createTodo(agent.ID, toolCall.Function.Arguments)
 			if err == nil {
@@ -170,7 +188,7 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 			// The previous code only printed logMessage if config.Verbose.
 			// Now we print it always.
 			fmt.Printf("%s%s%s\n", ColorMeta, logMessage, ColorReset)
-			
+
 		}
 
 		toolMsg := Message{

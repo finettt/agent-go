@@ -22,7 +22,8 @@ type Config struct {
 	ModelContextLength    int     `json:"model_context_length"`
 	Stream                bool    `json:"stream"`
 	SubagentsEnabled      bool        `json:"subagents_enabled"`
-	ExecutionMode         ExecuteMode `json:"execution_mode"`
+	ExecutionMode         ExecuteMode   `json:"execution_mode"`
+	OperationMode         OperationMode `json:"operation_mode"`
 	MCPs                  map[string]MCPServer `json:"mcp_servers"`
 }
 const (
@@ -34,6 +35,16 @@ const (
 
 // ExecuteMode is the mode for executing a command.
 type ExecuteMode string
+
+const (
+	// Build is the default operation mode, which allows command execution.
+	Build OperationMode = "build"
+	// Plan is the operation mode that blocks all command execution and focuses on planning.
+	Plan OperationMode = "plan"
+)
+
+// OperationMode is the mode of operation (Plan or Build).
+type OperationMode string
 
 // Agent represents an AI agent with its properties and message history
 type Agent struct {
@@ -146,4 +157,8 @@ type KillBackgroundCommandArgs struct {
 
 type GetBackgroundLogsArgs struct {
 	PID int `json:"pid"`
+}
+
+type SwitchOperationModeArgs struct {
+	Mode string `json:"mode"`
 }
