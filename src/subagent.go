@@ -87,7 +87,7 @@ func runSubAgent(task string, config *Config) (string, error) {
 				output = fmt.Sprintf("Tool execution error: %s", err)
 				fmt.Printf("%s%s%s\n", ColorRed, output, ColorReset)
 			} else if logMessage != "" {
-				fmt.Printf("%s(SubAgent) %s%s\n", ColorHighlight, logMessage, ColorReset)
+				fmt.Printf("%s(SubAgent) %s%s%s\n", ColorHighlight, ColorReset, logMessage, ColorReset)
 			}
 
 			toolMsg := Message{

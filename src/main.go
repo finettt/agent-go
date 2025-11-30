@@ -19,6 +19,16 @@ var agent *Agent
 var shellMode = false
 var totalTokens = 0
 
+func formatTokenCount(count int) string {
+	if count >= 1000000 {
+		return fmt.Sprintf("%.1fM", float64(count)/1000000)
+	}
+	if count >= 1000 {
+		return fmt.Sprintf("%.1fK", float64(count)/1000)
+	}
+	return fmt.Sprintf("%d", count)
+}
+
 func main() {
 	// Check for command line task argument
 	if len(os.Args) > 1 {
@@ -210,7 +220,7 @@ func runCLI() {
 			// Update and display total tokens
 			if resp.Usage.TotalTokens > 0 {
 				totalTokens += resp.Usage.TotalTokens
-				fmt.Printf("%sUsed %s%d%s tokens on %s\n", ColorMeta, ColorHighlight, totalTokens, ColorReset, config.Model)
+				fmt.Printf("%sUsed %s%s%s tokens on %s\n", ColorMeta, ColorHighlight, formatTokenCount(totalTokens), ColorReset, config.Model)
 			}
 
 			if len(assistantMsg.ToolCalls) > 0 {
