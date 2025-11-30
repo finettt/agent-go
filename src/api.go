@@ -192,6 +192,8 @@ func sendAPIRequestStreaming(agent *Agent, config *Config, includeSpawn bool) (*
 	var toolCalls []ToolCall
 	finalRole := "assistant"
 	var finalUsage Usage
+	var reasoningBuffer strings.Builder
+	reasoningPrinted := false
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -222,6 +224,15 @@ func sendAPIRequestStreaming(agent *Agent, config *Config, includeSpawn bool) (*
 		if delta.Role != "" {
 			finalRole = delta.Role
 		}
+
+		if delta.ReasoningContent != "" {
+			reasoningBuffer.WriteString(delta.ReasoningContent)
+			if !reasoningPrinted {
+				fmt.Printf("%sThink...\n%s", ColorMeta, ColorReset)
+				reasoningPrinted = true
+			}
+		}
+
 		if delta.Content != "" {
 			fullContent.WriteString(delta.Content)
 			fmt.Printf("%s%s%s", ColorMain, delta.Content, ColorReset)
@@ -263,13 +274,20 @@ func sendAPIRequestStreaming(agent *Agent, config *Config, includeSpawn bool) (*
 
 	// Construct the final response
 	finalContentStr := fullContent.String()
+	finalReasoningStr := reasoningBuffer.String()
+	var reasoningContent *string
+	if finalReasoningStr != "" {
+		reasoningContent = &finalReasoningStr
+	}
+
 	response := &APIResponse{
 		Choices: []Choice{
 			{
 				Message: Message{
-					Role:      finalRole,
-					Content:   &finalContentStr,
-					ToolCalls: toolCalls,
+					Role:             finalRole,
+					Content:          &finalContentStr,
+					ReasoningContent: reasoningContent,
+					ToolCalls:        toolCalls,
 				},
 			},
 		},

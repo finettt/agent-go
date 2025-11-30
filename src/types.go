@@ -1,10 +1,11 @@
 package main
 
 type Message struct {
-	Role       string     `json:"role"`
-	Content    *string    `json:"content,omitempty"`
-	ToolCalls  []ToolCall `json:"tool_calls,omitempty"`
-	ToolCallID string     `json:"tool_call_id,omitempty"`
+	Role             string     `json:"role"`
+	Content          *string    `json:"content,omitempty"`
+	ReasoningContent *string    `json:"reasoning_content,omitempty"`
+	ToolCalls        []ToolCall `json:"tool_calls,omitempty"`
+	ToolCallID       string     `json:"tool_call_id,omitempty"`
 }
 
 type Config struct {
@@ -119,9 +120,10 @@ type StreamChoice struct {
 }
 
 type Delta struct {
-	Role      string         `json:"role,omitempty"`
-	Content   string         `json:"content,omitempty"`
-	ToolCalls []ToolCallChunk `json:"tool_calls,omitempty"`
+	Role             string          `json:"role,omitempty"`
+	Content          string          `json:"content,omitempty"`
+	ReasoningContent string          `json:"reasoning_content,omitempty"`
+	ToolCalls        []ToolCallChunk `json:"tool_calls,omitempty"`
 }
 
 // ToolCallChunk represents a chunk of a tool call in a streaming response

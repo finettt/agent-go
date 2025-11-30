@@ -198,8 +198,13 @@ func runCLI() {
 			agent.Messages = append(agent.Messages, assistantMsg)
 
 			// Only print content if not streaming (streaming already printed it)
-			if !config.Stream && assistantMsg.Content != nil && *assistantMsg.Content != "" {
-				fmt.Printf("%s%s%s\n", ColorMain, *assistantMsg.Content, ColorReset)
+			if !config.Stream {
+				if assistantMsg.ReasoningContent != nil && *assistantMsg.ReasoningContent != "" {
+					fmt.Printf("%sThink...\n%s", ColorMeta, ColorReset)
+				}
+				if assistantMsg.Content != nil && *assistantMsg.Content != "" {
+					fmt.Printf("%s%s%s\n", ColorMain, *assistantMsg.Content, ColorReset)
+				}
 			}
 
 			// Update and display total tokens
