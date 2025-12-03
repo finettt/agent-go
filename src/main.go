@@ -18,6 +18,9 @@ var config *Config
 var agent *Agent
 var shellMode = false
 var totalTokens = 0
+var totalPromptTokens = 0
+var totalCompletionTokens = 0
+var totalToolCalls = 0
 
 func formatTokenCount(count int) string {
 	if count >= 1000000 {
@@ -114,7 +117,8 @@ func runCLI() {
 		}
 	}()
 
-	fmt.Println("Agent-Go is ready. Type your requests, or /help for a list of commands.")
+	cwd, _ := os.Getwd()
+	fmt.Printf("Agent-Go is ready.\nModel: %s\nWorking Directory: %s\nType your requests, or /help for a list of commands.\n", config.Model, cwd)
 
 	for {
 		if shellMode {
@@ -220,9 +224,33 @@ func runCLI() {
 			// Update and display total tokens
 			if resp.Usage.TotalTokens > 0 {
 				totalTokens += resp.Usage.TotalTokens
-				fmt.Printf("%sUsed %s%s%s tokens on %s\n", ColorMeta, ColorHighlight, formatTokenCount(totalTokens), ColorReset, config.Model)
+				totalPromptTokens += resp.Usage.PromptTokens
+				totalCompletionTokens += resp.Usage.CompletionTokens
 			}
-
+	
+			// Update tool call count
+			if len(assistantMsg.ToolCalls) > 0 {
+				totalToolCalls += len(assistantMsg.ToolCalls)
+			}
+	
+			// Display usage based on verbose mode
+			switch config.UsageVerboseMode {
+			case UsageSilent:
+				// Do nothing
+			case UsageDetailed:
+				if resp.Usage.TotalTokens > 0 {
+					fmt.Printf("%sUsage: %d prompt + %d completion = %d total tokens\n", ColorMeta, resp.Usage.PromptTokens, resp.Usage.CompletionTokens, resp.Usage.TotalTokens)
+					fmt.Printf("Total: %s tokens (%d prompt, %d completion), %d tool calls%s\n", formatTokenCount(totalTokens), totalPromptTokens, totalCompletionTokens, totalToolCalls, ColorReset)
+				}
+			case UsageBasic:
+				fallthrough
+			default:
+				// Default behavior (Basic)
+				if resp.Usage.TotalTokens > 0 {
+					fmt.Printf("%sUsed %s%s%s tokens on %s\n", ColorMeta, ColorHighlight, formatTokenCount(totalTokens), ColorReset, config.Model)
+				}
+			}
+	
 			if len(assistantMsg.ToolCalls) > 0 {
 				processToolCalls(agent, assistantMsg.ToolCalls, config)
 			} else {
@@ -279,7 +307,10 @@ func handleSlashCommand(command string) {
 		fmt.Println("  /compress          - Compress context and start new chat thread")
 		fmt.Println("  /contextlength <value> - Set the model context length (e.g., 131072)")
 		fmt.Println("  /stream on|off     - Toggle streaming mode")
-		fmt.Println("  /subagents on|off  - Toggle sub-agent spawning")
+		fmt.Println("  /subagents [on|off|verbose <1|2>] - Configure sub-agents")
+		fmt.Println("  /security          - Spawn a subagent to review current changes")
+		fmt.Println("  /usage <1|2|3>     - Set usage verbosity (1: Silent, 2: Basic, 3: Detailed)")
+		fmt.Println("  /cost              - Show current usage statistics")
 		fmt.Println("  /todo              - Display the current todo list")
 		fmt.Println("  /notes list        - List all notes")
 		fmt.Println("  /notes view <name> - View a specific note")
@@ -293,6 +324,48 @@ func handleSlashCommand(command string) {
 		fmt.Println("  /plan              - Toggle between Plan and Build operation modes")
 		fmt.Println("  /ask on|off        - Enable/Disable confirmation for commands (Ask vs YOLO)")
 		fmt.Println("  /quit              - Exit the application")
+	case "/security":
+		if !config.SubagentsEnabled {
+			fmt.Println("Subagents are disabled. Enable them with /subagents on to use this command.")
+			return
+		}
+		task := "Review the current changes in the branch/working directory for security issues, bugs, and best practices. Provide a summary of findings."
+		fmt.Println("Spawning subagent to review changes...")
+		result, err := runSubAgent(task, config)
+		if err != nil {
+			fmt.Printf("Security review failed: %v\n", err)
+		} else {
+			fmt.Printf("\n=== Security Review ===\n%s\n", result)
+		}
+
+	case "/usage":
+		if len(parts) < 2 {
+			fmt.Printf("Current usage verbose mode: %d\n", config.UsageVerboseMode)
+			fmt.Println("Usage: /usage <1|2|3> (1: Silent, 2: Basic, 3: Detailed)")
+			return
+		}
+		mode, err := strconv.Atoi(parts[1])
+		if err != nil || mode < 1 || mode > 3 {
+			fmt.Println("Invalid mode. Please use 1, 2, or 3.")
+			return
+		}
+		config.UsageVerboseMode = mode
+		if err := saveConfig(config); err != nil {
+			fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
+		}
+		fmt.Printf("Usage verbose mode set to %d\n", mode)
+
+	case "/cost":
+		cwd, _ := os.Getwd()
+		fmt.Printf("\n=== Current Usage Stats ===\n")
+		fmt.Printf("Model:             %s\n", config.Model)
+		fmt.Printf("Working Directory: %s\n", cwd)
+		fmt.Printf("Total Tokens:      %d\n", totalTokens)
+		fmt.Printf("  - Prompt:        %d\n", totalPromptTokens)
+		fmt.Printf("  - Completion:    %d\n", totalCompletionTokens)
+		fmt.Printf("Total Tool Calls:  %d\n", totalToolCalls)
+		fmt.Println("===========================")
+
 	case "/session":
 		if len(parts) < 2 {
 			fmt.Println("Usage: /session [list|restore <name>|rm <name>]")
@@ -641,8 +714,24 @@ func handleSlashCommand(command string) {
 					fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
 				}
 				fmt.Println("Sub-agent spawning disabled.")
+			case "verbose":
+				if len(parts) > 2 {
+					mode, err := strconv.Atoi(parts[2])
+					if err != nil || mode < 1 || mode > 2 {
+						fmt.Println("Usage: /subagents verbose <1|2> (1: Default, 2: Full)")
+					} else {
+						config.SubAgentVerboseMode = mode
+						if err := saveConfig(config); err != nil {
+							fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
+						}
+						fmt.Printf("Sub-agent verbose mode set to %d\n", mode)
+					}
+				} else {
+					fmt.Printf("Current sub-agent verbose mode: %d\n", config.SubAgentVerboseMode)
+					fmt.Println("Usage: /subagents verbose <1|2> (1: Default, 2: Full)")
+				}
 			default:
-				fmt.Println("Usage: /subagents [on|off]")
+				fmt.Println("Usage: /subagents [on|off|verbose]")
 			}
 		} else {
 			if config.SubagentsEnabled {
@@ -650,6 +739,7 @@ func handleSlashCommand(command string) {
 			} else {
 				fmt.Println("Sub-agent spawning is currently disabled.")
 			}
+			fmt.Printf("Sub-agent verbose mode: %d\n", config.SubAgentVerboseMode)
 		}
 	default:
 		fmt.Printf("Unknown command: %s\n", baseCommand)

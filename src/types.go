@@ -22,10 +22,19 @@ type Config struct {
 	ModelContextLength    int     `json:"model_context_length"`
 	Stream                bool    `json:"stream"`
 	SubagentsEnabled      bool        `json:"subagents_enabled"`
+	SubAgentVerboseMode   int         `json:"subagent_verbose_mode"`
 	ExecutionMode         ExecuteMode   `json:"execution_mode"`
 	OperationMode         OperationMode `json:"operation_mode"`
 	MCPs                  map[string]MCPServer `json:"mcp_servers"`
+	UsageVerboseMode      int                  `json:"usage_verbose_mode"`
 }
+
+const (
+	UsageSilent   = 1
+	UsageBasic    = 2
+	UsageDetailed = 3
+)
+
 const (
 	// Ask is the default execution mode, which asks the user for confirmation before executing a command.
 	Ask ExecuteMode = "ask"

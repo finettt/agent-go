@@ -53,6 +53,10 @@ func runSubAgent(task string, config *Config) (string, error) {
 			var err error
 			var logMessage string
 
+			if config.SubAgentVerboseMode == 2 {
+				fmt.Printf("%s(SubAgent) Executing tool: %s%s\nArguments: %s\n", ColorHighlight, toolCall.Function.Name, ColorReset, toolCall.Function.Arguments)
+			}
+
 			switch toolCall.Function.Name {
 			case "execute_command":
 				var args CommandArgs

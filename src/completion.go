@@ -100,25 +100,26 @@ func (c *AgentCompleter) Do(line []rune, pos int) (newLine [][]rune, length int)
 			}
 		}
 
-		// We want to return candidates without the @ if we are appending,
-		// but readline expects the replacement.
-		// Actually, readline's Do returns valid suffixes usually?
-		// No, it returns the full string to replace the input "length" characters back?
-		// Let's look at standard behavior.
-		// If I type "@fil", I expect suggestions like "filename.txt".
-		// If I select it, it becomes "@filename.txt".
-
 		var candidates [][]rune
 		for _, m := range matches {
-			// We suggest the full filename
-			// The 'length' return value tells readline how many chars before cursor to replace.
-			// We want to replace 'prefix' (the part after @).
-			// So length = len(prefix).
-			// And the candidate should be the rest of the filename?
-			// Or the full filename?
-			// If length is len(prefix), then we replace 'fil' with 'filename.txt'.
-			// So the result is '@filename.txt'.
 			candidates = append(candidates, []rune(m))
+		}
+		return candidates, len(prefix)
+	}
+
+	if strings.HasPrefix(word, "#") {
+		// Note completion logic
+		prefix := word[1:] // remove #
+		noteNames, err := listNoteNames()
+		if err != nil {
+			return nil, 0
+		}
+
+		var candidates [][]rune
+		for _, name := range noteNames {
+			if strings.HasPrefix(name, prefix) {
+				candidates = append(candidates, []rune(name))
+			}
 		}
 		return candidates, len(prefix)
 	}
@@ -221,8 +222,19 @@ func buildCompleter(config *Config) readline.AutoCompleter {
 		readline.PcItem("/subagents",
 			readline.PcItem("on"),
 			readline.PcItem("off"),
+			readline.PcItem("verbose",
+				readline.PcItem("1"),
+				readline.PcItem("2"),
+			),
 		),
 		readline.PcItem("/shell"),
+		readline.PcItem("/security"),
+		readline.PcItem("/cost"),
+		readline.PcItem("/usage",
+			readline.PcItem("1"),
+			readline.PcItem("2"),
+			readline.PcItem("3"),
+		),
 		readline.PcItem("/quit"),
 	)
 
