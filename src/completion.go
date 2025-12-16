@@ -144,6 +144,15 @@ func getLastWord(line []rune, pos int) (string, int) {
 	return string(line[start:pos]), start
 }
 
+// buildNumberCompleters creates a list of prefix completers for common numeric values
+func buildNumberCompleters(numbers []int) []readline.PrefixCompleterInterface {
+	var completers []readline.PrefixCompleterInterface
+	for _, num := range numbers {
+		completers = append(completers, readline.PcItem(fmt.Sprintf("%d", num)))
+	}
+	return completers
+}
+
 // buildCompleter creates the completer for readline.
 // It fetches model names once on startup for autocompletion.
 func buildCompleter(config *Config) readline.AutoCompleter {
@@ -196,6 +205,7 @@ func buildCompleter(config *Config) readline.AutoCompleter {
 
 	var slashCompleter = readline.NewPrefixCompleter(
 		readline.PcItem("/help"),
+		readline.PcItem("/?"),
 		readline.PcItem("/model", modelCompleters...),
 		readline.PcItem("/provider",
 			readline.PcItem("https://"),
@@ -205,7 +215,7 @@ func buildCompleter(config *Config) readline.AutoCompleter {
 		readline.PcItem("/rag",
 			readline.PcItem("on"),
 			readline.PcItem("off"),
-			readline.PcItem("path"), // Only suggests the "path" keyword.
+			readline.PcItem("path"), // Path completion is handled by AgentCompleter.Do for @files and #notes
 		),
 		readline.PcItem("/mcp",
 			readline.PcItem("add"),
@@ -227,11 +237,16 @@ func buildCompleter(config *Config) readline.AutoCompleter {
 		readline.PcItem("/session",
 			readline.PcItem("list"),
 			readline.PcItem("restore", sessionCompleters...),
+			readline.PcItem("new"),
 			readline.PcItem("rm", sessionCompleters...),
 		),
 		readline.PcItem("/compress"),
 		readline.PcItem("/clear"),
-		readline.PcItem("/contextlength"),
+		readline.PcItem("/contextlength",
+			buildNumberCompleters([]int{
+				8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576,
+			})...,
+		),
 		readline.PcItem("/stream",
 			readline.PcItem("on"),
 			readline.PcItem("off"),
@@ -252,6 +267,12 @@ func buildCompleter(config *Config) readline.AutoCompleter {
 			readline.PcItem("2"),
 			readline.PcItem("3"),
 		),
+		readline.PcItem("/ask",
+			readline.PcItem("on"),
+			readline.PcItem("off"),
+		),
+		readline.PcItem("/mode"),
+		readline.PcItem("/plan"),
 		readline.PcItem("/quit"),
 	)
 

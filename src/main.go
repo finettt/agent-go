@@ -128,7 +128,7 @@ func runCLI() {
 	}()
 
 	cwd, _ := os.Getwd()
-	fmt.Printf("Agent-Go is ready.\nModel: %s\nWorking Directory: %s\nType your requests, or /help for a list of commands.\n", config.Model, cwd)
+	fmt.Printf("Agent-Go is ready.\nType your requests, or /help for a list of commands.\n%s%s • %s%s\n", ColorMeta, config.Model, cwd, ColorReset)
 
 	for {
 		if agentStudioMode {
@@ -335,7 +335,7 @@ func handleSlashCommand(command string) {
 	baseCommand := parts[0]
 
 	switch baseCommand {
-	case "/help":
+	case "/help", "/?":
 		fmt.Println("Available commands:")
 		fmt.Println("  /help              - Show this help message")
 		fmt.Println("  /model <name>      - Set the AI model (e.g., gpt-4)")
@@ -357,6 +357,7 @@ func handleSlashCommand(command string) {
 		fmt.Println("  /notes view <name> - View a specific note")
 		fmt.Println("  /session list      - List saved sessions")
 		fmt.Println("  /session restore <name> - Restore a session")
+		fmt.Println("  /session new       - Create a new session with fresh context")
 		fmt.Println("  /session rm <name> - Delete a saved session")
 		fmt.Println("  /mcp add <name> <command> - Add an MCP server")
 		fmt.Println("  /mcp remove <name> - Remove an MCP server")
@@ -452,6 +453,35 @@ func handleSlashCommand(command string) {
 			// For now, resetting to 0 is acceptable behavior, though auto-compress might trigger late.
 			totalTokens = 0
 			fmt.Printf("Session '%s' restored.\n", name)
+		case "new":
+			// Save current session first if it has content
+			if len(agent.Messages) > 1 {
+				if err := saveSession(agent); err != nil {
+					fmt.Fprintf(os.Stderr, "Error saving current session: %v\n", err)
+				} else {
+					fmt.Printf("Current session '%s' saved.\n", agent.ID)
+				}
+			}
+
+			// Create new session with fresh context
+			agent = &Agent{
+				ID:       "main",
+				Messages: make([]Message, 0),
+			}
+
+			// Reset token counters
+			totalTokens = 0
+			totalPromptTokens = 0
+			totalCompletionTokens = 0
+
+			// Add new system prompt
+			systemPrompt := buildSystemPrompt("")
+			agent.Messages = append(agent.Messages, Message{
+				Role:    "system",
+				Content: &systemPrompt,
+			})
+
+			fmt.Println("New session created with fresh context.")
 		case "rm":
 			if len(parts) < 3 {
 				fmt.Println("Usage: /session rm <name>")
@@ -468,7 +498,7 @@ func handleSlashCommand(command string) {
 				fmt.Printf("Session '%s' deleted.\n", name)
 			}
 		default:
-			fmt.Println("Usage: /session [list|restore <name>|rm <name>]")
+			fmt.Println("Usage: /session [list|restore <name>|new|rm <name>]")
 		}
 
 	case "/mode":
