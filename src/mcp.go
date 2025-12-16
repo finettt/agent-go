@@ -12,7 +12,7 @@ import (
 
 // mcpManager manages MCP client sessions
 type mcpManager struct {
-	mu       sync.Mutex
+	mu              sync.Mutex
 	clients         map[string]*mcp.Client
 	sessions        map[string]*mcp.ClientSession
 	implementations map[string]*mcp.Implementation

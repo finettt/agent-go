@@ -17,6 +17,16 @@ import (
 var config *Config
 var agent *Agent
 var shellMode = false
+
+// Agent Studio + task-specific agents
+type AgentConfigSnapshot struct {
+	Model     string
+	Temp      float32
+	MaxTokens int
+}
+
+var prevAgentConfigSnapshot *AgentConfigSnapshot
+
 var totalTokens = 0
 var totalPromptTokens = 0
 var totalCompletionTokens = 0
@@ -121,13 +131,17 @@ func runCLI() {
 	fmt.Printf("Agent-Go is ready.\nModel: %s\nWorking Directory: %s\nType your requests, or /help for a list of commands.\n", config.Model, cwd)
 
 	for {
-		if shellMode {
-			rl.SetPrompt("shell> ")
+		if agentStudioMode {
+			rl.SetPrompt(StyleBold + ">>> ")
+		} else if shellMode {
+			rl.SetPrompt(StyleBold + "! ")
 		} else {
-			rl.SetPrompt("> ")
+			rl.SetPrompt(StyleBold + "> ")
 		}
 
 		userInput, err := rl.Readline()
+		fmt.Print(ColorReset) // Reset after input is complete
+		
 		if err == readline.ErrInterrupt {
 			continue
 		} else if err == io.EOF {
@@ -138,6 +152,33 @@ func runCLI() {
 
 		// Process @filename mentions
 		userInput = processFileMentions(userInput)
+
+		if agentStudioMode {
+			if userInput == "exit" {
+				agentStudioMode = false
+				studioAgent = nil
+				fmt.Println("Exited Agent Studio.")
+				continue
+			}
+			if userInput == "" {
+				continue
+			}
+
+			// Add user message to studio history
+			studioAgent.Messages = append(studioAgent.Messages, Message{Role: "user", Content: &userInput})
+
+			// Run one (possibly multi-tool) studio turn
+			if err := runAgentStudioTurn(config); err != nil {
+				fmt.Fprintf(os.Stderr, "Agent Studio error: %v\n", err)
+			}
+
+			// If studio finished (agent created), clear studio state.
+			if !agentStudioMode {
+				studioAgent = nil
+				fmt.Println("Agent Studio finished.")
+			}
+			continue
+		}
 
 		if shellMode {
 			if userInput == "exit" {
@@ -227,12 +268,12 @@ func runCLI() {
 				totalPromptTokens += resp.Usage.PromptTokens
 				totalCompletionTokens += resp.Usage.CompletionTokens
 			}
-	
+
 			// Update tool call count
 			if len(assistantMsg.ToolCalls) > 0 {
 				totalToolCalls += len(assistantMsg.ToolCalls)
 			}
-	
+
 			// Display usage based on verbose mode
 			switch config.UsageVerboseMode {
 			case UsageSilent:
@@ -247,10 +288,10 @@ func runCLI() {
 			default:
 				// Default behavior (Basic)
 				if resp.Usage.TotalTokens > 0 {
-					fmt.Printf("%sUsed %s%s%s tokens on %s\n", ColorMeta, ColorHighlight, formatTokenCount(totalTokens), ColorReset, config.Model)
+					fmt.Printf("%sUsed %s%s%s tokens on %s%s\n", ColorMeta, ColorHighlight, formatTokenCount(totalTokens), ColorMeta, config.Model, ColorReset)
 				}
 			}
-	
+
 			if len(assistantMsg.ToolCalls) > 0 {
 				processToolCalls(agent, assistantMsg.ToolCalls, config)
 			} else {
@@ -320,6 +361,12 @@ func handleSlashCommand(command string) {
 		fmt.Println("  /mcp add <name> <command> - Add an MCP server")
 		fmt.Println("  /mcp remove <name> - Remove an MCP server")
 		fmt.Println("  /mcp list          - List MCP servers")
+		fmt.Println("  /agent studio [spec] - Start Agent Studio to create a task-specific agent")
+		fmt.Println("  /agent list         - List saved task-specific agents")
+		fmt.Println("  /agent view <name>  - View a saved agent definition")
+		fmt.Println("  /agent use <name>   - Activate a saved agent for the current chat")
+		fmt.Println("  /agent clear        - Clear active agent and restore previous model settings")
+		fmt.Println("  /agent rm <name>    - Delete a saved agent definition")
 		fmt.Println("  /mode              - Toggle between Plan and Build operation modes")
 		fmt.Println("  /plan              - Toggle between Plan and Build operation modes")
 		fmt.Println("  /ask on|off        - Enable/Disable confirmation for commands (Ask vs YOLO)")
@@ -741,6 +788,123 @@ func handleSlashCommand(command string) {
 			}
 			fmt.Printf("Sub-agent verbose mode: %d\n", config.SubAgentVerboseMode)
 		}
+	case "/agent":
+		if len(parts) < 2 {
+			fmt.Println("Usage: /agent [studio|list|view <name>|use <name>|clear|rm <name>]")
+			return
+		}
+		switch parts[1] {
+		case "studio":
+			// Optional: allow seeding studio with a one-line spec.
+			spec := ""
+			if len(parts) > 2 {
+				spec = strings.Join(parts[2:], " ")
+			}
+			startAgentStudio(spec)
+		case "list":
+			fmt.Println(formatAgentsList())
+		case "view":
+			if len(parts) < 3 {
+				fmt.Println("Usage: /agent view <name>")
+				return
+			}
+			name := strings.Join(parts[2:], " ")
+			fmt.Println(formatAgentView(name))
+		case "use":
+			if len(parts) < 3 {
+				fmt.Println("Usage: /agent use <name>")
+				return
+			}
+			name := strings.Join(parts[2:], " ")
+			def, err := loadAgentDefinition(name)
+			if err != nil {
+				fmt.Printf("Error loading agent '%s': %v\n", name, err)
+				return
+			}
+
+			// Snapshot current settings only when activating from "no active agent".
+			if activeAgentDef == nil {
+				prevAgentConfigSnapshot = &AgentConfigSnapshot{
+					Model:     config.Model,
+					Temp:      config.Temp,
+					MaxTokens: config.MaxTokens,
+				}
+			}
+
+			activeAgentDef = def
+
+			// Apply optional overrides (in-memory only).
+			if strings.TrimSpace(def.Model) != "" {
+				config.Model = strings.TrimSpace(def.Model)
+			}
+			if def.Temperature != nil {
+				config.Temp = *def.Temperature
+			}
+			if def.MaxTokens != nil {
+				config.MaxTokens = *def.MaxTokens
+			}
+
+			// Clear context and rebuild system prompt so the new agent prompt takes effect.
+			if len(agent.Messages) > 1 {
+				if err := saveSession(agent); err != nil {
+					fmt.Fprintf(os.Stderr, "Error saving session before agent switch: %v\n", err)
+				} else {
+					fmt.Printf("Session '%s' saved before switching agent.\n", agent.ID)
+				}
+			}
+			currentID := agent.ID
+			agent = &Agent{ID: currentID, Messages: make([]Message, 0)}
+			systemPrompt := buildSystemPrompt("")
+			agent.Messages = append(agent.Messages, Message{Role: "system", Content: &systemPrompt})
+			totalTokens = 0
+			fmt.Printf("Active agent set to '%s'. Context cleared.\n", activeAgentDef.Name)
+
+		case "clear":
+			if activeAgentDef == nil {
+				fmt.Println("No active agent.")
+				return
+			}
+			activeAgentDef = nil
+			if prevAgentConfigSnapshot != nil {
+				config.Model = prevAgentConfigSnapshot.Model
+				config.Temp = prevAgentConfigSnapshot.Temp
+				config.MaxTokens = prevAgentConfigSnapshot.MaxTokens
+				prevAgentConfigSnapshot = nil
+			}
+
+			// Clear context and rebuild base system prompt.
+			if len(agent.Messages) > 1 {
+				if err := saveSession(agent); err != nil {
+					fmt.Fprintf(os.Stderr, "Error saving session before clearing agent: %v\n", err)
+				} else {
+					fmt.Printf("Session '%s' saved before clearing agent.\n", agent.ID)
+				}
+			}
+			currentID := agent.ID
+			agent = &Agent{ID: currentID, Messages: make([]Message, 0)}
+			systemPrompt := buildSystemPrompt("")
+			agent.Messages = append(agent.Messages, Message{Role: "system", Content: &systemPrompt})
+			totalTokens = 0
+			fmt.Println("Active agent cleared. Context cleared.")
+
+		case "rm":
+			if len(parts) < 3 {
+				fmt.Println("Usage: /agent rm <name>")
+				return
+			}
+			name := strings.Join(parts[2:], " ")
+			if err := deleteAgentDefinition(name); err != nil {
+				fmt.Printf("Error deleting agent '%s': %v\n", name, err)
+				return
+			}
+			// If the deleted agent is active, clear it.
+			if activeAgentDef != nil && activeAgentDef.Name == name {
+				activeAgentDef = nil
+			}
+			fmt.Printf("Agent '%s' deleted.\n", name)
+		default:
+			fmt.Println("Usage: /agent [studio|list|view <name>|use <name>|clear|rm <name>]")
+		}
 	default:
 		fmt.Printf("Unknown command: %s\n", baseCommand)
 	}
@@ -754,9 +918,20 @@ func buildSystemPrompt(contextSummary string) string {
 		basePrompt = "You are an AI assistant in BUILD mode. You can execute commands, write code, and implement solutions. You can manage a todo list by using the `create_todo`, `update_todo`, and `get_todo_list` tools. You can also create notes using `create_note`, `update_note`, and `delete_note` tools. Notes persist across sessions. For multi-step tasks, chain commands with && (e.g., 'echo content > file.py && python3 file.py'). Use execute_command for shell tasks."
 	}
 
+	// If a task-specific agent is active, prepend its system prompt.
+	if activeAgentDef != nil && strings.TrimSpace(activeAgentDef.SystemPrompt) != "" {
+		basePrompt = fmt.Sprintf("=== Active Task-Specific Agent: %s ===\n%s\n\n%s", activeAgentDef.Name, activeAgentDef.SystemPrompt, basePrompt)
+	}
+
 	// Add compressed context if available
 	if contextSummary != "" {
 		basePrompt = fmt.Sprintf("Previous conversation context:\n\n%s\n\n%s", contextSummary, basePrompt)
+	}
+
+	// Add a list of available task-specific agents (helps the model choose agent names).
+	agentsContent := getAgentsForSystemPrompt()
+	if agentsContent != "" {
+		basePrompt += agentsContent
 	}
 
 	// Add detailed MCP server and tool info to the prompt

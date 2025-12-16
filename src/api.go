@@ -215,7 +215,7 @@ func sendAPIRequestStreaming(agent *Agent, config *Config, includeSpawn bool) (*
 			// Silently skip invalid JSON chunks
 			continue
 		}
-		
+
 		if len(chunk.Choices) == 0 {
 			continue
 		}

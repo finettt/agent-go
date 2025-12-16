@@ -162,7 +162,7 @@ func renameSession(oldID, newID string) error {
 	if err := os.Rename(oldPath, newPath); err != nil {
 		return err
 	}
-	
+
 	// We also need to update the ID inside the JSON file
 	session, err := loadSession(newID)
 	if err == nil {
@@ -210,7 +210,7 @@ func nameSession(agent *Agent, argsJSON string) (string, error) {
 
 	oldID := agent.ID
 	agent.ID = safeName
-	
+
 	// Also rename todo list if it exists
 	oldTodoPath, _ := getTodoListPath(oldID)
 	newTodoPath, _ := getTodoListPath(safeName)

@@ -185,6 +185,15 @@ func buildCompleter(config *Config) readline.AutoCompleter {
 		}
 	}
 
+	// Prepare agent name completions for /agent view|use|rm
+	agentNameCompleters := make([]readline.PrefixCompleterInterface, 0)
+	agentNames, err := listAgentNames()
+	if err == nil {
+		for _, name := range agentNames {
+			agentNameCompleters = append(agentNameCompleters, readline.PcItem(name))
+		}
+	}
+
 	var slashCompleter = readline.NewPrefixCompleter(
 		readline.PcItem("/help"),
 		readline.PcItem("/model", modelCompleters...),
@@ -202,6 +211,14 @@ func buildCompleter(config *Config) readline.AutoCompleter {
 			readline.PcItem("add"),
 			readline.PcItem("remove", mcpServerCompleters...),
 			readline.PcItem("list"),
+		),
+		readline.PcItem("/agent",
+			readline.PcItem("studio"),
+			readline.PcItem("list"),
+			readline.PcItem("view", agentNameCompleters...),
+			readline.PcItem("use", agentNameCompleters...),
+			readline.PcItem("clear"),
+			readline.PcItem("rm", agentNameCompleters...),
 		),
 		readline.PcItem("/notes",
 			readline.PcItem("list"),

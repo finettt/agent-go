@@ -36,8 +36,25 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 				if unmarshalErr := json.Unmarshal([]byte(tc.Function.Arguments), &args); unmarshalErr != nil {
 					output = fmt.Sprintf("Failed to parse arguments: %s", unmarshalErr)
 				} else {
-					fmt.Printf("%sSpawning sub-agent for task: %s%s%s\n", ColorMeta, ColorHighlight, args.Task, ColorReset)
-					output, err = runSubAgent(args.Task, config)
+					agentName := strings.TrimSpace(args.Agent)
+
+					// Avoid dumping long task prompts into the user's console by default.
+					// Only show the full task when sub-agent verbose mode is "Full" (2).
+					if config.SubAgentVerboseMode == 2 {
+						if agentName != "" {
+							fmt.Printf("%sSpawning sub-agent (%s) for task: %s%s%s\n", ColorMeta, agentName, ColorHighlight, args.Task, ColorReset)
+						} else {
+							fmt.Printf("%sSpawning sub-agent for task: %s%s%s\n", ColorMeta, ColorHighlight, args.Task, ColorReset)
+						}
+					} else {
+						if agentName != "" {
+							fmt.Printf("%sSpawning sub-agent (%s)%s\n", ColorMeta, agentName, ColorReset)
+						} else {
+							fmt.Printf("%sSpawning sub-agent%s\n", ColorMeta, ColorReset)
+						}
+					}
+
+					output, err = runSubAgentWithAgent(args.Task, agentName, config)
 					logMessage = "Sub-agent finished task"
 				}
 
@@ -171,6 +188,11 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 			output, err = nameSession(agent, toolCall.Function.Arguments)
 			if err == nil {
 				logMessage = "Named session"
+			}
+		case "create_agent_definition":
+			output, err = createAgentDefinition(toolCall.Function.Arguments)
+			if err == nil {
+				logMessage = "Created agent definition"
 			}
 		default:
 			output = fmt.Sprintf("Unknown tool: %s", toolCall.Function.Name)

@@ -35,27 +35,27 @@ func searchRAGFiles(path, query string, maxSnippets int) (string, error) {
 		if err != nil {
 			return err
 		}
-		
+
 		// Stop early if we have enough snippets
 		if len(snippets) >= maxSnippets {
 			return filepath.SkipAll
 		}
-		
+
 		if info.IsDir() {
 			return nil
 		}
-		
+
 		// Filter by file extension to avoid binary files
 		ext := filepath.Ext(filePath)
 		if !textFileExtensions[ext] {
 			return nil
 		}
-		
+
 		file, err := os.Open(filePath)
 		if err != nil {
 			return nil // Skip files that cannot be opened
 		}
-		
+
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() && len(snippets) < maxSnippets {
 			line := scanner.Text()
@@ -63,7 +63,7 @@ func searchRAGFiles(path, query string, maxSnippets int) (string, error) {
 				snippets = append(snippets, fmt.Sprintf("- %s (from %s)", line, filepath.Base(filePath)))
 			}
 		}
-		
+
 		if err := file.Close(); err != nil {
 			// Log or handle the error if closing fails
 			fmt.Printf("Warning: failed to close file %s: %v\n", filePath, err)

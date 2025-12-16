@@ -9,22 +9,22 @@ type Message struct {
 }
 
 type Config struct {
-	APIURL                string  `json:"api_url"`
-	Model                 string  `json:"model"`
-	APIKey                string  `json:"api_key"`
-	RAGPath               string  `json:"rag_path"`
-	Temp                  float32 `json:"temp"`
-	MaxTokens             int     `json:"max_tokens"`
-	RAGEnabled            bool    `json:"rag_enabled"`
-	RAGSnippets           int     `json:"rag_snippets"`
-	AutoCompress          bool    `json:"auto_compress"`
-	AutoCompressThreshold int     `json:"auto_compress_threshold"`
-	ModelContextLength    int     `json:"model_context_length"`
-	Stream                bool    `json:"stream"`
-	SubagentsEnabled      bool        `json:"subagents_enabled"`
-	SubAgentVerboseMode   int         `json:"subagent_verbose_mode"`
-	ExecutionMode         ExecuteMode   `json:"execution_mode"`
-	OperationMode         OperationMode `json:"operation_mode"`
+	APIURL                string               `json:"api_url"`
+	Model                 string               `json:"model"`
+	APIKey                string               `json:"api_key"`
+	RAGPath               string               `json:"rag_path"`
+	Temp                  float32              `json:"temp"`
+	MaxTokens             int                  `json:"max_tokens"`
+	RAGEnabled            bool                 `json:"rag_enabled"`
+	RAGSnippets           int                  `json:"rag_snippets"`
+	AutoCompress          bool                 `json:"auto_compress"`
+	AutoCompressThreshold int                  `json:"auto_compress_threshold"`
+	ModelContextLength    int                  `json:"model_context_length"`
+	Stream                bool                 `json:"stream"`
+	SubagentsEnabled      bool                 `json:"subagents_enabled"`
+	SubAgentVerboseMode   int                  `json:"subagent_verbose_mode"`
+	ExecutionMode         ExecuteMode          `json:"execution_mode"`
+	OperationMode         OperationMode        `json:"operation_mode"`
 	MCPs                  map[string]MCPServer `json:"mcp_servers"`
 	UsageVerboseMode      int                  `json:"usage_verbose_mode"`
 }
@@ -114,7 +114,8 @@ type CommandArgs struct {
 }
 
 type SubAgentTask struct {
-	Task string `json:"task"`
+	Task  string `json:"task"`
+	Agent string `json:"agent,omitempty"` // Optional task-specific agent name (e.g., "default" or a saved agent)
 }
 
 type UseMCPToolArgs struct {
@@ -134,9 +135,9 @@ type StreamChunk struct {
 }
 
 type StreamChoice struct {
-	Index        int          `json:"index"`
-	Delta        Delta        `json:"delta"`
-	FinishReason *string      `json:"finish_reason"`
+	Index        int     `json:"index"`
+	Delta        Delta   `json:"delta"`
+	FinishReason *string `json:"finish_reason"`
 }
 
 type Delta struct {

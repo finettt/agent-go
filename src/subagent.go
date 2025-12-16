@@ -3,13 +3,32 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 )
 
-// runSubAgent executes a task in a separate sub-agent context
+// runSubAgent executes a task in a separate sub-agent context (backward-compatible default behavior).
 func runSubAgent(task string, config *Config) (string, error) {
-	systemPrompt := getSystemInfo() + "\n\nYou are a sub-agent tasked with completing a specific goal. You have access to the 'execute_command' and todo list management tools. Plan your steps and execute them sequentially. When you have finished the task, output the final result as a single response."
+	return runSubAgentWithAgent(task, "", config)
+}
+
+// runSubAgentWithAgent executes a task in a separate sub-agent context, optionally using a saved task-specific agent
+// definition (including the built-in "default") as additional system instructions.
+func runSubAgentWithAgent(task string, agentName string, config *Config) (string, error) {
+	sysInfo := getSystemInfo()
+
+	basePrompt := "You are a sub-agent tasked with completing a specific goal. You have access to the 'execute_command' and todo list management tools. Plan your steps and execute them sequentially. When you have finished the task, output the final result as a single response."
+
+	systemPrompt := sysInfo + "\n\n" + basePrompt
+
+	if strings.TrimSpace(agentName) != "" {
+		def, err := loadAgentDefinition(agentName)
+		if err != nil {
+			return "", fmt.Errorf("failed to load agent '%s' for sub-agent: %w", agentName, err)
+		}
+		systemPrompt = sysInfo + "\n\n" + fmt.Sprintf("=== Task-Specific Agent: %s ===\n%s\n\n%s", def.Name, def.SystemPrompt, basePrompt)
+	}
 
 	subAgent := &Agent{
 		ID: uuid.New().String(),
@@ -53,10 +72,6 @@ func runSubAgent(task string, config *Config) (string, error) {
 			var err error
 			var logMessage string
 
-			if config.SubAgentVerboseMode == 2 {
-				fmt.Printf("%s(SubAgent) Executing tool: %s%s\nArguments: %s\n", ColorHighlight, toolCall.Function.Name, ColorReset, toolCall.Function.Arguments)
-			}
-
 			switch toolCall.Function.Name {
 			case "execute_command":
 				var args CommandArgs
@@ -65,7 +80,7 @@ func runSubAgent(task string, config *Config) (string, error) {
 				} else {
 					output, err = confirmAndExecute(config, args.Command, false) // Sub-agents don't support background commands yet
 					if err == nil {
-						logMessage = "Executed bash command"
+						logMessage = fmt.Sprintf("Executed bash command %s(%s)%s", ColorMeta , args.Command, ColorReset)
 					}
 				}
 			case "create_todo":
@@ -91,7 +106,7 @@ func runSubAgent(task string, config *Config) (string, error) {
 				output = fmt.Sprintf("Tool execution error: %s", err)
 				fmt.Printf("%s%s%s\n", ColorRed, output, ColorReset)
 			} else if logMessage != "" {
-				fmt.Printf("%s(SubAgent) %s%s%s\n", ColorHighlight, ColorReset, logMessage, ColorReset)
+				fmt.Printf("%s%s[SubAgent] %s%s%s\n", StyleBold, ColorHighlight, ColorReset, logMessage, ColorReset)
 			}
 
 			toolMsg := Message{

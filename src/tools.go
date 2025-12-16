@@ -179,7 +179,6 @@ func getAvailableTools(includeSpawn bool, operationMode OperationMode) []Tool {
 		})
 	}
 
-
 	// Add suggest_plan tool only in Plan mode
 	if operationMode == Plan {
 		tools = append(tools, Tool{
@@ -193,6 +192,27 @@ func getAvailableTools(includeSpawn bool, operationMode OperationMode) []Tool {
 						"plan": map[string]string{"type": "string", "description": "The detailed plan to present to the user"},
 					},
 					"required": []string{"plan"},
+				},
+			},
+		})
+
+		// Agent Studio: allow creating task-specific agents (persisted on disk).
+		tools = append(tools, Tool{
+			Type: "function",
+			Function: FunctionDefinition{
+				Name:        "create_agent_definition",
+				Description: "Create a new task-specific agent definition (name + system prompt) and save it for later use via /agent commands.",
+				Parameters: map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"name":          map[string]string{"type": "string", "description": "Unique agent name (short, filesystem-friendly; spaces become dashes)."},
+						"description":   map[string]string{"type": "string", "description": "Optional short description of what the agent does."},
+						"system_prompt": map[string]string{"type": "string", "description": "The full system prompt for the agent."},
+						"model":         map[string]string{"type": "string", "description": "Optional model override for this agent."},
+						"temperature":   map[string]string{"type": "number", "description": "Optional temperature override (0.0-2.0)."},
+						"max_tokens":    map[string]string{"type": "integer", "description": "Optional max tokens override."},
+					},
+					"required": []string{"name", "system_prompt"},
 				},
 			},
 		})
@@ -221,11 +241,14 @@ func getAvailableTools(includeSpawn bool, operationMode OperationMode) []Tool {
 			Type: "function",
 			Function: FunctionDefinition{
 				Name:        "spawn_agent",
-				Description: "Spawn a sub-agent to perform a specific task and return the result.",
+				Description: "Spawn a sub-agent to perform a specific task and return the result. Optionally choose a task-specific agent definition (including built-in 'default').",
 				Parameters: map[string]interface{}{
-					"type":       "object",
-					"properties": map[string]interface{}{"task": map[string]string{"type": "string"}},
-					"required":   []string{"task"},
+					"type": "object",
+					"properties": map[string]interface{}{
+						"task":  map[string]string{"type": "string"},
+						"agent": map[string]string{"type": "string", "description": "Optional agent name (e.g. 'default' or a saved agent) to use as the sub-agent's system prompt."},
+					},
+					"required": []string{"task"},
 				},
 			},
 		})

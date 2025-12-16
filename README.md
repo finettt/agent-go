@@ -142,6 +142,39 @@ Created directory "test-project" and navigated into it.
 
 ### Slash Commands
 
+### Agent Studio
+
+Agent-Go can create and manage reusable, task-specific agents via the `/agent` command family.
+
+Built-in agent:
+- `default` (always available, cannot be deleted)
+
+- `/agent studio [spec]`
+  Starts an interactive “Agent Studio” chat. Describe the agent you want (goal, constraints, workflow, tooling rules).
+  Studio will save it by calling [`create_agent_definition()`](src/agents.go:235).
+
+- `/agent list`
+  Lists saved agent definitions.
+
+- `/agent view <name>`
+  Prints the saved agent definition (including its system prompt).
+
+- `/agent use <name>`
+  Activates the agent for the current chat by rebuilding the system prompt (context is cleared).
+  Optional overrides from the agent definition (model / temperature / max_tokens) are applied in-memory.
+
+Subagents can also use task-specific agents: the `spawn_agent` tool supports an optional `agent` argument (e.g. `"default"` or a saved agent name).
+
+- `/agent clear`
+  Deactivates the active agent and restores the previous model settings snapshot (also clears context).
+
+- `/agent rm <name>`
+  Deletes a saved agent definition.
+
+Saved agent JSON files are stored in `~/.config/agent-go/agents/*.json`.
+
+Studio is intentionally restricted: it only permits agent creation and rejects all other tools. See [`processAgentStudioToolCalls()`](src/agent_studio.go:97).
+
 Manage Agent-Go's configuration and features from within the application using slash commands. Type `/help` to see the full list.
 
 ```
