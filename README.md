@@ -26,6 +26,9 @@ The agent's workflow is as follows:
 
 | Feature | Description |
 | :--- | :--- |
+| **Agent Studio** | Complete agent management system for creating, managing, and using task-specific agents with the `/agent` command family. |
+| **Session Management** | Save and restore conversation sessions with `/session` commands for seamless context switching and continuity. |
+| **Background Command Execution** | Run shell commands in the background with support for monitoring, logging, and management. |
 | **Intelligent Command Execution** | Natively executes shell commands from AI responses, with support for multi-step command chaining (`&&`). |
 | **MCP (Model Context Protocol)** | Integrates with MCP servers to extend capabilities with external tools and resources. Includes default context7 integration for up-to-date library documentation. |
 | **Sub-agent Delegation** | Spawns autonomous sub-agents to handle complex, multi-step tasks in the background, freeing up the main agent for other work. |
@@ -140,8 +143,6 @@ $ mkdir test-project && cd test-project
 Created directory "test-project" and navigated into it.
 ```
 
-### Slash Commands
-
 ### Agent Studio
 
 Agent-Go can create and manage reusable, task-specific agents via the `/agent` command family.
@@ -150,7 +151,7 @@ Built-in agent:
 - `default` (always available, cannot be deleted)
 
 - `/agent studio [spec]`
-  Starts an interactive “Agent Studio” chat. Describe the agent you want (goal, constraints, workflow, tooling rules).
+  Starts an interactive "Agent Studio" chat. Describe the agent you want (goal, constraints, workflow, tooling rules).
   Studio will save it by calling [`create_agent_definition()`](src/agents.go:235).
 
 - `/agent list`
@@ -175,6 +176,8 @@ Saved agent JSON files are stored in `~/.config/agent-go/agents/*.json`.
 
 Studio is intentionally restricted: it only permits agent creation and rejects all other tools. See [`processAgentStudioToolCalls()`](src/agent_studio.go:97).
 
+### Slash Commands
+
 Manage Agent-Go's configuration and features from within the application using slash commands. Type `/help` to see the full list.
 
 ```
@@ -192,9 +195,19 @@ Available commands:
     /contextlength <value> - Set the model context length
     /stream on|off     - Toggle streaming mode
     /subagents on|off  - Toggle sub-agent spawning
+    /session new       - Create new session and save current context
+    /session list      - View saved sessions
+    /session restore <name> - Restore previous session
+    /session rm <name> - Delete saved session
     /todo              - Display the current todo list
     /notes list        - List all notes
     /notes view <name> - View a specific note
+    /agent studio      - Start Agent Studio for creating custom agents
+    /agent list        - List saved agent definitions
+    /agent view <name> - View a specific agent definition
+    /agent use <name>  - Activate a specific agent
+    /agent clear       - Clear agent-specific context
+    /agent rm <name>   - Delete a saved agent definition
     /mcp add <name> <command> - Add an MCP server
     /mcp remove <name> - Remove an MCP server
     /mcp list          - List MCP servers

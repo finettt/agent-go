@@ -109,8 +109,13 @@ agent-go/
 │   ├── mcp.go             # MCP server integration
 │   ├── subagent.go        # Sub-agent management
 │   ├── todo.go            # Todo list management
+│   ├── notes.go           # Notes management
+│   ├── agents.go          # Agent Studio and agent management
+│   ├── agent_studio.go    # Agent Studio implementation
+│   ├── session.go         # Session management
 │   ├── completion.go      # Auto-completion
 │   ├── system.go          # System information
+│   ├── input.go           # Input handling
 │   └── types.go           # Data structures
 ├── docs/                  # Documentation
 │   ├── README.md          # Developer documentation
@@ -138,8 +143,13 @@ agent-go/
 - **`src/mcp.go`**: MCP server connection and tool management
 - **`src/subagent.go`**: Sub-agent spawning and lifecycle management
 - **`src/todo.go`**: Todo list CRUD operations
+- **`src/notes.go`**: Persistent notes management
+- **`src/agents.go`**: Agent Studio interface and agent management
+- **`src/agent_studio.go`**: Agent Studio implementation
+- **`src/session.go`**: Session save/restore functionality
 - **`src/completion.go`**: CLI auto-completion functionality
 - **`src/system.go`**: System information gathering
+- **`src/input.go`**: Enhanced input handling
 - **`src/types.go`**: Type definitions and data structures
 
 ## Building and Running
@@ -617,6 +627,186 @@ go vet -vettool=$(which gosec) ./src
 # Check for known vulnerabilities
 go list -json -m all | nancy sleuth
 ```
+
+## New Features Development
+
+### Agent Studio Development
+
+**Key Files:**
+- `src/agents.go` - Agent Studio interface and management
+- `src/agent_studio.go` - Agent Studio implementation
+
+**Development Guidelines:**
+1. **Agent Definition Structure**: Follow the `Agent` struct in `types.go`
+2. **Validation**: Implement proper validation for agent specifications
+3. **Storage**: Agent definitions stored in `~/.config/agent-go/agents/*.json`
+4. **Studio Restrictions**: Agent Studio should only permit agent creation
+5. **Built-in Protection**: Ensure `default` agent cannot be deleted or overwritten
+
+**Testing Agent Studio:**
+```bash
+# Test agent creation
+> /agent studio
+
+# Test agent management
+> /agent list
+> /agent view <name>
+> /agent use <name>
+> /agent rm <name>
+```
+
+### Session Management Development
+
+**Key Files:**
+- `src/session.go` - Session save/restore functionality
+
+**Development Guidelines:**
+1. **Session Structure**: Include metadata (timestamps, token counts, message history)
+2. **Storage Format**: Use JSON format for session data
+3. **Compression**: Automatically compress context before saving sessions
+4. **Timestamp Tracking**: Record creation and last access times
+5. **Cleanup**: Implement proper cleanup for unused sessions
+
+**Testing Session Management:**
+```bash
+# Test session creation and restoration
+> /session new
+> /session list
+> /session restore <name>
+> /session rm <name>
+```
+
+### Background Command Execution
+
+**Key Files:**
+- `src/executor.go` - Extended for background process management
+
+**Development Guidelines:**
+1. **Process Management**: Track PIDs and manage lifecycle properly
+2. **Output Streaming**: Implement real-time output capture
+3. **Resource Cleanup**: Automatically clean up completed processes
+4. **Safety**: Prevent application exit while background tasks run
+5. **Error Handling**: Gracefully handle process failures
+
+**Testing Background Commands:**
+```bash
+# Test background execution
+$ long-running-command --background
+
+# Monitor and manage
+> /list_background_commands
+> /get_background_logs <pid>
+> /kill_background_command <pid>
+```
+
+### Notes Management Development
+
+**Key Files:**
+- `src/notes.go` - Persistent notes management
+
+**Development Guidelines:**
+1. **Storage Format**: Use JSON for note storage with metadata
+2. **Filename Sanitization**: Prevent path traversal attacks
+3. **System Integration**: Notes should be automatically injected into system prompt
+4. **Autocomplete**: Implement tab completion for note names
+5. **Cross-Session Persistence**: Notes should persist across different agent sessions
+
+**Testing Notes Management:**
+```bash
+# Test note operations
+> /notes list
+> /notes view <name>
+
+# Test AI-driven note management
+> Create a note called "api_endpoint" with content "https://api.example.com"
+> Update the api_endpoint note
+> Delete the old_note
+```
+
+### Usage Tracking Development
+
+**Key Files:**
+- Extended functionality in `src/main.go` and `src/api.go`
+
+**Development Guidelines:**
+1. **Token Tracking**: Monitor prompt, completion, and reasoning tokens
+2. **Cost Calculation**: Implement accurate cost tracking based on model pricing
+3. **Historical Data**: Track usage across sessions and time periods
+4. **Reset Behavior**: Token counter should reset after compression
+5. **Performance**: Ensure tracking doesn't impact application performance
+
+**Testing Usage Tracking:**
+```bash
+# Test usage monitoring
+> /usage
+> /cost
+
+# Verify reset after compression
+> /compress
+> /usage  # Should show 0 tokens
+```
+
+### Enhanced CLI Features
+
+**Key Files:**
+- `src/completion.go` - Extended for new command completion
+- `src/main.go` - Enhanced CLI handling
+
+**Development Guidelines:**
+1. **Autocomplete**: Add completion for new commands and parameters
+2. **Color Scheme**: Maintain consistent color coding
+3. **User Feedback**: Provide clear, actionable error messages
+4. **Performance**: Ensure autocomplete doesn't slow down CLI
+5. **Accessibility**: Consider accessibility requirements
+
+### Testing New Features
+
+**Unit Tests:**
+```bash
+# Test individual components
+go test ./src/...
+
+# Test specific new features
+go test -v src/agents.go
+go test -v src/session.go
+go test -v src/notes.go
+```
+
+**Integration Tests:**
+```bash
+# Test complete workflows
+./agent-go "/agent studio" < test-spec.txt
+./agent-go "/session new" < test-session.txt
+./agent-go "/notes list" < test-notes.txt
+```
+
+**Manual Testing:**
+1. Test all new slash commands
+2. Verify feature interactions
+3. Test error scenarios
+4. Validate edge cases
+
+### Debugging New Features
+
+**Agent Studio Debugging:**
+- Check agent definition JSON files
+- Verify validation logic
+- Test studio restrictions
+
+**Session Management Debugging:**
+- Check session JSON files
+- Verify compression/decompression
+- Test context restoration
+
+**Background Command Debugging:**
+- Monitor process PIDs
+- Check output buffers
+- Test cleanup mechanisms
+
+**Notes Management Debugging:**
+- Check note JSON files
+- Verify system prompt injection
+- Test autocomplete functionality
 
 ## Release Process
 

@@ -4,6 +4,9 @@ This document provides practical examples and best practices for using Agent-Go 
 
 ## Table of Contents
 
+- [Agent Studio Examples](#agent-studio-examples)
+- [Session Management Examples](#session-management-examples)
+- [Background Command Execution](#background-command-execution)
 - [Basic Usage Examples](#basic-usage-examples)
 - [MCP Integration Examples](#mcp-integration-examples)
 - [Todo List Management Examples](#todo-list-management-examples)
@@ -14,6 +17,239 @@ This document provides practical examples and best practices for using Agent-Go 
 - [Security Best Practices](#security-best-practices)
 - [Common Use Cases](#common-use-cases)
 - [Troubleshooting Examples](#troubleshooting-examples)
+
+## Agent Studio Examples
+
+### 1. Creating Specialized Agents
+
+**Code Review Agent**
+```
+> /agent studio
+
+User: I want to create a code review agent that analyzes pull requests
+
+Agent Studio: Welcome to Agent Studio! Please describe your agent:
+
+1. Primary Goal: Analyze code changes for quality, security, and best practices
+2. Constraints: Should not approve changes that break existing functionality
+3. Workflow: Review diffs, run linting, check for security issues, provide feedback
+4. Tools: execute_command, spawn_agent, get_todo_list, create_todo, update_todo
+
+Specification saved successfully.
+Agent 'code-reviewer' created with ID: agent-20251218-123456
+```
+
+**Documentation Writer Agent**
+```
+> /agent studio
+
+User: Create an agent that generates technical documentation
+
+Agent Studio: Please specify:
+1. Primary Goal: Generate clear, comprehensive technical documentation
+2. Constraints: Should follow company documentation standards
+3. Workflow: Analyze code, extract key information, structure documentation
+4. Tools: execute_command, spawn_agent, get_todo_list, create_todo, update_todo
+
+Agent 'documentation-writer' created successfully.
+```
+
+### 2. Managing Agent Lifecycle
+
+**Listing and Viewing Agents**
+```
+> /agent list
+Available Agents:
+
+1. default (Built-in)
+   - Purpose: General-purpose AI assistant
+   - Model: gpt-4-turbo
+   - Temperature: 0.1
+   - Status: Protected (cannot be deleted)
+
+2. code-reviewer
+   - Purpose: Analyze code changes for quality and security
+   - Model: gpt-4-turbo
+   - Temperature: 0.2
+   - Created: 2025-12-18 10:30:00
+
+> /agent view code-reviewer
+=== Agent: code-reviewer ===
+Purpose: Analyze code changes for quality and security
+Model: gpt-4-turbo
+Temperature: 0.2
+Max Tokens: 2000
+Created: 2025-12-18 10:30:00
+Updated: 2025-12-18 10:30:00
+
+System Prompt: [Full system prompt content]
+
+Available Tools: execute_command, spawn_agent, get_todo_list, create_todo, update_todo
+```
+
+**Using Specialized Agents**
+```
+> /agent use code-reviewer
+Agent 'code-reviewer' activated.
+System prompt rebuilt with agent configuration.
+Context cleared for focused agent operation.
+
+> Review this pull request for potential issues
+[Agent analyzes code using specialized code review tools and workflows]
+```
+
+### 3. Agent Collaboration
+
+**Main Agent with Subagent Delegation**
+```
+> /agent use project-manager
+
+User: I need to review this complex pull request
+
+Project Manager Agent: This requires specialized analysis. Let me spawn a code review subagent.
+[Spawns code-reviewer subagent with specialized tools]
+
+Code Review Subagent: Analyzing code changes...
+- Security Analysis: ✅ No vulnerabilities detected
+- Performance Review: ⚠️ Potential performance issue in function X
+- Code Quality: ✅ Follows best practices
+
+Main Agent: Based on the specialized analysis, here are my recommendations...
+```
+
+## Session Management Examples
+
+### 1. Project Context Switching
+
+**Creating Project Sessions**
+```
+> /session new
+Session 'project-alpha-20251218' saved successfully.
+
+> Working on feature A implementation
+[Agent provides context-aware assistance for feature A]
+
+> /session new
+Session 'feature-b-development' saved successfully.
+
+> /session list
+Saved Sessions:
+1. project-alpha-20251218 (Created: 2025-12-18 10:30:00, Messages: 25, Tokens: 15,432)
+2. feature-b-development (Created: 2025-12-18 10:45:00, Messages: 12, Tokens: 8,215)
+
+Current Session: feature-b-development
+
+> /session restore project-alpha-20251218
+Session 'project-alpha-20251218' restored successfully.
+Loaded 25 messages with 15,432 tokens.
+```
+
+### 2. Task-Based Session Management
+
+**Separate Sessions for Different Tasks**
+```
+> /session new
+Session 'database-migration' saved successfully.
+
+> Design and implement the database migration script
+[Agent assists with database migration task]
+
+> /session new
+Session 'api-integration' saved successfully.
+
+> /session list
+Saved Sessions:
+1. database-migration (Created: 2025-12-18 14:00:00, Messages: 45, Tokens: 28,150)
+2. api-integration (Created: 2025-12-18 14:30:00, Messages: 22, Tokens: 12,840)
+
+> /session restore database-migration
+Session 'database-migration' restored successfully.
+[Back to database migration context]
+```
+
+### 3. Long-term Project Management
+
+**Session Management Across Days**
+```
+> /session new
+Session 'sprint-3-development' saved successfully.
+
+[Work continues over several days...]
+
+> /session list
+Saved Sessions:
+1. sprint-3-development (Created: 2025-12-15 09:00:00, Last Accessed: 2025-12-18 10:30:00, Messages: 156, Tokens: 89,215)
+2. bug-fixes (Created: 2025-12-16 14:20:00, Last Accessed: 2025-12-17 16:45:00, Messages: 34, Tokens: 18,720)
+
+> /session restore sprint-3-development
+Session 'sprint-3-development' restored successfully.
+[Resume sprint 3 development with full context]
+```
+
+## Background Command Execution
+
+### 1. Long-Running Tasks
+
+**Building and Deployment**
+```
+> Execute the production build in the background
+$ npm run build &
+[Background command started with PID: 12345]
+
+> Monitor build progress
+$ tail -f build.log
+[Real-time build output...]
+
+> List running background commands
+> /list_background_commands
+Running Background Commands:
+1. PID: 12345, Command: npm run build, Status: Running
+2. PID: 12346, Command: npm install, Status: Completed
+```
+
+### 2. Parallel Task Execution
+
+**Multiple Background Operations**
+```
+> Start multiple background tasks
+$ npm run build --background
+$ npm run test --background
+$ npm run lint --background
+
+> Monitor all background processes
+$ list_background_commands
+Background Processes:
+- Build: Running (75% complete)
+- Tests: Running (50% complete)
+- Lint: Running (90% complete)
+
+> Get detailed logs for specific process
+$ get_background_logs 12345
+[Detailed build logs...]
+```
+
+### 3. Resource Management
+
+**Managing System Resources**
+```
+> Check system resource usage
+$ top -b | head -20
+[Resource usage information...]
+
+> Kill resource-intensive process if needed
+$ kill_background_command 12345
+Process 12345 terminated successfully.
+
+> Verify process termination
+$ list_background_commands
+Running Background Commands:
+1. PID: 12346, Command: npm run test, Status: Running
+2. PID: 12347, Command: npm run lint, Status: Running
+
+> Exit Agent-Go (prevented while background tasks running)
+Cannot exit: Background tasks are still running.
+Use /list_background_commands to check status.
+```
 
 ## Notes Management Examples
 

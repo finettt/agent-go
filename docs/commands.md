@@ -34,12 +34,27 @@ Available commands:
   /contextlength <value> - Set the model context length
   /stream on|off     - Toggle streaming mode
   /subagents on|off  - Toggle sub-agent spawning
+  /session new       - Create new session and save current context
+  /session list      - View saved sessions
+  /session restore <name> - Restore previous session
+  /session rm <name> - Delete saved session
+  /agent studio      - Start Agent Studio for creating custom agents
+  /agent list        - List saved agent definitions
+  /agent view <name> - View a specific agent definition
+  /agent use <name>  - Activate a specific agent
+  /agent clear       - Clear agent-specific context
+  /agent rm <name>   - Delete a saved agent definition
   /todo              - Display the current todo list
   /notes list        - List all notes
   /notes view <name> - View a specific note
   /mcp add <name> <command> - Add an MCP server
   /mcp remove <name> - Remove an MCP server
   /mcp list          - List MCP servers
+  /usage             - Display detailed token usage statistics
+  /cost              - Display cost tracking information
+  /verbose on|off    - Toggle verbose logging mode
+  /security          - Spawn subagent for security review
+  /edit              - Open nano editor to compose prompt
   /quit              - Exit the application
  ````
 
@@ -255,6 +270,536 @@ RAG path set to: ./docs
 - Subdirectories are also searched recursively
 - File paths are validated for security
 - Gracefully handles permission errors and inaccessible files
+
+## Session Management Commands
+
+### `/session new`
+
+Creates a new session by saving the current conversation context. This allows you to return to your current state later or switch between different projects.
+
+**Usage:**
+
+```
+/session new
+```
+
+**Example:**
+
+```
+> /session new
+Session 'session-20251218-123456' saved successfully.
+```
+
+**Notes:**
+- Automatically saves the current conversation history
+- Generates a unique session name with timestamp
+- Session data includes compressed context and metadata
+- Sessions are stored in `~/.config/agent-go/sessions/`
+- Useful for project switching and context preservation
+
+### `/session list`
+
+Lists all saved sessions with metadata including creation time, last access time, and conversation statistics.
+
+**Usage:**
+
+```
+/session list
+```
+
+**Example:**
+
+```
+> /session list
+Saved Sessions:
+1. session-20251218-123456 (Created: 2025-12-18 10:30:00, Last Accessed: 2025-12-18 10:45:00, Messages: 25, Tokens: 15,432)
+2. project-alpha (Created: 2025-12-15 09:15:00, Last Accessed: 2025-12-16 16:20:00, Messages: 150, Tokens: 89,215)
+3. api-integration (Created: 2025-12-10 14:45:00, Last Accessed: 2025-12-12 11:30:00, Messages: 89, Tokens: 52,178)
+
+Current Session: session-20251218-123456
+```
+
+**Notes:**
+- Displays creation time, last access time, message count, and token usage
+- Shows the current active session
+- Sessions are ordered by last access time
+- Provides quick overview of available sessions
+
+### `/session restore <name>`
+
+Restores a previously saved session, loading its conversation history and context.
+
+**Usage:**
+
+```
+/session restore <name>
+```
+
+**Parameters:**
+- `name`: The name of the session to restore
+
+**Example:**
+
+```
+> /session restore project-alpha
+Session 'project-alpha' restored successfully.
+Loaded 150 messages with 89,215 tokens.
+```
+
+**Notes:**
+- Replaces current conversation with the restored session
+- Compressed context is automatically decompressed
+- All session metadata is preserved
+- Current session is saved before restoration
+- Useful for continuing previous work
+
+### `/session rm <name>`
+
+Deletes a saved session permanently.
+
+**Usage:**
+
+```
+/session rm <name>
+```
+
+**Parameters:**
+- `name`: The name of the session to delete
+
+**Example:**
+
+```
+> /session rm old-session
+Session 'old-session' deleted successfully.
+```
+
+**Notes:**
+- Permanently removes the session file
+- Cannot be undone
+- Useful for cleaning up old or unused sessions
+- Validates session existence before deletion
+
+## Agent Studio Commands
+
+Agent Studio is a complete agent management system that allows you to create, manage, and use task-specific agents.
+
+### `/agent studio [spec]`
+
+Starts the Agent Studio interface for creating custom agents. You can optionally provide an initial specification.
+
+**Usage:**
+
+```
+/agent studio
+/agent studio [spec]
+```
+
+**Parameters:**
+- `spec` (optional): Initial agent specification
+
+**Example:**
+
+```
+> /agent studio
+Welcome to Agent Studio!
+
+Describe the agent you want to create:
+1. What is the agent's primary goal or purpose?
+2. What are its constraints or limitations?
+3. What is its workflow or process?
+4. What tools or capabilities should it have?
+
+Enter your agent description, or type 'help' for guidance.
+```
+
+**Agent Studio Features:**
+- Interactive chat interface for agent creation
+- Validates agent specifications
+- Only permits agent creation (rejects all other tools)
+- Automatically saves agent definitions
+- Protected `default` agent that cannot be deleted
+
+**Example Agent Creation:**
+
+```
+> /agent studio
+
+User: I want to create a code review agent that analyzes pull requests
+
+Agent Studio: Great! Let's create a code review agent. Please specify:
+1. Primary goal: Analyze code changes for quality, security, and best practices
+2. Constraints: Should not approve changes that break existing functionality
+3. Workflow: Review diffs, run linting, check for security issues, provide feedback
+4. Tools: execute_command, spawn_agent, get_todo_list, create_todo, update_todo
+
+Please confirm this specification or make adjustments.
+```
+
+### `/agent list`
+
+Lists all saved agent definitions with their metadata.
+
+**Usage:**
+
+```
+/agent list
+```
+
+**Example:**
+
+```
+> /agent list
+Available Agents:
+
+1. default (Built-in)
+   - Purpose: General-purpose AI assistant
+   - Model: gpt-4-turbo
+   - Temperature: 0.1
+   - Max Tokens: 1000
+   - Status: Protected (cannot be deleted)
+
+2. code-reviewer
+   - Purpose: Analyze code changes for quality and security
+   - Model: gpt-4-turbo
+   - Temperature: 0.2
+   - Max Tokens: 2000
+   - Created: 2025-12-18 10:30:00
+   - Updated: 2025-12-18 10:30:00
+
+3. documentation-writer
+   - Purpose: Generate technical documentation
+   - Model: gpt-4-turbo
+   - Temperature: 0.7
+   - Max Tokens: 1500
+   - Created: 2025-12-17 14:20:00
+   - Updated: 2025-12-17 14:20:00
+```
+
+### `/agent view <name>`
+
+Displays the detailed definition of a specific agent, including its system prompt and configuration.
+
+**Usage:**
+
+```
+/agent view <name>
+```
+
+**Parameters:**
+- `name`: The name of the agent to view
+
+**Example:**
+
+```
+> /agent view code-reviewer
+=== Agent: code-reviewer ===
+Purpose: Analyze code changes for quality and security
+Model: gpt-4-turbo
+Temperature: 0.2
+Max Tokens: 2000
+Created: 2025-12-18 10:30:00
+Updated: 2025-12-18 10:30:00
+
+System Prompt:
+You are a code review agent specialized in analyzing pull requests. Your purpose is to:
+1. Analyze code changes for quality, security, and best practices
+2. Review diffs and identify potential issues
+3. Run linting and static analysis tools
+4. Check for security vulnerabilities
+5. Provide constructive feedback to developers
+
+When reviewing code:
+- Be thorough but constructive
+- Focus on logic, performance, and security
+- Suggest improvements and alternatives
+- Never approve changes that could break existing functionality
+- Use the available tools to assist in your analysis
+
+Available Tools:
+- execute_command: Run shell commands for testing and analysis
+- spawn_agent: Delegate complex tasks to specialized sub-agents
+- get_todo_list: Check current todo items
+- create_todo: Add new todo items
+- update_todo: Update existing todo items
+- use_mcp_tool: Access MCP server tools
+```
+
+### `/agent use <name>`
+
+Activates a specific agent for the current chat session. This rebuilds the system prompt with the agent's configuration and clears the current context.
+
+**Usage:**
+
+```
+/agent use <name>
+```
+
+**Parameters:**
+- `name`: The name of the agent to activate
+
+**Example:**
+
+```
+> /agent use code-reviewer
+Agent 'code-reviewer' activated.
+System prompt rebuilt with agent configuration.
+Context cleared for focused agent operation.
+```
+
+**Notes:**
+- Clears current conversation context
+- Rebuilds system prompt with agent's configuration
+- Applies agent-specific model settings (if any)
+- Context is isolated from previous agent usage
+- Useful for switching between different tasks or projects
+
+### `/agent clear`
+
+Deactivates the current agent and restores the previous model settings, clearing the context.
+
+**Usage:**
+
+```
+/agent clear
+```
+
+**Example:**
+
+```
+> /agent clear
+Agent deactivated.
+Previous model settings restored.
+Context cleared.
+```
+
+**Notes:**
+- Returns to the default agent behavior
+- Restores previous model configuration
+- Clears conversation context
+- Useful for resetting the agent state
+
+### `/agent rm <name>`
+
+Deletes a saved agent definition.
+
+**Usage:**
+
+```
+/agent rm <name>
+```
+
+**Parameters:**
+- `name`: The name of the agent to delete
+
+**Example:**
+
+```
+> /agent rm test-agent
+Agent 'test-agent' deleted successfully.
+```
+
+**Notes:**
+- Permanently removes the agent definition
+- Cannot delete the built-in `default` agent
+- Validates agent existence before deletion
+- Useful for cleaning up unused agents
+
+## Usage Tracking Commands
+
+### `/usage`
+
+Displays detailed token usage statistics for the current session, including cumulative counts and breakdowns.
+
+**Usage:**
+
+```
+/usage
+```
+
+**Example:**
+
+```
+> /usage
+=== Token Usage Statistics ===
+
+Current Session:
+- Total Tokens: 15,432
+  * Prompt Tokens: 8,241
+  * Completion Tokens: 7,191
+  * Tokens (Reasoning): 0
+
+Cumulative Totals:
+- Total: 15,432 tokens
+- Estimated Cost: $0.03 (based on current pricing)
+
+Session Information:
+- Start Time: 2025-12-18 10:30:00
+- Current Session: session-20251218-123456
+- Active Agent: default
+```
+
+**Notes:**
+- Shows both prompt and completion token counts
+- Displays tokens used for reasoning (if applicable)
+- Provides cost estimation based on current model pricing
+- Cumulative counts include all API calls in the session
+- Resets after context compression
+
+### `/cost`
+
+Displays detailed cost tracking information, including current session costs and historical data.
+
+**Usage:**
+
+```
+/cost
+```
+
+**Example:**
+
+```
+> /cost
+=== Cost Tracking Information ===
+
+Current Session:
+- API Cost: $0.03
+- Tokens Used: 15,432
+- Model: gpt-4-turbo
+
+Historical Costs:
+- Today: $0.45
+- This Week: $2.15
+- This Month: $15.80
+
+Cost Breakdown:
+- Chat Completion: $0.03 (100%)
+
+Session: session-20251218-123456
+```
+
+**Notes:**
+- Tracks costs across sessions and time periods
+- Provides historical cost data for budgeting
+- Breaks down costs by operation type
+- Useful for monitoring API usage expenses
+
+### `/verbose on|off`
+
+Toggles verbose logging mode for enhanced debugging and monitoring.
+
+**Usage:**
+
+```
+/verbose on
+/verbose off
+```
+
+**Example:**
+
+```
+> /verbose on
+Verbose mode enabled.
+Detailed logging active for agent operations.
+
+> /verbose off
+Verbose mode disabled.
+Reduced logging output.
+```
+
+**Notes:**
+- Enables detailed logging for debugging
+- Shows internal agent operations and decision-making
+- Useful for troubleshooting complex issues
+- Can be configured via environment variables
+- Affects subagent and tool execution logging
+
+### `/security`
+
+Spawns a specialized subagent for security code review and analysis.
+
+**Usage:**
+
+```
+/security
+```
+
+**Example:**
+
+```
+> /security
+Security subagent spawned.
+Analyzing code for potential security vulnerabilities...
+
+Security Review Results:
+- No critical vulnerabilities detected
+- 2 potential security issues identified
+- Recommendations provided for secure coding practices
+
+Security analysis complete.
+```
+
+**Notes:**
+- Creates a specialized subagent for security analysis
+- Reviews code for common vulnerabilities
+- Provides security recommendations
+- Useful for pre-deployment code review
+- Integrates with existing security tools via MCP
+
+### `/edit`
+
+Opens the nano text editor to compose multi-line prompts or commands.
+
+**Usage:**
+
+```
+/edit
+```
+
+**Example:**
+
+```
+> /edit
+Opening nano editor...
+
+[User edits prompt in nano editor...]
+
+Prompt saved and ready for execution.
+```
+
+**Notes:**
+- Opens nano text editor for complex input
+- Useful for multi-line prompts or commands
+- Automatically saves and returns to Agent-Go
+- Requires nano to be installed on the system
+- Alternative to direct command line input for complex tasks
+
+### Background Command Tools
+
+Agent-Go supports background command execution through specialized tools:
+
+**`execute_command` with `background` parameter:**
+```
+{
+  "command": "long-running-task.sh",
+  "background": true
+}
+```
+
+**`get_background_logs`:**
+Retrieves output from running background processes.
+
+**`list_background_commands`:**
+Lists all currently running background commands.
+
+**`kill_background_command`:**
+Terminates a specific background command.
+
+**Notes:**
+- Background commands run asynchronously
+- Process IDs are tracked for management
+- Output is streamed in real-time
+- Application prevents exit while background tasks run
+- Useful for long-running operations
 
 ## MCP (Model Context Protocol) Commands
 

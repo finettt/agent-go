@@ -95,7 +95,6 @@ Handles secure shell command execution:
 - **Platform Independence**: Works across different operating systems (Windows, macOS, Linux)
 - **Command Display**: Shows executed commands with color coding for user feedback
 
-### 5. RAG System (`rag.go`)
 ### 5. Tool Management (`tools.go` and `processor.go`)
 
 Defines and processes available tools for the AI agent:
@@ -167,7 +166,48 @@ Provides persistent task tracking across sessions:
 - **Data Validation**: Validates todo statuses and prevents invalid updates
 - **JSON Storage**: Human-readable JSON format for easy inspection
 
-### 10. Notes Management (`notes.go`)
+### 10. Agent Studio (`agents.go`)
+
+Provides complete agent management system for creating, managing, and using task-specific agents:
+
+- **Agent Studio Interface**: Interactive chat interface for agent creation via `/agent studio`
+- **Agent Management**: Full CRUD operations for agent definitions (list, view, use, clear, delete)
+- **Persistent Storage**: Agent definitions stored in `~/.config/agent-go/agents/*.json`
+- **Built-in Agent**: Protected `default` agent that cannot be deleted or overwritten
+- **Subagent Support**: Task-specific agents can be used by subagents via `{"agent": "name"}` parameter
+- **Context Isolation**: Each agent maintains separate context and message history
+- **Model Override Support**: Agents can specify custom model settings (temperature, max_tokens)
+- **Validation**: Built-in validation to prevent overwriting protected agents
+- **Studio Restrictions**: Agent Studio only permits agent creation and rejects all other tools
+
+### 11. Session Management (`session.go`)
+
+Provides session save/restore functionality for seamless context switching:
+
+- **Session Creation**: `/session new` - saves current context and creates new session
+- **Session Listing**: `/session list` - displays all saved sessions with metadata
+- **Session Restoration**: `/session restore <name>` - restores previous session context
+- **Session Deletion**: `/session rm <name>` - removes saved session from storage
+- **Automatic Saving**: Sessions auto-saved on exit and context clear events
+- **Persistent Storage**: Sessions stored in `~/.config/agent-go/sessions/*.json`
+- **Context Preservation**: Full conversation history and state preservation
+- **Timestamp Tracking**: Records creation and last access times for sessions
+- **Startup Restoration**: Enhanced startup with session restoration capabilities
+
+### 12. Background Command Execution (`executor.go`)
+
+Extended command execution with background process support:
+
+- **Background Execution**: `execute_command` with `background` parameter for async operations
+- **Process Management**: PID tracking and management for background processes
+- **Output Streaming**: Real-time output capture and display for background commands
+- **Command Monitoring**: `get_background_logs`, `list_background_commands` tools for tracking
+- **Process Termination**: `kill_background_command` tool for stopping running processes
+- **Application Safety**: Prevents exit when background tasks are running
+- **Resource Management**: Automatic cleanup of completed background processes
+- **Status Tracking**: Real-time status monitoring for background tasks
+
+### 13. Notes Management (`notes.go`)
 
 Provides persistent knowledge storage across sessions:
 
@@ -178,8 +218,9 @@ Provides persistent knowledge storage across sessions:
 - **Metadata Tracking**: Tracks creation and update timestamps
 - **Cross-Session Persistence**: Notes available across different agent sessions
 - **JSON Storage**: Human-readable JSON format for easy inspection
+- **Note Mentions**: Support for `#note-name` syntax to inject note content
 
-### 11. Auto-completion (`completion.go`)
+### 14. Auto-completion (`completion.go`)
 Provides intelligent command-line autocompletion:
 
 - **Model Completion**: Fetches available models from the API for autocompletion
@@ -190,7 +231,7 @@ Provides intelligent command-line autocompletion:
 - **Prefix-based Completion**: Uses readline library for efficient completion matching
 - **Fallback Support**: Provides default completions when API is unavailable
 
-### 11. System Information (`system.go`)
+### 15. System Information (`system.go`)
 
 Gathers system context for the AI:
 
@@ -200,7 +241,7 @@ Gathers system context for the AI:
 - **Timestamp**: Includes current time in system prompt
 - **Cross-platform**: Works on Windows, macOS, and Linux
 
-### 12. Data Types (`types.go`)
+### 16. Data Types (`types.go`)
 
 Defines the core data structures used throughout the application:
 
@@ -260,6 +301,7 @@ Support for `AGENTS.md` file for custom agent behavior:
 - **Command History**: Persistent command history across sessions
 - **Command History**: Persistent command history stored in `~/.config/agent-go/history.txt`
 - **Auto-completion**: Intelligent suggestions for commands and models, dynamically fetched from API
+- **Enhanced Autocomplete**: Extended completion for `/agent` commands, agent names, and session names
 - **Error Messages**: Clear, user-friendly error messages with actionable suggestions
 - **Visual Feedback**: Token usage displayed in real-time with color coding (green)
 - **Unlimited Context**: No message count limits with intelligent compression
@@ -267,6 +309,11 @@ Support for `AGENTS.md` file for custom agent behavior:
 - **Shell Mode**: Direct command execution interface for interactive sessions with `exit` to return
 - **Multi-line Support**: Proper handling of complex command input
 - **Color Coding**: Commands (red), AI responses (blue), token info (green) using ANSI codes
+- **New Color Scheme**: Enhanced theming with consistent colors (#FF93FB, #FFF, #AAA)
+- **/edit Command**: New slash command to compose prompts using nano text editor
+- **Usage Tracking**: `/usage` and `/cost` commands for detailed token and cost monitoring
+- **Verbose Mode**: `/verbose` command for enhanced logging control
+- **Security Review**: `/security` command to spawn subagent for code review
 
 ## Data Flow
 
@@ -338,6 +385,10 @@ Agent-Go now supports unlimited conversation history with intelligent compressio
 - **Token Management**: Real-time token tracking to avoid context overflow
 - **Auto-completion Caching**: Model list caching to reduce API calls
 - **Graceful Degradation**: Continues functioning even when some features fail
+- **Background Process Management**: Efficient resource management for background commands
+- **Session Storage Optimization**: Optimized session data storage and retrieval
+- **Agent Definition Caching**: Caching of agent definitions for faster access
+- **Parallel Processing**: Support for parallel sub-agent execution with goroutines and WaitGroup
 
 ## Extensibility
 
