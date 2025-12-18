@@ -123,6 +123,10 @@ func showHelp() {
 	printCmd("/help, /?", "Show this help message")
 	printCmd("/config", "Display current configuration")
 	printCmd("/shell", "Enter shell mode for direct command execution")
+	printCmd("/bg", "Background process management")
+	printSubCmd("list", "List background processes")
+	printSubCmd("view <pid>", "View logs (stdout/stderr) for a background process")
+	printSubCmd("kill <pid>", "Kill a background process")
 	printCmd("/clear", "Clear context without compressing")
 	printCmd("/compress", "Compress context and start new chat thread")
 	printCmd("/edit", "Edit prompt in nano editor")
@@ -256,8 +260,8 @@ func runCLI() {
 			if userInput == "" {
 				continue
 			}
-			// Shell mode commands are foreground by default
-			output, err := confirmAndExecute(config, userInput, false)
+			// Shell mode commands can be run in foreground or background (Ask mode prompts the user).
+			output, err := confirmAndExecute(config, userInput)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 			}
@@ -666,6 +670,53 @@ func handleSlashCommand(command string) {
 			}
 		} else {
 			fmt.Println("Usage: /contextlength <value>")
+		}
+	case "/bg":
+		if len(parts) < 2 {
+			fmt.Println("Usage: /bg [list|view <pid>|kill <pid>]")
+			return
+		}
+		switch parts[1] {
+		case "list":
+			fmt.Println(listBackgroundCommands())
+		case "view", "logs":
+			if len(parts) < 3 {
+				fmt.Println("Usage: /bg view <pid>")
+				return
+			}
+			pid, err := strconv.Atoi(parts[2])
+			if err != nil {
+				fmt.Println("Invalid pid. Usage: /bg view <pid>")
+				return
+			}
+			logs, err := getBackgroundLogs(pid)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error getting logs: %v\n", err)
+				return
+			}
+			if strings.TrimSpace(logs) == "" {
+				fmt.Println("(no logs)")
+				return
+			}
+			fmt.Println(logs)
+		case "kill", "stop":
+			if len(parts) < 3 {
+				fmt.Println("Usage: /bg kill <pid>")
+				return
+			}
+			pid, err := strconv.Atoi(parts[2])
+			if err != nil {
+				fmt.Println("Invalid pid. Usage: /bg kill <pid>")
+				return
+			}
+			result, err := killBackgroundCommand(pid)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error killing process: %v\n", err)
+				return
+			}
+			fmt.Println(result)
+		default:
+			fmt.Println("Usage: /bg [list|view <pid>|kill <pid>]")
 		}
 	case "/shell":
 		shellMode = true

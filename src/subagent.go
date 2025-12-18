@@ -78,9 +78,9 @@ func runSubAgentWithAgent(task string, agentName string, config *Config) (string
 				if unmarshalErr := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); unmarshalErr != nil {
 					output = fmt.Sprintf("Failed to parse arguments: %s", unmarshalErr)
 				} else {
-					output, err = confirmAndExecute(config, args.Command, false) // Sub-agents don't support background commands yet
+					output, err = confirmAndExecute(config, args.Command)
 					if err == nil {
-						logMessage = fmt.Sprintf("Executed bash command %s(%s)%s", ColorMeta , args.Command, ColorReset)
+						logMessage = fmt.Sprintf("Executed bash command %s(%s)%s", ColorMeta, args.Command, ColorReset)
 					}
 				}
 			case "create_todo":

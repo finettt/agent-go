@@ -27,7 +27,10 @@ var (
 )
 
 // confirmAndExecute checks the execution mode and prompts for confirmation if necessary.
-func confirmAndExecute(config *Config, command string, background bool) (string, error) {
+//
+// Background execution is not agent-controlled. In Ask mode, the user can choose to run the
+// command in the foreground or start it as a background process.
+func confirmAndExecute(config *Config, command string) (string, error) {
 	// Check operation mode first
 	if config.OperationMode == Plan {
 		return "", fmt.Errorf("command execution is blocked in Plan mode. Switch to Build mode to execute commands")
@@ -40,18 +43,22 @@ func confirmAndExecute(config *Config, command string, background bool) (string,
 
 	if config.ExecutionMode == Ask {
 		// The command is already printed as part of the tool call, so we just ask for confirmation.
-		fmt.Printf("%s$ %s%s\n%s?%s Do you want to execute the above command? [y/N]: ", ColorCyan, command, ColorReset, ColorHighlight, ColorReset)
+		fmt.Printf("%s$ %s%s\n%s?%s Execute? [y=foreground/b=background/N]: ", ColorCyan, command, ColorReset, ColorHighlight, ColorReset)
 
 		var response string
 		fmt.Scanln(&response) // This is safer than bufio.NewReader with the readline library.
 
-		if strings.ToLower(strings.TrimSpace(response)) != "y" {
+		switch strings.ToLower(strings.TrimSpace(response)) {
+		case "y", "yes":
+			return executeCommand(command)
+		case "b", "bg", "background":
+			return executeBackgroundCommand(command)
+		default:
 			return "Command not executed by user.", nil
 		}
 	}
-	if background {
-		return executeBackgroundCommand(command)
-	}
+
+	// In YOLO mode, commands always execute in the foreground.
 	return executeCommand(command)
 }
 
