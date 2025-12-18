@@ -96,14 +96,84 @@ func main() {
 }
 func printLogo() {
 	fmt.Print(ColorHighlight + `
- █████╗  ██████╗ ███████╗███╗   ██╗████████╗    ██████╗  ██████╗ 
+ █████╗  ██████╗ ███████╗███╗   ██╗████████╗    ██████╗  ██████╗
 ██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝   ██╔════╝ ██╔═══██╗
 ███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║█████╗██║  ███╗██║   ██║
 ██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║╚════╝██║   ██║██║   ██║
 ██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║      ╚██████╔╝╚██████╔╝
-╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝       ╚═════╝  ╚═════╝ 
-                                                                 
+╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝       ╚═════╝  ╚═════╝
+
 ` + ColorReset)
+}
+
+// showHelp displays all available slash commands grouped by family
+func showHelp() {
+	// Helper for printing main commands
+	printCmd := func(cmd, desc string) {
+		fmt.Printf("%s%s%s - %s%s%s\n", ColorHighlight, cmd, ColorReset, ColorMeta, desc, ColorReset)
+	}
+
+	// Helper for printing subcommands (indented)
+	printSubCmd := func(subCmd, desc string) {
+		fmt.Printf("    %s%s%s - %s%s%s\n", ColorMain, subCmd, ColorReset, ColorMeta, desc, ColorReset)
+	}
+
+	fmt.Println("Available commands:")
+
+	printCmd("/help, /?", "Show this help message")
+	printCmd("/config", "Display current configuration")
+	printCmd("/shell", "Enter shell mode for direct command execution")
+	printCmd("/clear", "Clear context without compressing")
+	printCmd("/compress", "Compress context and start new chat thread")
+	printCmd("/edit", "Edit prompt in nano editor")
+	printCmd("/quit", "Exit the application")
+
+	printCmd("/model <name>", "Set the AI model (e.g., gpt-4)")
+	printCmd("/provider <url>", "Set the API provider URL")
+
+	printCmd("/contextlength <val>", "Set the model context length (e.g., 131072)")
+	printCmd("/stream on|off", "Toggle streaming mode")
+
+	printCmd("/rag", "Retrieval-Augmented Generation controls")
+	printSubCmd("on|off", "Toggle RAG feature")
+	printSubCmd("path <path>", "Set the RAG documents path")
+
+	printCmd("/usage <1|2|3>", "Set usage verbosity (1: Silent, 2: Basic, 3: Detailed)")
+	printCmd("/cost", "Show current usage statistics")
+
+	printCmd("/todo", "Display the current todo list")
+
+	printCmd("/notes", "Notes management")
+	printSubCmd("list", "List all notes")
+	printSubCmd("view <name>", "View a specific note")
+
+	printCmd("/session", "Manage chat sessions")
+	printSubCmd("list", "List saved sessions")
+	printSubCmd("restore <name>", "Restore a session")
+	printSubCmd("new", "Create a new session with fresh context")
+	printSubCmd("rm <name>", "Delete a saved session")
+
+	printCmd("/mcp", "Model Context Protocol server management")
+	printSubCmd("add <name> <cmd>", "Add an MCP server")
+	printSubCmd("remove <name>", "Remove an MCP server")
+	printSubCmd("list", "List MCP servers")
+
+	printCmd("/agent", "Autonomous agent management")
+	printSubCmd("studio [spec]", "Start Agent Studio to create a task-specific agent")
+	printSubCmd("list", "List saved task-specific agents")
+	printSubCmd("view <name>", "View a saved agent definition")
+	printSubCmd("use <name>", "Activate a saved agent for the current chat")
+	printSubCmd("clear", "Clear active agent and restore previous model settings")
+	printSubCmd("rm <name>", "Delete a saved agent definition")
+
+	printCmd("/subagents", "Configure autonomous sub-agents")
+	printSubCmd("[on|off]", "Enable or disable sub-agents")
+	printSubCmd("verbose <1|2>", "Set verbosity level")
+	printCmd("/security", "Spawn a subagent to review current changes")
+
+	printCmd("/mode", "Toggle between Plan and Build operation modes")
+	printCmd("/plan", "Alias for toggling operation mode")
+	printCmd("/ask on|off", "Enable/Disable confirmation for commands (Ask vs YOLO)")
 }
 
 func runCLI() {
@@ -138,7 +208,7 @@ func runCLI() {
 
 		userInput, err := rl.Readline()
 		fmt.Print(ColorReset) // Reset after input is complete
-		
+
 		if err == readline.ErrInterrupt {
 			continue
 		} else if err == io.EOF {
@@ -333,43 +403,7 @@ func handleSlashCommand(command string) {
 
 	switch baseCommand {
 	case "/help", "/?":
-		fmt.Println("Available commands:")
-		fmt.Println("  /help              - Show this help message")
-		fmt.Println("  /model <name>      - Set the AI model (e.g., gpt-4)")
-		fmt.Println("  /provider <url>    - Set the API provider URL")
-		fmt.Println("  /config            - Display current configuration")
-		fmt.Println("  /rag on|off        - Toggle RAG feature")
-		fmt.Println("  /rag path <path>   - Set the RAG documents path")
-		fmt.Println("  /shell             - Enter shell mode for direct command execution")
-		fmt.Println("  /clear             - Clear context without compressing")
-		fmt.Println("  /compress          - Compress context and start new chat thread")
-		fmt.Println("  /contextlength <value> - Set the model context length (e.g., 131072)")
-		fmt.Println("  /stream on|off     - Toggle streaming mode")
-		fmt.Println("  /subagents [on|off|verbose <1|2>] - Configure sub-agents")
-		fmt.Println("  /security          - Spawn a subagent to review current changes")
-		fmt.Println("  /usage <1|2|3>     - Set usage verbosity (1: Silent, 2: Basic, 3: Detailed)")
-		fmt.Println("  /cost              - Show current usage statistics")
-		fmt.Println("  /todo              - Display the current todo list")
-		fmt.Println("  /notes list        - List all notes")
-		fmt.Println("  /notes view <name> - View a specific note")
-		fmt.Println("  /session list      - List saved sessions")
-		fmt.Println("  /session restore <name> - Restore a session")
-		fmt.Println("  /session new       - Create a new session with fresh context")
-		fmt.Println("  /session rm <name> - Delete a saved session")
-		fmt.Println("  /mcp add <name> <command> - Add an MCP server")
-		fmt.Println("  /mcp remove <name> - Remove an MCP server")
-		fmt.Println("  /mcp list          - List MCP servers")
-		fmt.Println("  /agent studio [spec] - Start Agent Studio to create a task-specific agent")
-		fmt.Println("  /agent list         - List saved task-specific agents")
-		fmt.Println("  /agent view <name>  - View a saved agent definition")
-		fmt.Println("  /agent use <name>   - Activate a saved agent for the current chat")
-		fmt.Println("  /agent clear        - Clear active agent and restore previous model settings")
-		fmt.Println("  /agent rm <name>    - Delete a saved agent definition")
-		fmt.Println("  /mode              - Toggle between Plan and Build operation modes")
-		fmt.Println("  /plan              - Toggle between Plan and Build operation modes")
-		fmt.Println("  /ask on|off        - Enable/Disable confirmation for commands (Ask vs YOLO)")
-		fmt.Println("  /edit              - Edit prompt in nano editor")
-		fmt.Println("  /quit              - Exit the application")
+		showHelp()
 	case "/edit":
 		editCommand()
 	case "/security":

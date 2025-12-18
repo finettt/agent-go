@@ -40,7 +40,7 @@ func confirmAndExecute(config *Config, command string, background bool) (string,
 
 	if config.ExecutionMode == Ask {
 		// The command is already printed as part of the tool call, so we just ask for confirmation.
-		fmt.Printf("%s%s%s\nDo you want to execute the above command? [y/N]: ", ColorCyan, command, ColorReset)
+		fmt.Printf("%s$ %s%s\n%s?%s Do you want to execute the above command? [y/N]: ", ColorCyan, command, ColorReset, ColorHighlight, ColorReset)
 
 		var response string
 		fmt.Scanln(&response) // This is safer than bufio.NewReader with the readline library.

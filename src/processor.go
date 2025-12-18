@@ -5,83 +5,60 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"sync"
 )
 
 // processToolCalls handles the logic for executing tool calls from the API response
 func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
-	var wg sync.WaitGroup
-	// A channel to collect results from parallel sub-agent execution if needed.
-	// But for now, we append messages to the agent sequentially after wait, or we need a thread-safe way.
-	// Since the order of tool outputs in the messages list matters for the LLM to match calls with outputs,
-	// we should maintain order or just append them. However, `agent.Messages` modification must be thread-safe.
-	// Let's use a mutex for updating agent.Messages.
-	var agentMutex sync.Mutex
-
-	// Channel to collect tool outputs to ensure deterministic order if possible,
-	// or just use a slice with index. For simplicity in this "parallel sub-agent" task,
-	// we will just lock when appending results.
 
 	for _, toolCall := range toolCalls {
-		// If it's a spawn_agent call, we run it in a goroutine
+		// If it's a spawn_agent call, we run it sequentially
 		if toolCall.Function.Name == "spawn_agent" {
-			wg.Add(1)
-			go func(tc ToolCall) {
-				defer wg.Done()
-				var output string
-				var err error
-				var logMessage string
+			var output string
+			var err error
+			var logMessage string
 
-				var args SubAgentTask
-				if unmarshalErr := json.Unmarshal([]byte(tc.Function.Arguments), &args); unmarshalErr != nil {
-					output = fmt.Sprintf("Failed to parse arguments: %s", unmarshalErr)
-				} else {
-					agentName := strings.TrimSpace(args.Agent)
+			var args SubAgentTask
+			if unmarshalErr := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); unmarshalErr != nil {
+				output = fmt.Sprintf("Failed to parse arguments: %s", unmarshalErr)
+			} else {
+				agentName := strings.TrimSpace(args.Agent)
 
-					// Avoid dumping long task prompts into the user's console by default.
-					// Only show the full task when sub-agent verbose mode is "Full" (2).
-					if config.SubAgentVerboseMode == 2 {
-						if agentName != "" {
-							fmt.Printf("%sSpawning sub-agent (%s) for task: %s%s%s\n", ColorMeta, agentName, ColorHighlight, args.Task, ColorReset)
-						} else {
-							fmt.Printf("%sSpawning sub-agent for task: %s%s%s\n", ColorMeta, ColorHighlight, args.Task, ColorReset)
-						}
+				// Avoid dumping long task prompts into the user's console by default.
+				// Only show the full task when sub-agent verbose mode is "Full" (2).
+				if config.SubAgentVerboseMode == 2 {
+					if agentName != "" {
+						fmt.Printf("%sSpawning sub-agent (%s) for task: %s%s%s\n", ColorMeta, agentName, ColorHighlight, args.Task, ColorReset)
 					} else {
-						if agentName != "" {
-							fmt.Printf("%sSpawning sub-agent (%s)%s\n", ColorMeta, agentName, ColorReset)
-						} else {
-							fmt.Printf("%sSpawning sub-agent%s\n", ColorMeta, ColorReset)
-						}
+						fmt.Printf("%sSpawning sub-agent for task: %s%s%s\n", ColorMeta, ColorHighlight, args.Task, ColorReset)
 					}
-
-					output, err = runSubAgentWithAgent(args.Task, agentName, config)
-					logMessage = "Sub-agent finished task"
+				} else {
+					if agentName != "" {
+						fmt.Printf("%sSpawning sub-agent (%s)%s\n", ColorMeta, agentName, ColorReset)
+					} else {
+						fmt.Printf("%sSpawning sub-agent%s\n", ColorMeta, ColorReset)
+					}
 				}
 
-				if err != nil {
-					output = fmt.Sprintf("Tool execution error: %s", err)
-					fmt.Printf("%s%s%s\n", ColorRed, output, ColorReset)
-				} else if logMessage != "" {
-					fmt.Printf("%s%s%s\n", ColorMeta, logMessage, ColorReset)
-				}
+				output, err = runSubAgentWithAgent(args.Task, agentName, config)
+				logMessage = "Sub-agent finished task"
+			}
 
-				toolMsg := Message{
-					Role:       "tool",
-					ToolCallID: tc.ID,
-					Content:    &output,
-				}
+			if err != nil {
+				output = fmt.Sprintf("Tool execution error: %s", err)
+				fmt.Printf("%s%s%s\n", ColorRed, output, ColorReset)
+			} else if logMessage != "" {
+				fmt.Printf("%s%s%s\n", ColorMeta, logMessage, ColorReset)
+			}
 
-				agentMutex.Lock()
-				agent.Messages = append(agent.Messages, toolMsg)
-				agentMutex.Unlock()
-			}(toolCall)
+			toolMsg := Message{
+				Role:       "tool",
+				ToolCallID: toolCall.ID,
+				Content:    &output,
+			}
+
+			agent.Messages = append(agent.Messages, toolMsg)
 			continue
 		}
-
-		// For other tools, run sequentially (or we could parallelize everything, but let's stick to sub-agents first)
-		// Actually, if we run others sequentially but sub-agents in parallel, we might mix up the order of completion.
-		// But since we are inside a loop, "continue" above means we skip the sequential block for sub-agents.
-		// The sequential block below handles non-sub-agent tools.
 
 		var output string
 		var err error
@@ -99,6 +76,9 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 				}
 
 				output, err = confirmAndExecute(config, args.Command, args.Background)
+				if output == "Command not executed by user." {
+					logMessage = fmt.Sprintf("%sCommand not executed by user.%s\n", ColorMeta, ColorReset)
+				}
 			}
 		case "kill_background_command":
 			var args KillBackgroundCommandArgs
@@ -218,11 +198,6 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 			ToolCallID: toolCall.ID,
 			Content:    &output,
 		}
-		agentMutex.Lock()
 		agent.Messages = append(agent.Messages, toolMsg)
-		agentMutex.Unlock()
 	}
-
-	// Wait for all spawned sub-agents to complete
-	wg.Wait()
 }
