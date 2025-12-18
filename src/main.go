@@ -128,13 +128,13 @@ func runCLI() {
 	}()
 
 	cwd, _ := os.Getwd()
-	fmt.Printf("Agent-Go is ready.\nType your requests, or /help for a list of commands.\n%s%s • %s%s\n", ColorMeta, config.Model, cwd, ColorReset)
+	fmt.Printf("Welcome to Agent-Go!\n%s%s • %s%s\n", ColorMeta, config.Model, cwd, ColorReset)
 
 	for {
 		if agentStudioMode {
-			rl.SetPrompt(StyleBold + ">>> ")
+			rl.SetPrompt(StyleBold + ColorHighlight + ">>> ")
 		} else if shellMode {
-			rl.SetPrompt(StyleBold + "! ")
+			rl.SetPrompt(StyleBold + ColorCyan + "! ")
 		} else {
 			rl.SetPrompt(StyleBold + "> ")
 		}
