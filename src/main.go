@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"strconv"
@@ -367,7 +368,10 @@ func handleSlashCommand(command string) {
 		fmt.Println("  /mode              - Toggle between Plan and Build operation modes")
 		fmt.Println("  /plan              - Toggle between Plan and Build operation modes")
 		fmt.Println("  /ask on|off        - Enable/Disable confirmation for commands (Ask vs YOLO)")
+		fmt.Println("  /edit              - Edit prompt in nano editor")
 		fmt.Println("  /quit              - Exit the application")
+	case "/edit":
+		editCommand()
 	case "/security":
 		if !config.SubagentsEnabled {
 			fmt.Println("Subagents are disabled. Enable them with /subagents on to use this command.")
@@ -1099,5 +1103,155 @@ func runTask(task string) {
 			break // No more tools to call, end agent turn
 		}
 		// Continue loop to send tool output back to API
+	}
+}
+
+// editCommand creates a temporary file in /tmp, opens it in nano,
+// and then adds its content to the prompt when the file is saved.
+func editCommand() {
+	// Create a temporary file in /tmp
+	tmpFile, err := os.CreateTemp("/tmp", "agent-go-edit-*.txt")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error creating temporary file: %s\n", err)
+		return
+	}
+	tmpFileName := tmpFile.Name()
+	tmpFile.Close()
+
+	// Open the file in nano editor
+	fmt.Printf("Opening %s in nano editor...\n", tmpFileName)
+	fmt.Println("Make your changes and save the file (Ctrl+O, Enter, then Ctrl+X to exit).")
+	cmd := exec.Command("nano", tmpFileName)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error running nano: %s\n", err)
+		// Clean up the temp file on error
+		os.Remove(tmpFileName)
+		return
+	}
+
+	// Read the content of the edited file
+	content, err := os.ReadFile(tmpFileName)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error reading temporary file: %s\n", err)
+		os.Remove(tmpFileName)
+		return
+	}
+
+	// Clean up the temporary file
+	os.Remove(tmpFileName)
+
+	// Only proceed if the file has content
+	if len(content) == 0 {
+		fmt.Println("No content in the file. No prompt added.")
+		return
+	}
+
+	// Add the content to the agent's messages
+	promptContent := string(content)
+	agent.Messages = append(agent.Messages, Message{
+		Role:    "user",
+		Content: &promptContent,
+	})
+
+	// Print a success message
+	fmt.Printf("Added content to prompt from %s\n", tmpFileName)
+
+	// Now trigger the model response (agentic loop)
+	// We'll call the same loop that processes user input
+	for {
+		// Auto-compress context if enabled and token count exceeds 75% of context length
+		if config.AutoCompress && totalTokens > (config.ModelContextLength*3/4) {
+			compressAndStartNewChat()
+			fmt.Println("Context compressed due to token limit. New user input is required.")
+			return // Exit after compression
+		}
+
+		var resp *APIResponse
+		var err error
+
+		// Use streaming or regular API based on config
+		if config.Stream {
+			resp, err = sendAPIRequestStreaming(agent, config, config.SubagentsEnabled)
+		} else {
+			resp, err = sendAPIRequest(agent, config, config.SubagentsEnabled)
+		}
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+			return // Break from the agentic loop
+		}
+
+		if len(resp.Choices) == 0 {
+			fmt.Fprintf(os.Stderr, "Error: received an empty response from the API\n")
+			return // Break from the agentic loop
+		}
+
+		assistantMsg := resp.Choices[0].Message
+		agent.Messages = append(agent.Messages, assistantMsg)
+
+		// Only print content if not streaming (streaming already printed it)
+		if !config.Stream {
+			if assistantMsg.ReasoningContent != nil && *assistantMsg.ReasoningContent != "" {
+				fmt.Printf("%sThink...\n%s", ColorMeta, ColorReset)
+			}
+			if assistantMsg.Content != nil && *assistantMsg.Content != "" {
+				fmt.Printf("%s%s%s\n", ColorMain, *assistantMsg.Content, ColorReset)
+			}
+		}
+
+		// Update and display total tokens
+		if resp.Usage.TotalTokens > 0 {
+			totalTokens += resp.Usage.TotalTokens
+			totalPromptTokens += resp.Usage.PromptTokens
+			totalCompletionTokens += resp.Usage.CompletionTokens
+		}
+
+		// Update tool call count
+		if len(assistantMsg.ToolCalls) > 0 {
+			totalToolCalls += len(assistantMsg.ToolCalls)
+		}
+
+		// Display usage based on verbose mode
+		switch config.UsageVerboseMode {
+		case UsageSilent:
+			// Do nothing
+		case UsageDetailed:
+			if resp.Usage.TotalTokens > 0 {
+				fmt.Printf("%sUsage: %d prompt + %d completion = %d total tokens\n", ColorMeta, resp.Usage.PromptTokens, resp.Usage.CompletionTokens, resp.Usage.TotalTokens)
+				fmt.Printf("Total: %s tokens (%d prompt, %d completion), %d tool calls%s\n", formatTokenCount(totalTokens), totalPromptTokens, totalCompletionTokens, totalToolCalls, ColorReset)
+			}
+		case UsageBasic:
+			fallthrough
+		default:
+			// Default behavior (Basic)
+			if resp.Usage.TotalTokens > 0 {
+				fmt.Printf("%sUsed %s%s%s tokens on %s%s\n", ColorMeta, ColorHighlight, formatTokenCount(totalTokens), ColorMeta, config.Model, ColorReset)
+			}
+		}
+
+		if len(assistantMsg.ToolCalls) > 0 {
+			processToolCalls(agent, assistantMsg.ToolCalls, config)
+		} else {
+			// Check if we got an empty response
+			if assistantMsg.Content == nil || *assistantMsg.Content == "" {
+				fmt.Printf("%sWarning: Received empty response from model%s\n", ColorMeta, ColorReset)
+			}
+			break // No more tools to call, end agent turn
+		}
+		// Continue loop to send tool output back to API
+
+		// Inject reminder if background processes are running
+		if hasRunningBackgroundProcesses() {
+			reminder := fmt.Sprintf("REMINDER: You have running background processes:\n%s", listBackgroundCommands())
+			agent.Messages = append(agent.Messages, Message{
+				Role:    "system",
+				Content: &reminder,
+			})
+			// We don't print this to the user, it's just for the agent's context
+		}
 	}
 }
