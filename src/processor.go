@@ -72,10 +72,11 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 			} else {
 				// Only show execution message if not in Plan mode
 				if config.OperationMode != Plan {
-					logMessage = fmt.Sprintf("%sExecuting command: %s (Background: %t)%s\n", ColorMeta, args.Command, args.Background, ColorReset)
+					logMessage = fmt.Sprintf("%sExecuting command: %s%s\n", ColorMeta, args.Command, ColorReset)
 				}
 
-				output, err = confirmAndExecute(config, args.Command, args.Background)
+				// Background execution is a user choice in Ask mode (not agent-controlled).
+				output, err = confirmAndExecute(config, args.Command)
 				if output == "Command not executed by user." {
 					logMessage = fmt.Sprintf("%sCommand not executed by user.%s\n", ColorMeta, ColorReset)
 				}

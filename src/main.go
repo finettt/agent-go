@@ -256,8 +256,8 @@ func runCLI() {
 			if userInput == "" {
 				continue
 			}
-			// Shell mode commands are foreground by default
-			output, err := confirmAndExecute(config, userInput, false)
+			// Shell mode commands can be run in foreground or background (Ask mode prompts the user).
+			output, err := confirmAndExecute(config, userInput)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 			}

@@ -30,12 +30,11 @@ func getAvailableTools(includeSpawn bool, operationMode OperationMode) []Tool {
 			Type: "function",
 			Function: FunctionDefinition{
 				Name:        "execute_command",
-				Description: "Execute shell command",
+				Description: "Execute shell command (foreground). In Ask mode the user may choose to run it in the background at approval time.",
 				Parameters: map[string]interface{}{
 					"type": "object",
 					"properties": map[string]interface{}{
-						"command":    map[string]string{"type": "string"},
-						"background": map[string]string{"type": "boolean", "description": "Run command in background"},
+						"command": map[string]string{"type": "string"},
 					},
 					"required": []string{"command"},
 				},
