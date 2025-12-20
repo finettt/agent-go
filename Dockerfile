@@ -32,4 +32,4 @@ USER appuser
 # Set working directory to workspace so mounted files are accessible
 WORKDIR /workspace
 
-ENTRYPOINT ["./agent-go"]
+ENTRYPOINT ["/app/agent-go"]
