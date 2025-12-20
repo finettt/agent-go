@@ -131,6 +131,7 @@ func showHelp() {
 	printCmd("/compress", "Compress context and start new chat thread")
 	printCmd("/edit", "Edit prompt in nano editor")
 	printCmd("/quit", "Exit the application")
+	printCmd("/sandbox", "Relaunch agent-go in a Docker sandbox")
 
 	printCmd("/model <name>", "Set the AI model (e.g., gpt-4)")
 	printCmd("/provider <url>", "Set the API provider URL")
@@ -199,7 +200,11 @@ func runCLI() {
 	}()
 
 	cwd, _ := os.Getwd()
-	fmt.Printf("Welcome to Agent-Go!\n%s%s • %s%s\n", ColorMeta, config.Model, cwd, ColorReset)
+	sandboxStatus := "Sandbox: Off"
+	if _, err := os.Stat("/.dockerenv"); err == nil {
+		sandboxStatus = "Sandbox: On"
+	}
+	fmt.Printf("Welcome to Agent-Go!\n%s%s • %s • %s%s\n", ColorMeta, config.Model, cwd, sandboxStatus, ColorReset)
 
 	for {
 		if agentStudioMode {
@@ -410,6 +415,36 @@ func handleSlashCommand(command string) {
 		showHelp()
 	case "/edit":
 		editCommand()
+	case "/sandbox":
+		fmt.Println("Building Docker image...")
+		buildCmd := exec.Command("docker", "pull", "ghcr.io/finettt/agent-go")
+		buildCmd.Stdout = os.Stdout
+		buildCmd.Stderr = os.Stderr
+		if err := buildCmd.Run(); err != nil {
+			fmt.Printf("Failed to build Docker image: %v\n", err)
+			return
+		}
+
+		cwd, _ := os.Getwd()
+		home, _ := os.UserHomeDir()
+		configDir := filepath.Join(home, ".config", "agent-go")
+
+		fmt.Println("Starting sandbox environment...")
+		runCmd := exec.Command("docker", "run", "-it", "--rm",
+			"-v", fmt.Sprintf("%s:/workspace", cwd),
+			"-v", fmt.Sprintf("%s:/home/appuser/.config/agent-go", configDir),
+			"agent-go-sandbox")
+
+		runCmd.Stdin = os.Stdin
+		runCmd.Stdout = os.Stdout
+		runCmd.Stderr = os.Stderr
+
+		if err := runCmd.Run(); err != nil {
+			fmt.Printf("Sandbox exited with error: %v\n", err)
+		} else {
+			fmt.Println("Sandbox session ended.")
+		}
+
 	case "/security":
 		if !config.SubagentsEnabled {
 			fmt.Println("Subagents are disabled. Enable them with /subagents on to use this command.")
