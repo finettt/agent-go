@@ -57,6 +57,8 @@ The main application serves as the entry point and orchestrates the overall flow
 - **Custom Instructions**: Support for AGENTS.md file for custom agent behavior
 - **Command Line Task Execution**: Direct task execution without interactive mode
 - **Shell Mode**: Direct command execution interface for interactive shell sessions
+- **Plan Mode**: A strategic mode where command execution is blocked, allowing users to brainstorm and plan complex tasks safely
+- **YOLO Mode**: "You Only Look Once" mode for rapid, uninterrupted command execution without confirmation prompts
 
 ### 2. Configuration Management (`config.go`)
 
@@ -94,12 +96,15 @@ Handles secure shell command execution:
 - **Multi-step Execution**: Supports chained commands with `&&` operator
 - **Platform Independence**: Works across different operating systems (Windows, macOS, Linux)
 - **Command Display**: Shows executed commands with color coding for user feedback
+- **Ask/YOLO Modes**: Configurable execution safety with "Ask" (confirm before run) and "YOLO" (auto-run) modes
+- **Plan Mode Restriction**: Enforces safety by blocking command execution when in Plan mode
 
 ### 5. Tool Management (`tools.go` and `processor.go`)
 
 Defines and processes available tools for the AI agent:
 
 **tools.go:**
+
 - **Tool Definitions**: Defines schemas for all available tools
 - **Tool Registry**: Manages which tools are available to the agent
 - **Conditional Tools**: Some tools (like `spawn_agent`) are conditionally available
@@ -107,6 +112,7 @@ Defines and processes available tools for the AI agent:
 - **Schema Validation**: Ensures tool parameters match expected types
 
 **processor.go:**
+
 - **Tool Call Processing**: Handles execution of tool calls from API responses
 - **Error Handling**: Manages tool execution errors gracefully
 - **Result Formatting**: Formats tool output for the AI
@@ -139,6 +145,7 @@ Manages Model Context Protocol server connections and tool calls:
 - **Dynamic Tool Loading**: Tools are loaded dynamically from server schemas
 
 **MCP Server Types:**
+
 - **stdio-based**: Local servers using standard input/output (e.g., `npx -y @upstash/context7-mcp`)
 - **Command-based**: Servers launched via shell commands
 
@@ -221,6 +228,7 @@ Provides persistent knowledge storage across sessions:
 - **Note Mentions**: Support for `#note-name` syntax to inject note content
 
 ### 14. Auto-completion (`completion.go`)
+
 Provides intelligent command-line autocompletion:
 
 - **Model Completion**: Fetches available models from the API for autocompletion
@@ -280,6 +288,7 @@ Agent-Go integrates with MCP servers to extend functionality:
 - **Tool Information**: MCP tools and descriptions are injected into the system prompt
 
 **MCP Workflow:**
+
 1. Server configuration stored in config.json
 2. On startup or tool use, client connects to server
 3. Server capabilities are queried (tools, resources)
@@ -338,12 +347,14 @@ Support for `AGENTS.md` file for custom agent behavior:
 Agent-Go now supports unlimited conversation history with intelligent compression capabilities:
 
 ### Unlimited Context
+
 - **No Message Limits**: Removed the previous 20-message constraint
 - **Memory Management**: While unlimited, users should be mindful of very long conversations
 - **Token Management**: Users can use `/compress` to manage context length
 - **Auto-compression**: Automatically compresses context when approaching token limits
 
 ### Context Compression
+
 - **Intelligent Summarization**: Uses the same AI model to compress conversation history
 - **New Chat Threads**: Creates fresh chat sessions with compressed context as system message
 - **Key Information Preservation**: Maintains important details and conversation flow
@@ -351,6 +362,7 @@ Agent-Go now supports unlimited conversation history with intelligent compressio
 - **Configurable Threshold**: Users can set auto-compression thresholds
 
 ### Compression Process
+
 1. **Trigger**: User executes `/compress` command or auto-compression threshold is reached
 2. **Validation**: Checks if there are messages to compress
 3. **API Request**: Sends conversation history to AI for summarization
@@ -359,6 +371,7 @@ Agent-Go now supports unlimited conversation history with intelligent compressio
 6. **Token Reset**: Resets token counter after compression
 
 ### Auto-compression Logic
+
 - **Threshold**: Automatically compresses when token count exceeds 75% of context length
 - **Configurable**: Users can adjust the threshold via environment variables
 - **Smart Detection**: Only compresses when there are sufficient messages to summarize
