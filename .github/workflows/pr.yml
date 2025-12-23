@@ -25,7 +25,7 @@ jobs:
         run: bun i shippie
 
       - name: Run shippie review
-        run: bun shippie review --platform=github --modelString=openai:gpt-4o-mini --baseUrl=https://openrouter.ai/api/v1
+        run: bun shippie review --platform=github --modelString=openai:mistralai/devstral-2512:free --baseUrl=https://openrouter.ai/api/v1
         env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             BASE_SHA: ${{ github.event.pull_request.base.sha }}
