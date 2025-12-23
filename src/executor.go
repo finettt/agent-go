@@ -211,7 +211,18 @@ func executeSkill(command string, argsJSON []byte) (string, error) {
 		return output, nil
 	}
 
-	// Fallback to shell execution
-	cmdStr := fmt.Sprintf("export SKILL_ARGS='%s' && %s", string(argsJSON), command)
-	return executeCommand(cmdStr)
+	// Fallback to shell execution while safely passing SKILL_ARGS via the environment.
+	cmd := exec.Command("sh", "-c", command)
+	cmd.Env = append(os.Environ(), fmt.Sprintf("SKILL_ARGS=%s", string(argsJSON)))
+
+	var outBuf bytes.Buffer
+	cmd.Stdout = &outBuf
+	cmd.Stderr = &outBuf
+
+	err := cmd.Run()
+	output := outBuf.String()
+	if err != nil {
+		return output, fmt.Errorf("skill execution failed: %w", err)
+	}
+	return output, nil
 }
