@@ -67,7 +67,7 @@ func confirmAndExecute(config *Config, command string) (string, error) {
 func executeCommand(command string) (string, error) {
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
-		cmd = exec.Command("pwsh", "-CommandWithArgs", command)
+		cmd = exec.Command("cmd", "/C", command)
 	} else {
 		cmd = exec.Command("sh", "-c", command)
 	}
@@ -86,7 +86,7 @@ func executeCommand(command string) (string, error) {
 func executeBackgroundCommand(command string) (string, error) {
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
-		cmd = exec.Command("pwsh", "-CommandWithArgs", command)
+		cmd = exec.Command("cmd", "/C", command)
 	} else {
 		cmd = exec.Command("sh", "-c", command)
 	}
@@ -212,7 +212,12 @@ func executeSkill(command string, argsJSON []byte) (string, error) {
 	}
 
 	// Fallback to shell execution while safely passing SKILL_ARGS via the environment.
-	cmd := exec.Command("sh", "-c", command)
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		cmd = exec.Command("cmd", "/C", command)
+	} else {
+		cmd = exec.Command("sh", "-c", command)
+	}
 	cmd.Env = append(os.Environ(), fmt.Sprintf("SKILL_ARGS=%s", string(argsJSON)))
 
 	var outBuf bytes.Buffer

@@ -109,6 +109,63 @@ Exited shell mode.
 - Slash commands are not available while in shell mode.
 - Commands are executed with platform-specific shell handling (cmd.exe on Windows, sh on Unix-like systems)
 
+### `/clear`
+
+Clears the current conversation context (message history) without creating a new session or compressing context.
+
+**Usage:**
+
+```
+/clear
+```
+
+**Example:**
+
+```
+> /clear
+Context cleared.
+```
+
+### `/sandbox`
+
+Relaunches Agent-Go in a Docker sandbox environment for isolated execution.
+
+**Usage:**
+
+```
+/sandbox
+```
+
+**Example:**
+
+```
+> /sandbox
+Building Docker image...
+Starting sandbox environment...
+```
+
+**Notes:**
+
+- Requires Docker to be installed and running
+- Mounts the current working directory and configuration
+- Useful for executing potentially unsafe commands in isolation
+
+### `/bg` (Background Commands)
+
+Manage background processes directly from the agent interface.
+
+- **`/bg list`**: List all running background processes
+- **`/bg view <pid>`**: View the logs (stdout/stderr) for a specific process ID
+- **`/bg kill <pid>`**: Terminate a background process
+
+**Usage:**
+
+```
+/bg list
+/bg view 12345
+/bg kill 12345
+```
+
 ### `/quit`
 
 Exits the Agent-Go application gracefully, saving any unsaved changes and cleaning up resources.
@@ -291,6 +348,7 @@ Session 'session-20251218-123456' saved successfully.
 ```
 
 **Notes:**
+
 - Automatically saves the current conversation history
 - Generates a unique session name with timestamp
 - Session data includes compressed context and metadata
@@ -320,6 +378,7 @@ Current Session: session-20251218-123456
 ```
 
 **Notes:**
+
 - Displays creation time, last access time, message count, and token usage
 - Shows the current active session
 - Sessions are ordered by last access time
@@ -336,6 +395,7 @@ Restores a previously saved session, loading its conversation history and contex
 ```
 
 **Parameters:**
+
 - `name`: The name of the session to restore
 
 **Example:**
@@ -347,6 +407,7 @@ Loaded 150 messages with 89,215 tokens.
 ```
 
 **Notes:**
+
 - Replaces current conversation with the restored session
 - Compressed context is automatically decompressed
 - All session metadata is preserved
@@ -364,6 +425,7 @@ Deletes a saved session permanently.
 ```
 
 **Parameters:**
+
 - `name`: The name of the session to delete
 
 **Example:**
@@ -374,6 +436,7 @@ Session 'old-session' deleted successfully.
 ```
 
 **Notes:**
+
 - Permanently removes the session file
 - Cannot be undone
 - Useful for cleaning up old or unused sessions
@@ -395,6 +458,7 @@ Starts the Agent Studio interface for creating custom agents. You can optionally
 ```
 
 **Parameters:**
+
 - `spec` (optional): Initial agent specification
 
 **Example:**
@@ -413,6 +477,7 @@ Enter your agent description, or type 'help' for guidance.
 ```
 
 **Agent Studio Features:**
+
 - Interactive chat interface for agent creation
 - Validates agent specifications
 - Only permits agent creation (rejects all other tools)
@@ -486,6 +551,7 @@ Displays the detailed definition of a specific agent, including its system promp
 ```
 
 **Parameters:**
+
 - `name`: The name of the agent to view
 
 **Example:**
@@ -535,6 +601,7 @@ Activates a specific agent for the current chat session. This rebuilds the syste
 ```
 
 **Parameters:**
+
 - `name`: The name of the agent to activate
 
 **Example:**
@@ -547,6 +614,7 @@ Context cleared for focused agent operation.
 ```
 
 **Notes:**
+
 - Clears current conversation context
 - Rebuilds system prompt with agent's configuration
 - Applies agent-specific model settings (if any)
@@ -573,6 +641,7 @@ Context cleared.
 ```
 
 **Notes:**
+
 - Returns to the default agent behavior
 - Restores previous model configuration
 - Clears conversation context
@@ -589,6 +658,7 @@ Deletes a saved agent definition.
 ```
 
 **Parameters:**
+
 - `name`: The name of the agent to delete
 
 **Example:**
@@ -599,6 +669,7 @@ Agent 'test-agent' deleted successfully.
 ```
 
 **Notes:**
+
 - Permanently removes the agent definition
 - Cannot delete the built-in `default` agent
 - Validates agent existence before deletion
@@ -639,6 +710,7 @@ Session Information:
 ```
 
 **Notes:**
+
 - Shows both prompt and completion token counts
 - Displays tokens used for reasoning (if applicable)
 - Provides cost estimation based on current model pricing
@@ -678,6 +750,7 @@ Session: session-20251218-123456
 ```
 
 **Notes:**
+
 - Tracks costs across sessions and time periods
 - Provides historical cost data for budgeting
 - Breaks down costs by operation type
@@ -707,6 +780,7 @@ Reduced logging output.
 ```
 
 **Notes:**
+
 - Enables detailed logging for debugging
 - Shows internal agent operations and decision-making
 - Useful for troubleshooting complex issues
@@ -739,6 +813,7 @@ Security analysis complete.
 ```
 
 **Notes:**
+
 - Creates a specialized subagent for security analysis
 - Reviews code for common vulnerabilities
 - Provides security recommendations
@@ -767,6 +842,7 @@ Prompt saved and ready for execution.
 ```
 
 **Notes:**
+
 - Opens nano text editor for complex input
 - Useful for multi-line prompts or commands
 - Automatically saves and returns to Agent-Go
@@ -778,6 +854,7 @@ Prompt saved and ready for execution.
 Agent-Go supports background command execution through specialized tools:
 
 **`execute_command` with `background` parameter:**
+
 ```
 {
   "command": "long-running-task.sh",
@@ -795,6 +872,7 @@ Lists all currently running background commands.
 Terminates a specific background command.
 
 **Notes:**
+
 - Background commands run asynchronously
 - Process IDs are tracked for management
 - Output is streamed in real-time
@@ -1022,7 +1100,7 @@ The API endpoint is https://api.example.com/v1
 
 You can also ask the AI to create, update, or delete notes through natural conversation:
 
-> Create a note called "api_endpoint" with content "The API endpoint is https://api.example.com/v1"
+> Create a note called "api_endpoint" with content "The API endpoint is <https://api.example.com/v1>"
 Created note: api_endpoint
 
 > Update the api_endpoint note to use v2
@@ -1033,8 +1111,9 @@ Deleted note: old_database_config
 
 > Show me all my notes
 Notes:
-  - api_endpoint (updated: 2025-11-25 08:30)
-  - database_schema (updated: 2025-11-25 09:15)
+
+- api_endpoint (updated: 2025-11-25 08:30)
+- database_schema (updated: 2025-11-25 09:15)
 
 ## Advanced Usage
 
@@ -1221,6 +1300,55 @@ export DEBUG=1
 This will provide detailed logging information to help diagnose issues.
 
 ## Additional Features
+
+### `/mode` (or `/plan`)
+
+Toggles between **Plan** mode and **Build** mode.
+
+- **Build Mode** (Default): The agent has access to all tools, including `execute_command`. This is the standard mode for getting things done.
+- **Plan Mode**: The agent is restricted from executing commands. It can only think and use the `suggest_plan` tool to propose a detailed plan to the user. This is useful for complex tasks where you want to agree on a strategy before any code is modified.
+
+**Usage:**
+
+```
+/mode
+# or
+/plan
+```
+
+**Example:**
+
+```
+> /mode
+Switched to Plan mode.
+
+> /plan
+Switched to Build mode.
+```
+
+### `/ask on|off`
+
+Toggles between **Ask** mode and **YOLO** mode for command execution.
+
+- **Ask Mode** (Default): The agent will ask for your confirmation before executing potentially dangerous tools (like `execute_command`).
+- **YOLO Mode**: "You Only Look Once" - The agent will execute commands immediately without asking for confirmation. Use with caution!
+
+**Usage:**
+
+```
+/ask on
+/ask off
+```
+
+**Example:**
+
+```
+> /ask off
+Switched to YOLO mode.
+
+> /ask on
+Switched to Ask mode.
+```
 
 ### Streaming Mode
 

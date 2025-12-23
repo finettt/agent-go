@@ -80,6 +80,8 @@ The configuration file is automatically created on first run or when settings ar
 |-----------|------|---------|-------------|
 | `stream` | bool | `false` | Enable/disable streaming mode for real-time responses |
 | `subagents_enabled` | bool | `true` | Enable/disable sub-agent spawning capability |
+| `execution_mode` | string | `"ask"` | Execution mode: `"ask"` (confirm commands) or `"yolo"` (auto-execute) |
+| `operation_mode` | string | `"build"` | Operation mode: `"build"` (execute commands) or `"plan"` (plan only) |
 
 #### MCP Server Configuration
 
@@ -124,6 +126,8 @@ Environment variables provide a way to override configuration settings without m
 | `MODEL_CONTEXT_LENGTH` | Model context length | `131072` |
 | `STREAM_ENABLED` | Enable streaming mode (`1`=enabled, `0`=disabled) | `1` or `true` |
 | `SUBAGENTS_ENABLED` | Enable sub-agent spawning (`1`=enabled, `0`=disabled) | `1` or `true` |
+| `EXECUTION_MODE` | Set execution mode | `"ask"` or `"yolo"` |
+| `OPERATION_MODE` | Set operation mode | `"build"` or `"plan"` |
 
 ### Environment Variable Examples
 
