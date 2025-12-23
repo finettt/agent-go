@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -189,4 +190,28 @@ func hasRunningBackgroundProcesses() bool {
 		}
 	}
 	return false
+}
+
+// executeSkill executes a skill command.
+// If it's a .sh file, it executes it directly with sh to avoid shell escaping issues.
+func executeSkill(command string, argsJSON []byte) (string, error) {
+	if strings.HasSuffix(command, ".sh") {
+		cmd := exec.Command("sh", command)
+		cmd.Env = append(os.Environ(), fmt.Sprintf("SKILL_ARGS=%s", string(argsJSON)))
+
+		var outBuf bytes.Buffer
+		cmd.Stdout = &outBuf
+		cmd.Stderr = &outBuf
+
+		err := cmd.Run()
+		output := outBuf.String()
+		if err != nil {
+			return output, fmt.Errorf("skill execution failed: %w", err)
+		}
+		return output, nil
+	}
+
+	// Fallback to shell execution
+	cmdStr := fmt.Sprintf("export SKILL_ARGS='%s' && %s", string(argsJSON), command)
+	return executeCommand(cmdStr)
 }

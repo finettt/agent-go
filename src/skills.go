@@ -1,10 +1,10 @@
 package main
-
 import (
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // loadSkills loads skills from system, .agent-go project, and project directories
@@ -69,9 +69,37 @@ func loadSkillsFromDir(dir string) ([]Skill, error) {
 			if err == nil {
 				skills = append(skills, *skill)
 			}
+		} else if filepath.Ext(entry.Name()) == ".sh" {
+			skillPath := filepath.Join(dir, entry.Name())
+			skill, err := loadSkillFromScript(skillPath)
+			if err == nil {
+				skills = append(skills, *skill)
+			}
 		}
 	}
 	return skills, nil
+}
+
+func loadSkillFromScript(path string) (*Skill, error) {
+	name := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
+	
+	// Default parameters for script skills
+	params := map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"args": map[string]interface{}{
+				"type":        "string",
+				"description": "Arguments to pass to the script",
+			},
+		},
+	}
+
+	return &Skill{
+		Name:        name,
+		Description: fmt.Sprintf("Executes the %s script", name),
+		Command:     path,
+		Parameters:  params,
+	}, nil
 }
 
 func loadSkillFromFile(path string) (*Skill, error) {

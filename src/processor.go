@@ -187,15 +187,14 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 					} else {
 						// Pass arguments as JSON environment variable
 						argsJSON, _ := json.Marshal(argsMap)
-						cmd := fmt.Sprintf("export SKILL_ARGS='%s' && %s", string(argsJSON), skill.Command)
-						
+
 						// Execute skill command
 						if config.OperationMode != Plan {
 							logMessage = fmt.Sprintf("%sExecuting skill: %s%s\n", ColorMeta, skill.Name, ColorReset)
 						}
-						
-						// Use executeCommand for foreground execution to capture output
-						output, err = executeCommand(cmd)
+
+						// Use executeSkill to handle .sh files directly or fallback to shell
+						output, err = executeSkill(skill.Command, argsJSON)
 						if err == nil {
 							logMessage = fmt.Sprintf("Executed skill: %s", skill.Name)
 						}
