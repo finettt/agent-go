@@ -176,8 +176,39 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 				logMessage = "Created agent definition"
 			}
 		default:
-			output = fmt.Sprintf("Unknown tool: %s", toolCall.Function.Name)
-			logMessage = fmt.Sprintf("Executed unknown tool: %s", toolCall.Function.Name)
+			// Check if it's a custom skill
+			var skillExecuted bool
+			for _, skill := range config.Skills {
+				if skill.Name == toolCall.Function.Name {
+					// Prepare command with arguments
+					var argsMap map[string]interface{}
+					if unmarshalErr := json.Unmarshal([]byte(toolCall.Function.Arguments), &argsMap); unmarshalErr != nil {
+						output = fmt.Sprintf("Failed to parse arguments for skill %s: %s", skill.Name, unmarshalErr)
+					} else {
+						// Pass arguments as JSON environment variable
+						argsJSON, _ := json.Marshal(argsMap)
+						cmd := fmt.Sprintf("export SKILL_ARGS='%s' && %s", string(argsJSON), skill.Command)
+						
+						// Execute skill command
+						if config.OperationMode != Plan {
+							logMessage = fmt.Sprintf("%sExecuting skill: %s%s\n", ColorMeta, skill.Name, ColorReset)
+						}
+						
+						// Use executeCommand for foreground execution to capture output
+						output, err = executeCommand(cmd)
+						if err == nil {
+							logMessage = fmt.Sprintf("Executed skill: %s", skill.Name)
+						}
+					}
+					skillExecuted = true
+					break
+				}
+			}
+
+			if !skillExecuted {
+				output = fmt.Sprintf("Unknown tool: %s", toolCall.Function.Name)
+				logMessage = fmt.Sprintf("Executed unknown tool: %s", toolCall.Function.Name)
+			}
 		}
 
 		if err != nil {

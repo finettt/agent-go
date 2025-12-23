@@ -50,6 +50,14 @@ func loadConfig() *Config {
 		}
 	}
 
+	// Load skills
+	skills, err := loadSkills()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to load skills: %v\n", err)
+	} else {
+		config.Skills = skills
+	}
+
 	if key := os.Getenv("OPENAI_KEY"); key != "" {
 		config.APIKey = key
 	}

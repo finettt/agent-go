@@ -20,7 +20,7 @@ func sendAPIRequest(agent *Agent, config *Config, includeSpawn bool) (*APIRespon
 		MaxTokens:   config.MaxTokens,
 		Stream:      config.Stream,
 		ToolChoice:  "auto",
-		Tools:       getAvailableTools(includeSpawn, config.OperationMode),
+		Tools:       getAvailableTools(config, includeSpawn, config.OperationMode),
 	}
 
 	jsonData, err := json.Marshal(requestBody)
@@ -153,7 +153,7 @@ func sendAPIRequestStreaming(agent *Agent, config *Config, includeSpawn bool) (*
 		MaxTokens:   config.MaxTokens,
 		Stream:      true,
 		ToolChoice:  "auto",
-		Tools:       getAvailableTools(includeSpawn, config.OperationMode),
+		Tools:       getAvailableTools(config, includeSpawn, config.OperationMode),
 	}
 
 	jsonData, err := json.Marshal(requestBody)

@@ -22,8 +22,20 @@ type SuggestPlanArgs struct {
 }
 
 // getAvailableTools returns the list of tools available to the agent
-func getAvailableTools(includeSpawn bool, operationMode OperationMode) []Tool {
+func getAvailableTools(config *Config, includeSpawn bool, operationMode OperationMode) []Tool {
 	tools := []Tool{}
+
+	// Add custom skills
+	for _, skill := range config.Skills {
+		tools = append(tools, Tool{
+			Type: "function",
+			Function: FunctionDefinition{
+				Name:        skill.Name,
+				Description: skill.Description,
+				Parameters:  skill.Parameters,
+			},
+		})
+	}
 
 	if operationMode == Build {
 		tools = append(tools, Tool{
