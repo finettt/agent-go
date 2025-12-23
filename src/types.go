@@ -26,6 +26,7 @@ type Config struct {
 	ExecutionMode         ExecuteMode          `json:"execution_mode"`
 	OperationMode         OperationMode        `json:"operation_mode"`
 	MCPs                  map[string]MCPServer `json:"mcp_servers"`
+	Skills                []Skill              `json:"skills"`
 	UsageVerboseMode      int                  `json:"usage_verbose_mode"`
 }
 
@@ -159,6 +160,14 @@ type ToolCallChunk struct {
 type MCPServer struct {
 	Name    string `json:"name"`
 	Command string `json:"command"`
+}
+
+// Skill represents a custom tool backed by a script
+type Skill struct {
+	Name        string                 `json:"name"`
+	Description string                 `json:"description"`
+	Parameters  map[string]interface{} `json:"parameters"` // JSON Schema for parameters
+	Command     string                 `json:"command"` // The script/command to execute
 }
 
 type KillBackgroundCommandArgs struct {
