@@ -4,30 +4,18 @@ on:
   pull_request:
     branches: [main]
 
-permissions:
-  pull-requests: write
-  contents: read
-
 jobs:
-  build:
+  run_code_review:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - uses: oven-sh/setup-bun@v2
+      - name: Shippie 🚢
+        uses: mattzcarey/shippie@v0.10.0
         with:
-          bun-version: latest
-
-      - name: Install shippie
-        run: bun i shippie
-
-      - name: Run shippie review
-        run: bun shippie review --platform=github --modelString=mistralai:'devstral-2512:free' --baseUrl=https://openrouter.ai/api/v1
-        env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-            BASE_SHA: ${{ github.event.pull_request.base.sha }}
-            GITHUB_SHA: ${{ github.sha }}
-            OPENAI_API_KEY: ${{ secrets.OPENROUTER_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
+          OPENAI_API_KEY: ${{ secrets.OPENROUTER_TOKEN }}
+          OPENAI_BASE_URL: "https://openrouter.ai/api/v1"
+          MODEL_STRING: "openai:mistralai/devstral-2512:free"
