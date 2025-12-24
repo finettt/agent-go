@@ -15,11 +15,6 @@ jobs:
       matrix:
         goos: [linux, windows, darwin]
         goarch: [amd64, arm64]
-        exclude:
-          - goos: windows
-            goarch: arm64
-          - goos: darwin
-            goarch: arm64
 
     steps:
       - name: Set up Go
@@ -41,20 +36,20 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
         run: |
           mkdir -p bin
-          BINARY_NAME="agent-go-${{ matrix.goos }}-${{ matrix.goarch }}"
+          BINARY_NAME="bin/agent-go-${{ matrix.goos }}-${{ matrix.goarch }}"
           if [ "${{ matrix.goos }}" = "windows" ]; then
             BINARY_NAME+=".exe"
           fi
-          go build -v -o bin/$BINARY_NAME ./src
+          go build -v -o $BINARY_NAME ./src
 
       - name: Compress binary with UPX
         if: matrix.goos != 'windows' && matrix.goarch != 'arm64'
         run: |
-          BINARY_NAME="agent-go-${{ matrix.goos }}-${{ matrix.goarch }}"
+          BINARY_NAME="bin/agent-go-${{ matrix.goos }}-${{ matrix.goarch }}"
           if [ "${{ matrix.goos }}" = "windows" ]; then
             BINARY_NAME+=".exe"
           fi
-          upx --best --lzma --force-macos bin/$BINARY_NAME
+          upx --best --lzma --force-macos $BINARY_NAME
 
       - name: Archive and Upload Artifact
         uses: actions/upload-artifact@v4
