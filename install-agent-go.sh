@@ -9,6 +9,18 @@ error_exit() {
     exit 1
 }
 
+ROLLING=false
+
+# Parse arguments
+for arg in "$@"; do
+    case $arg in
+        --rolling)
+            ROLLING=true
+            shift
+            ;;
+    esac
+done
+
 # Check if running as root
 if [[ $EUID -eq 0 ]]; then
     error_exit "This script should not be run as root. Please run as a regular user."
@@ -33,23 +45,60 @@ else
     error_exit "Unsupported architecture: $ARCH"
 fi
 
-echo "Fetching latest version..."
-LATEST_VERSION=$(curl -fsSL https://raw.githubusercontent.com/finettt/agent-go/main/latest | tr -d '[:space:]')
+if [ "$ROLLING" = true ]; then
+    echo "Rolling update selected. Building from source..."
 
-if [ -z "$LATEST_VERSION" ]; then
-    error_exit "Failed to fetch latest version."
+    # Check dependencies
+    if ! command -v go >/dev/null 2>&1; then
+        error_exit "Go is required for rolling installation but not found."
+    fi
+    if ! command -v git >/dev/null 2>&1; then
+        error_exit "Git is required for rolling installation but not found."
+    fi
+
+    # Create temp directory
+    TEMP_DIR=$(mktemp -d)
+    cleanup() {
+        rm -rf "$TEMP_DIR"
+    }
+    trap cleanup EXIT
+
+    echo "Cloning repository..."
+    if ! git clone https://github.com/finettt/agent-go.git "$TEMP_DIR/agent-go"; then
+        error_exit "Failed to clone repository"
+    fi
+
+    echo "Building..."
+    cd "$TEMP_DIR/agent-go/src" || error_exit "Failed to change to source directory"
+    
+    if ! go build -ldflags="-s -w" -o "../agent-go${EXT}" .; then
+        error_exit "Build failed"
+    fi
+    cd ..
+
+    echo "Installing agent-go (rolling)..."
+    chmod +x "agent-go${EXT}"
+    sudo mv "./agent-go${EXT}" "/usr/local/bin/agent-go${EXT}"
+
+else
+    echo "Fetching latest version..."
+    LATEST_VERSION=$(curl -fsSL https://raw.githubusercontent.com/finettt/agent-go/main/latest | tr -d '[:space:]')
+
+    if [ -z "$LATEST_VERSION" ]; then
+        error_exit "Failed to fetch latest version."
+    fi
+
+    DOWNLOAD_URL="https://github.com/finettt/agent-go/releases/download/${LATEST_VERSION}/agent-go-${OS}-${ARCH}${EXT}"
+
+    echo "Downloading agent-go ${LATEST_VERSION} for ${OS}/${ARCH}..."
+    if ! curl -fsSL -o "agent-go${EXT}" "$DOWNLOAD_URL"; then
+        error_exit "Failed to download agent-go from $DOWNLOAD_URL"
+    fi
+
+    echo "Installing agent-go..."
+    chmod +x "agent-go${EXT}"
+    sudo mv "./agent-go${EXT}" "/usr/local/bin/agent-go${EXT}"
 fi
-
-DOWNLOAD_URL="https://github.com/finettt/agent-go/releases/download/${LATEST_VERSION}/agent-go-${OS}-${ARCH}${EXT}"
-
-echo "Downloading agent-go ${LATEST_VERSION} for ${OS}/${ARCH}..."
-if ! curl -fsSL -o "agent-go${EXT}" "$DOWNLOAD_URL"; then
-    error_exit "Failed to download agent-go from $DOWNLOAD_URL"
-fi
-
-echo "Installing agent-go..."
-chmod +x "agent-go${EXT}"
-sudo mv "./agent-go${EXT}" "/usr/local/bin/agent-go${EXT}"
 
 # Verify installation
 if command -v agent-go >/dev/null 2>&1; then
