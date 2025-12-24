@@ -13,41 +13,43 @@ error_exit() {
 if [[ $EUID -eq 0 ]]; then
     error_exit "This script should not be run as root. Please run as a regular user."
 fi
+# Detect OS and Architecture
+OS_RAW=$(uname -s)
+ARCH=$(uname -m)
+EXT=""
 
-# Check for required tools
-echo "Checking prerequisites..."
-command -v curl >/dev/null 2>&1 || error_exit "curl is required but not installed."
-command -v git >/dev/null 2>&1 || error_exit "git is required but not installed."
-command -v make >/dev/null 2>&1 || error_exit "make is required but not installed."
-command -v go >/dev/null 2>&1 || error_exit "go is required but not installed."
+case "$OS_RAW" in
+    Linux*)     OS="linux";;
+    Darwin*)    OS="darwin";;
+    CYGWIN*|MINGW*|MSYS*) OS="windows"; EXT=".exe";;
+    *)          error_exit "Unsupported OS: $OS_RAW";;
+esac
 
-# Check if sudo is available
-command -v sudo >/dev/null 2>&1 || error_exit "sudo is required but not installed."
+if [ "$ARCH" == "x86_64" ]; then
+    ARCH="amd64"
+elif [ "$ARCH" == "aarch64" ] || [ "$ARCH" == "arm64" ]; then
+    ARCH="arm64"
+else
+    error_exit "Unsupported architecture: $ARCH"
+fi
 
-# Create a temporary directory
-TEMP_DIR=$(mktemp -d)
-trap 'rm -rf "$TEMP_DIR"' EXIT
+echo "Fetching latest version..."
+LATEST_VERSION=$(curl -fsSL https://raw.githubusercontent.com/finettt/agent-go/main/latest | tr -d '[:space:]')
 
-echo "Downloading agent-go..."
-cd "$TEMP_DIR"
+if [ -z "$LATEST_VERSION" ]; then
+    error_exit "Failed to fetch latest version."
+fi
 
-# Clone the repository
-git clone https://github.com/finettt/agent-go.git
-cd agent-go
+DOWNLOAD_URL="https://github.com/finettt/agent-go/releases/download/${LATEST_VERSION}/agent-go-${OS}-${ARCH}${EXT}"
 
-echo "Building agent-go..."
-# Build the binary (avoid compress step which requires upx)
-make build
-
-# Check if binary was created
-if [[ ! -f "./agent-go" ]]; then
-    error_exit "Build failed: agent-go binary not found."
+echo "Downloading agent-go ${LATEST_VERSION} for ${OS}/${ARCH}..."
+if ! curl -fsSL -o "agent-go${EXT}" "$DOWNLOAD_URL"; then
+    error_exit "Failed to download agent-go from $DOWNLOAD_URL"
 fi
 
 echo "Installing agent-go..."
-# Set ownership and move to /usr/local/bin
-sudo chown "$USER:$USER" ./agent-go
-sudo mv ./agent-go /usr/local/bin/
+chmod +x "agent-go${EXT}"
+sudo mv "./agent-go${EXT}" "/usr/local/bin/agent-go${EXT}"
 
 # Verify installation
 if command -v agent-go >/dev/null 2>&1; then
