@@ -3,8 +3,14 @@
     <h1>Agent-Go</h1>
 </div>
 
+**Standard Install (Pre-built Binary)**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/finettt/agent-go/main/install-agent-go.sh | bash
+```
+
+**Rolling Install (Build from Source)**
+```bash
+curl -fsSL https://raw.githubusercontent.com/finettt/agent-go/main/install-agent-go.sh | bash -s -- --rolling
 ```
 
 <img width="1110" height="600" alt="image" src="https://github.com/user-attachments/assets/4775958a-5c5b-4184-8cc1-2f32aa693e86" />
