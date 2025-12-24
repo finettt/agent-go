@@ -23,6 +23,9 @@ func getSystemInfo() string {
 }
 
 func getDistro() string {
+	if runtime.GOOS == "windows" {
+		return "Windows"
+	}
 	if runtime.GOOS != "linux" {
 		return "N/A"
 	}

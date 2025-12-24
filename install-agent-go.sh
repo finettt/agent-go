@@ -78,7 +78,17 @@ if [ "$ROLLING" = true ]; then
 
     echo "Installing agent-go (rolling)..."
     chmod +x "agent-go${EXT}"
-    sudo mv "./agent-go${EXT}" "/usr/local/bin/agent-go${EXT}"
+    if [ "$OS" == "windows" ]; then
+        # On Windows (Git Bash/MinGW), sudo might not be available or needed
+        # Try to install to a common location or just advise user
+        INSTALL_DIR="$HOME/bin"
+        mkdir -p "$INSTALL_DIR"
+        mv "./agent-go${EXT}" "$INSTALL_DIR/agent-go${EXT}"
+        echo "Installed to $INSTALL_DIR"
+        echo "Please ensure $INSTALL_DIR is in your PATH."
+    else
+        sudo mv "./agent-go${EXT}" "/usr/local/bin/agent-go${EXT}"
+    fi
 
 else
     echo "Fetching latest version..."
@@ -97,7 +107,15 @@ else
 
     echo "Installing agent-go..."
     chmod +x "agent-go${EXT}"
-    sudo mv "./agent-go${EXT}" "/usr/local/bin/agent-go${EXT}"
+    if [ "$OS" == "windows" ]; then
+        INSTALL_DIR="$HOME/bin"
+        mkdir -p "$INSTALL_DIR"
+        mv "./agent-go${EXT}" "$INSTALL_DIR/agent-go${EXT}"
+        echo "Installed to $INSTALL_DIR"
+        echo "Please ensure $INSTALL_DIR is in your PATH."
+    else
+        sudo mv "./agent-go${EXT}" "/usr/local/bin/agent-go${EXT}"
+    fi
 fi
 
 # Verify installation

@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
@@ -1226,11 +1227,11 @@ func runTask(task string) {
 	}
 }
 
-// editCommand creates a temporary file in /tmp, opens it in nano,
+// editCommand creates a temporary file in os.TempDir(), opens it in nano (or notepad on Windows),
 // and then adds its content to the prompt when the file is saved.
 func editCommand() {
-	// Create a temporary file in /tmp
-	tmpFile, err := os.CreateTemp("/tmp", "agent-go-edit-*.txt")
+	// Create a temporary file in os.TempDir()
+	tmpFile, err := os.CreateTemp("", "agent-go-edit-*.txt")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating temporary file: %s\n", err)
 		return
@@ -1238,16 +1239,26 @@ func editCommand() {
 	tmpFileName := tmpFile.Name()
 	tmpFile.Close()
 
-	// Open the file in nano editor
-	fmt.Printf("Opening %s in nano editor...\n", tmpFileName)
-	fmt.Println("Make your changes and save the file (Ctrl+O, Enter, then Ctrl+X to exit).")
-	cmd := exec.Command("nano", tmpFileName)
+	editor := "nano"
+	if runtime.GOOS == "windows" {
+		editor = "notepad"
+	}
+
+	// Open the file in the editor
+	fmt.Printf("Opening %s in %s...\n", tmpFileName, editor)
+	if editor == "nano" {
+		fmt.Println("Make your changes and save the file (Ctrl+O, Enter, then Ctrl+X to exit).")
+	} else {
+		fmt.Println("Make your changes, save the file (Ctrl+S), and close the editor.")
+	}
+
+	cmd := exec.Command(editor, tmpFileName)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error running nano: %s\n", err)
+		fmt.Fprintf(os.Stderr, "Error running %s: %s\n", editor, err)
 		// Clean up the temp file on error
 		os.Remove(tmpFileName)
 		return
