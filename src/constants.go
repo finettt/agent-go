@@ -24,11 +24,6 @@ const (
 	ColorReset = "\033[0m"
 )
 
-// Streaming constants
-const (
-	StreamDataPrefix = "data: "
-	StreamDoneMarker = "[DONE]"
-)
 
 // Context compression settings
 const (

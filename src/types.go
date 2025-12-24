@@ -20,7 +20,6 @@ type Config struct {
 	AutoCompress          bool                 `json:"auto_compress"`
 	AutoCompressThreshold int                  `json:"auto_compress_threshold"`
 	ModelContextLength    int                  `json:"model_context_length"`
-	Stream                bool                 `json:"stream"`
 	SubagentsEnabled      bool                 `json:"subagents_enabled"`
 	SubAgentVerboseMode   int                  `json:"subagent_verbose_mode"`
 	ExecutionMode         ExecuteMode          `json:"execution_mode"`
@@ -67,7 +66,6 @@ type APIRequest struct {
 	Messages    []Message `json:"messages"`
 	Temperature float32   `json:"temperature"`
 	MaxTokens   int       `json:"max_tokens"`
-	Stream      bool      `json:"stream"`
 	Tools       []Tool    `json:"tools"`
 	ToolChoice  string    `json:"tool_choice"`
 }
@@ -125,36 +123,6 @@ type UseMCPToolArgs struct {
 	Arguments  map[string]interface{} `json:"arguments"`
 }
 
-// Streaming response types
-type StreamChunk struct {
-	ID      string         `json:"id"`
-	Object  string         `json:"object"`
-	Created int64          `json:"created"`
-	Model   string         `json:"model"`
-	Choices []StreamChoice `json:"choices"`
-	Usage   *Usage         `json:"usage,omitempty"`
-}
-
-type StreamChoice struct {
-	Index        int     `json:"index"`
-	Delta        Delta   `json:"delta"`
-	FinishReason *string `json:"finish_reason"`
-}
-
-type Delta struct {
-	Role             string          `json:"role,omitempty"`
-	Content          string          `json:"content,omitempty"`
-	ReasoningContent string          `json:"reasoning_content,omitempty"`
-	ToolCalls        []ToolCallChunk `json:"tool_calls,omitempty"`
-}
-
-// ToolCallChunk represents a chunk of a tool call in a streaming response
-type ToolCallChunk struct {
-	Index    int          `json:"index"`
-	ID       string       `json:"id,omitempty"`
-	Type     string       `json:"type,omitempty"`
-	Function FunctionCall `json:"function,omitempty"`
-}
 
 // MCPServer defines the configuration for a single MCP server
 type MCPServer struct {

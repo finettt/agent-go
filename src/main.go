@@ -138,7 +138,6 @@ func showHelp() {
 	printCmd("/provider <url>", "Set the API provider URL")
 
 	printCmd("/contextlength <val>", "Set the model context length (e.g., 131072)")
-	printCmd("/stream on|off", "Toggle streaming mode")
 
 	printCmd("/rag", "Retrieval-Augmented Generation controls")
 	printSubCmd("on|off", "Toggle RAG feature")
@@ -309,12 +308,7 @@ func runCLI() {
 			var resp *APIResponse
 			var err error
 
-			// Use streaming or regular API based on config
-			if config.Stream {
-				resp, err = sendAPIRequestStreaming(agent, config, config.SubagentsEnabled)
-			} else {
-				resp, err = sendAPIRequest(agent, config, config.SubagentsEnabled)
-			}
+			resp, err = sendAPIRequest(agent, config, config.SubagentsEnabled)
 
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %s\n", err)
@@ -329,14 +323,11 @@ func runCLI() {
 			assistantMsg := resp.Choices[0].Message
 			agent.Messages = append(agent.Messages, assistantMsg)
 
-			// Only print content if not streaming (streaming already printed it)
-			if !config.Stream {
-				if assistantMsg.ReasoningContent != nil && *assistantMsg.ReasoningContent != "" {
-					fmt.Printf("%sThink...\n%s", ColorMeta, ColorReset)
-				}
-				if assistantMsg.Content != nil && *assistantMsg.Content != "" {
-					fmt.Printf("%s%s%s\n", ColorMain, *assistantMsg.Content, ColorReset)
-				}
+			if assistantMsg.ReasoningContent != nil && *assistantMsg.ReasoningContent != "" {
+				fmt.Printf("%sThink...\n%s", ColorMeta, ColorReset)
+			}
+			if assistantMsg.Content != nil && *assistantMsg.Content != "" {
+				fmt.Printf("%s%s%s\n", ColorMain, *assistantMsg.Content, ColorReset)
 			}
 
 			// Update and display total tokens
@@ -808,7 +799,6 @@ func handleSlashCommand(command string) {
 		fmt.Printf("Auto Compress Enabled: %t\n", config.AutoCompress)
 		fmt.Printf("Auto Compress Threshold: %d\n", config.AutoCompressThreshold)
 		fmt.Printf("Model Context Length: %d\n", config.ModelContextLength)
-		fmt.Printf("Stream Enabled: %t\n", config.Stream)
 		fmt.Printf("Subagents Enabled: %t\n", config.SubagentsEnabled)
 		if len(config.MCPs) > 0 {
 			fmt.Println("MCP Servers:")
@@ -872,31 +862,6 @@ func handleSlashCommand(command string) {
 		})
 		totalTokens = 0
 		fmt.Println("Context cleared.")
-	case "/stream":
-		if len(parts) > 1 {
-			switch parts[1] {
-			case "on":
-				config.Stream = true
-				if err := saveConfig(config); err != nil {
-					fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
-				}
-				fmt.Println("Streaming enabled.")
-			case "off":
-				config.Stream = false
-				if err := saveConfig(config); err != nil {
-					fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
-				}
-				fmt.Println("Streaming disabled.")
-			default:
-				fmt.Println("Usage: /stream [on|off]")
-			}
-		} else {
-			if config.Stream {
-				fmt.Println("Streaming is currently enabled.")
-			} else {
-				fmt.Println("Streaming is currently disabled.")
-			}
-		}
 	case "/subagents":
 		if len(parts) > 1 {
 			switch parts[1] {
@@ -1189,12 +1154,7 @@ func runTask(task string) {
 		var resp *APIResponse
 		var err error
 
-		// Use streaming or regular API based on config
-		if config.Stream {
-			resp, err = sendAPIRequestStreaming(agent, config, config.SubagentsEnabled)
-		} else {
-			resp, err = sendAPIRequest(agent, config, config.SubagentsEnabled)
-		}
+		resp, err = sendAPIRequest(agent, config, config.SubagentsEnabled)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
@@ -1209,8 +1169,7 @@ func runTask(task string) {
 		assistantMsg := resp.Choices[0].Message
 		agent.Messages = append(agent.Messages, assistantMsg)
 
-		// Only print content if not streaming (streaming already printed it)
-		if !config.Stream && assistantMsg.Content != nil && *assistantMsg.Content != "" {
+		if assistantMsg.Content != nil && *assistantMsg.Content != "" {
 			fmt.Printf("%s\n", *assistantMsg.Content)
 		}
 
@@ -1304,12 +1263,7 @@ func editCommand() {
 		var resp *APIResponse
 		var err error
 
-		// Use streaming or regular API based on config
-		if config.Stream {
-			resp, err = sendAPIRequestStreaming(agent, config, config.SubagentsEnabled)
-		} else {
-			resp, err = sendAPIRequest(agent, config, config.SubagentsEnabled)
-		}
+		resp, err = sendAPIRequest(agent, config, config.SubagentsEnabled)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
@@ -1324,14 +1278,11 @@ func editCommand() {
 		assistantMsg := resp.Choices[0].Message
 		agent.Messages = append(agent.Messages, assistantMsg)
 
-		// Only print content if not streaming (streaming already printed it)
-		if !config.Stream {
-			if assistantMsg.ReasoningContent != nil && *assistantMsg.ReasoningContent != "" {
-				fmt.Printf("%sThink...\n%s", ColorMeta, ColorReset)
-			}
-			if assistantMsg.Content != nil && *assistantMsg.Content != "" {
-				fmt.Printf("%s%s%s\n", ColorMain, *assistantMsg.Content, ColorReset)
-			}
+		if assistantMsg.ReasoningContent != nil && *assistantMsg.ReasoningContent != "" {
+			fmt.Printf("%sThink...\n%s", ColorMeta, ColorReset)
+		}
+		if assistantMsg.Content != nil && *assistantMsg.Content != "" {
+			fmt.Printf("%s%s%s\n", ColorMain, *assistantMsg.Content, ColorReset)
 		}
 
 		// Update and display total tokens

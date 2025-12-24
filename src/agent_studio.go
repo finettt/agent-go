@@ -83,7 +83,6 @@ func runAgentStudioTurn(cfg *Config) error {
 	// Plan mode tools may still be offered; we explicitly reject them in tool processing.
 	cfgCopy := *cfg
 	cfgCopy.OperationMode = Plan
-	cfgCopy.Stream = false
 
 	for {
 		resp, err := sendAPIRequest(studioAgent, &cfgCopy, false)

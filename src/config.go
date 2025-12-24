@@ -19,7 +19,6 @@ func loadConfig() *Config {
 		AutoCompress:          true,
 		AutoCompressThreshold: DefaultAutoCompressThreshold,
 		ModelContextLength:    DefaultModelContextLength,
-		Stream:                false,
 		SubagentsEnabled:      true,
 		ExecutionMode:         Ask,
 		OperationMode:         Build,
@@ -90,9 +89,6 @@ func loadConfig() *Config {
 		if val, err := strconv.Atoi(modelContextLength); err == nil && val > 0 {
 			config.ModelContextLength = val
 		}
-	}
-	if stream := os.Getenv("STREAM_ENABLED"); stream == "1" || stream == "true" {
-		config.Stream = true
 	}
 	if subagents := os.Getenv("SUBAGENTS_ENABLED"); subagents == "0" || subagents == "false" {
 		config.SubagentsEnabled = false
