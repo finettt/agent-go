@@ -342,7 +342,7 @@ func runCLI() {
 				fmt.Printf("%sThink...\n%s", ColorMeta, ColorReset)
 			}
 			if assistantMsg.Content != nil && *assistantMsg.Content != "" {
-				fmt.Printf("%s%s%s\n", ColorMain, *assistantMsg.Content, ColorReset)
+				fmt.Printf("%s● %s%s%s\n", ColorHighlight, ColorMain, *assistantMsg.Content, ColorReset)
 			}
 
 			// Update and display total tokens
@@ -519,9 +519,9 @@ func handleSlashCommand(command string) {
 		fmt.Printf("%s / %s tokens used\n\n", formatNumber(totalTokens), formatNumber(config.ModelContextLength))
 
 		fmt.Println("Session Statistics:")
-		fmt.Printf("• Prompt Tokens:      %s\n", formatNumber(totalPromptTokens))
-		fmt.Printf("• Completion Tokens:  %s\n", formatNumber(totalCompletionTokens))
-		fmt.Printf("• Tool Calls:         %s\n", formatNumber(totalToolCalls))
+		fmt.Printf("%s•%s Prompt Tokens:      %s\n", ColorHighlight, ColorReset, formatNumber(totalPromptTokens))
+		fmt.Printf("%s•%s Completion Tokens:  %s\n", ColorHighlight, ColorReset, formatNumber(totalCompletionTokens))
+		fmt.Printf("%s•%s Tool Calls:         %s\n", ColorHighlight, ColorReset, formatNumber(totalToolCalls))
 		fmt.Println()
 
 	case "/session":
@@ -1215,7 +1215,7 @@ func runTask(task string) {
 		agent.Messages = append(agent.Messages, assistantMsg)
 
 		if assistantMsg.Content != nil && *assistantMsg.Content != "" {
-			fmt.Printf("%s\n", *assistantMsg.Content)
+			fmt.Printf("● %s\n", *assistantMsg.Content)
 		}
 
 		if len(assistantMsg.ToolCalls) > 0 {
@@ -1327,7 +1327,7 @@ func editCommand() {
 			fmt.Printf("%sThink...\n%s", ColorMeta, ColorReset)
 		}
 		if assistantMsg.Content != nil && *assistantMsg.Content != "" {
-			fmt.Printf("%s%s%s\n", ColorMain, *assistantMsg.Content, ColorReset)
+			fmt.Printf("%s● %s%s%s\n", ColorHighlight, ColorMain, *assistantMsg.Content, ColorReset)
 		}
 
 		// Update and display total tokens
