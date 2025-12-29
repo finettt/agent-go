@@ -162,6 +162,7 @@ func showHelp() {
 	printCmd("/cost", "Show current usage statistics")
 
 	printCmd("/todo", "Display the current todo list")
+	printCmd("/current", "Display the current in-progress task")
 
 	printCmd("/notes", "Notes management")
 	printSubCmd("list", "List all notes")
@@ -222,6 +223,14 @@ func runCLI() {
 	fmt.Printf("Welcome to Agent-Go!\n%s%s • %s • %s%s\n", ColorMeta, config.Model, cwd, sandboxStatus, ColorReset)
 
 	for {
+		// Display current task if available
+		if !agentStudioMode && !shellMode {
+			currentTask, _ := getCurrentTask(agent.ID)
+			if currentTask != "No task in progress." {
+				fmt.Printf("\n%s%s%s\n\n", ColorHighlight, currentTask, ColorReset)
+			}
+		}
+
 		if agentStudioMode {
 			rl.SetPrompt(StyleBold + ColorHighlight + ">>> ")
 		} else if shellMode {
@@ -709,6 +718,13 @@ func handleSlashCommand(command string) {
 			fmt.Fprintf(os.Stderr, "Error getting todo list: %s\n", err)
 		} else {
 			fmt.Println(list)
+		}
+	case "/current":
+		task, err := getCurrentTask(agent.ID)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error getting current task: %s\n", err)
+		} else {
+			fmt.Println(task)
 		}
 	case "/notes":
 		if len(parts) < 2 {
@@ -1245,15 +1261,15 @@ func editCommand() {
 
 	editor := "nano"
 	if runtime.GOOS == "windows" {
-		editor = "notepad"
+		editor = "edit"
 	}
 
 	// Open the file in the editor
 	fmt.Printf("Opening %s in %s...\n", tmpFileName, editor)
-	if editor == "nano" {
-		fmt.Println("Make your changes and save the file (Ctrl+O, Enter, then Ctrl+X to exit).")
+	if editor == "vi" {
+		fmt.Println("Make your changes and save the file.")
 	} else {
-		fmt.Println("Make your changes, save the file (Ctrl+S), and close the editor.")
+		fmt.Println("Make your changes, save the file, and close the editor.")
 	}
 
 	cmd := exec.Command(editor, tmpFileName)
@@ -1324,7 +1340,7 @@ func editCommand() {
 		agent.Messages = append(agent.Messages, assistantMsg)
 
 		if assistantMsg.ReasoningContent != nil && *assistantMsg.ReasoningContent != "" {
-			fmt.Printf("%sThink...\n%s", ColorMeta, ColorReset)
+			fmt.Printf("%s%sThink...\n%s", StyleItalic, ColorMeta, ColorReset)
 		}
 		if assistantMsg.Content != nil && *assistantMsg.Content != "" {
 			fmt.Printf("%s● %s%s%s\n", ColorHighlight, ColorMain, *assistantMsg.Content, ColorReset)

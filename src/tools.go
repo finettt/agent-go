@@ -95,6 +95,15 @@ func getAvailableTools(config *Config, includeSpawn bool, operationMode Operatio
 	tools = append(tools, Tool{
 		Type: "function",
 		Function: FunctionDefinition{
+			Name:        "get_current_task",
+			Description: "Get the current in-progress task.",
+			Parameters:  map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
+		},
+	})
+
+	tools = append(tools, Tool{
+		Type: "function",
+		Function: FunctionDefinition{
 			Name:        "create_note",
 			Description: "Create a note. Notes persist across sessions and are injected into the system prompt.",
 			Parameters: map[string]interface{}{
@@ -359,7 +368,15 @@ func getTodoList(agentID string) (string, error) {
 	var builder strings.Builder
 	builder.WriteString("Current Todo List:\n")
 	for _, todo := range todoList.Todos {
-		builder.WriteString(fmt.Sprintf("- [ID: %d] %s (%s)\n", todo.ID, todo.Task, todo.Status))
+		checkbox := " "
+		switch todo.Status {
+		case "completed":
+			checkbox = "x"
+		case "in-progress":
+			checkbox = "-"
+		}
+
+		builder.WriteString(fmt.Sprintf("%d. [%s] %s \n", todo.ID, checkbox, todo.Task))
 	}
 
 	return builder.String(), nil

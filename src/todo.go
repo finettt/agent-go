@@ -67,3 +67,18 @@ func saveTodoList(todoList *TodoList) error {
 
 	return os.WriteFile(path, data, 0644)
 }
+
+func getCurrentTask(agentID string) (string, error) {
+	todoList, err := loadTodoList(agentID)
+	if err != nil {
+		return "", err
+	}
+
+	for _, todo := range todoList.Todos {
+		if todo.Status == "in-progress" {
+			return fmt.Sprintf("Current Task: %s", todo.Task), nil
+		}
+	}
+
+	return "No task in progress.", nil
+}

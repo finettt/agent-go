@@ -1037,6 +1037,39 @@ Updated todo:
 - `in-progress`: Currently being worked on
 - `completed`: Finished
 
+### `/current`
+
+Displays the current in-progress task from your todo list. This provides quick visibility into what you're currently working on without needing to view the full todo list.
+
+**Usage:**
+
+```
+/current
+```
+
+**Example:**
+
+```
+> /current
+Current Task: Fix critical bug in payment processing
+
+> /todo
+Current Todo List:
+- [ID: 1] Implement authentication system (completed)
+- [ID: 2] Fix critical bug in payment processing (in-progress)
+- [ID: 3] Add unit tests (pending)
+
+> /current
+Current Task: Fix critical bug in payment processing
+```
+
+**Notes:**
+
+- Only shows the first task marked as "in-progress"
+- Returns "No task in progress." if no task is currently active
+- Also displayed automatically before each prompt when you have an active task
+- Useful for quick context checking during workflow
+
 ## Notes Management Commands
 
 ### `/notes list`
