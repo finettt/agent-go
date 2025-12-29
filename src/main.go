@@ -44,6 +44,21 @@ func formatTokenCount(count int) string {
 	return fmt.Sprintf("%d", count)
 }
 
+func formatNumber(n int) string {
+	s := strconv.Itoa(n)
+	if len(s) <= 3 {
+		return s
+	}
+	var result []byte
+	for i, c := range s {
+		if i > 0 && (len(s)-i)%3 == 0 {
+			result = append(result, ',')
+		}
+		result = append(result, byte(c))
+	}
+	return string(result)
+}
+
 func main() {
 	// Check for command line task argument
 	if len(os.Args) > 1 {
@@ -469,15 +484,45 @@ func handleSlashCommand(command string) {
 		fmt.Printf("Usage verbose mode set to %d\n", mode)
 
 	case "/cost":
-		cwd, _ := os.Getwd()
-		fmt.Printf("\n=== Current Usage Stats ===\n")
-		fmt.Printf("Model:             %s\n", config.Model)
-		fmt.Printf("Working Directory: %s\n", cwd)
-		fmt.Printf("Total Tokens:      %d\n", totalTokens)
-		fmt.Printf("  - Prompt:        %d\n", totalPromptTokens)
-		fmt.Printf("  - Completion:    %d\n", totalCompletionTokens)
-		fmt.Printf("Total Tool Calls:  %d\n", totalToolCalls)
-		fmt.Println("===========================")
+		// Calculate percentage
+		percent := 0.0
+		if config.ModelContextLength > 0 {
+			percent = float64(totalTokens) / float64(config.ModelContextLength) * 100
+		}
+		if percent > 100 {
+			percent = 100
+		}
+
+		// Determine color
+		barColor := ColorGreen
+		if percent >= 80 {
+			barColor = ColorRed
+		} else if percent >= 50 {
+			barColor = ColorYellow
+		}
+
+		// Draw progress bar
+		width := 30
+		filled := int(float64(width) * percent / 100)
+		bar := "[" + barColor
+		for i := 0; i < width; i++ {
+			if i < filled {
+				bar += "█"
+			} else {
+				bar += "░"
+			}
+		}
+		bar += ColorReset + "]"
+
+		fmt.Printf("\nContext Usage (Model: %s%s%s)\n", ColorHighlight, config.Model, ColorReset)
+		fmt.Printf("%s %.1f%%\n", bar, percent)
+		fmt.Printf("%s / %s tokens used\n\n", formatNumber(totalTokens), formatNumber(config.ModelContextLength))
+
+		fmt.Println("Session Statistics:")
+		fmt.Printf("• Prompt Tokens:      %s\n", formatNumber(totalPromptTokens))
+		fmt.Printf("• Completion Tokens:  %s\n", formatNumber(totalCompletionTokens))
+		fmt.Printf("• Tool Calls:         %s\n", formatNumber(totalToolCalls))
+		fmt.Println()
 
 	case "/session":
 		if len(parts) < 2 {
