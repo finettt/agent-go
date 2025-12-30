@@ -400,20 +400,19 @@ func runCLI() {
 
 			// Display usage based on verbose mode
 			switch config.UsageVerboseMode {
-			case UsageSilent:
-				// Do nothing
 			case UsageDetailed:
 				if resp.Usage.TotalTokens > 0 {
 					fmt.Printf("%sUsage: %d prompt + %d completion = %d total tokens\n", ColorMeta, resp.Usage.PromptTokens, resp.Usage.CompletionTokens, resp.Usage.TotalTokens)
 					fmt.Printf("Total: %s tokens (%d prompt, %d completion), %d tool calls%s\n", formatTokenCount(totalTokens), totalPromptTokens, totalCompletionTokens, totalToolCalls, ColorReset)
 				}
 			case UsageBasic:
-				fallthrough
-			default:
-				// Default behavior (Basic)
 				if resp.Usage.TotalTokens > 0 {
 					fmt.Printf("%sUsed %s%s%s tokens on %s%s\n", ColorMeta, ColorHighlight, formatTokenCount(totalTokens), ColorMeta, config.Model, ColorReset)
 				}
+			case UsageSilent:
+				fallthrough
+			default:
+				// Default behavior (Silent)
 			}
 
 			if len(assistantMsg.ToolCalls) > 0 {
@@ -1491,20 +1490,19 @@ func editCommand() {
 
 		// Display usage based on verbose mode
 		switch config.UsageVerboseMode {
-		case UsageSilent:
-			// Do nothing
 		case UsageDetailed:
 			if resp.Usage.TotalTokens > 0 {
 				fmt.Printf("%sUsage: %d prompt + %d completion = %d total tokens\n", ColorMeta, resp.Usage.PromptTokens, resp.Usage.CompletionTokens, resp.Usage.TotalTokens)
 				fmt.Printf("Total: %s tokens (%d prompt, %d completion), %d tool calls%s\n", formatTokenCount(totalTokens), totalPromptTokens, totalCompletionTokens, totalToolCalls, ColorReset)
 			}
 		case UsageBasic:
-			fallthrough
-		default:
-			// Default behavior (Basic)
 			if resp.Usage.TotalTokens > 0 {
 				fmt.Printf("%sUsed %s%s%s tokens on %s%s\n", ColorMeta, ColorHighlight, formatTokenCount(totalTokens), ColorMeta, config.Model, ColorReset)
 			}
+		case UsageSilent:
+			fallthrough
+		default:
+			// Default behavior (Silent)
 		}
 
 		if len(assistantMsg.ToolCalls) > 0 {

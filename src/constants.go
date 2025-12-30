@@ -43,7 +43,7 @@ const (
 	DefaultModel                 = "gpt-3.5-turbo"
 	DefaultRAGSnippets           = 5
 	DefaultAutoCompressThreshold = 20
-	DefaultModelContextLength    = 131072
+	DefaultModelContextLength    = 262144
 )
 
 // Valid todo statuses
