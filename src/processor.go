@@ -177,6 +177,11 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 			if err == nil {
 				logMessage = "Retrieved current task"
 			}
+		case "clear_todo":
+			output, err = clearTodo(agent.ID)
+			if err == nil {
+				logMessage = "Cleared todo list"
+			}
 		case "use_mcp_tool":
 			var args UseMCPToolArgs
 			if unmarshalErr := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); unmarshalErr != nil {

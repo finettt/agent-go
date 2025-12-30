@@ -105,6 +105,15 @@ func getAvailableTools(config *Config, includeSpawn bool, operationMode Operatio
 	tools = append(tools, Tool{
 		Type: "function",
 		Function: FunctionDefinition{
+			Name:        "clear_todo",
+			Description: "Clear all todo items.",
+			Parameters:  map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
+		},
+	})
+
+	tools = append(tools, Tool{
+		Type: "function",
+		Function: FunctionDefinition{
 			Name:        "create_note",
 			Description: "Create a note. Notes persist across sessions and are injected into the system prompt.",
 			Parameters: map[string]interface{}{
@@ -382,4 +391,12 @@ func getTodoList(agentID string) (string, error) {
 	}
 
 	return builder.String(), nil
+}
+
+// clearTodo clears the todo list for the given agent
+func clearTodo(agentID string) (string, error) {
+	if err := clearTodoList(agentID); err != nil {
+		return "", err
+	}
+	return "Todo list cleared.", nil
 }
