@@ -236,6 +236,8 @@ func runCLI() {
 			rl.SetPrompt(StyleBold + ColorHighlight + ">>> ")
 		} else if shellMode {
 			rl.SetPrompt(StyleBold + ColorCyan + "! ")
+		} else if config.OperationMode == Plan {
+			rl.SetPrompt(taskline + StyleBold + " ? ")
 		} else {
 			rl.SetPrompt(taskline + StyleBold + " > ")
 		}
