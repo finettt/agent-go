@@ -26,8 +26,8 @@ const (
 
 // Context compression settings
 const (
-	CompressionTemp      = 0.3
-	CompressionMaxTokens = 500
+	CompressionTemp      = 0.15
+	CompressionMaxTokens = 1500
 )
 
 // Sub-agent limits

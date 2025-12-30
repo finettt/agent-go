@@ -68,7 +68,11 @@ func main() {
 	}
 
 	// Display ASCII logo
-	printLogo()
+	if _, err := os.Stat("AGENTS.md"); os.IsNotExist(err) {
+		printLogo2()
+	} else {
+		printLogo()
+	}
 
 	config = loadConfig()
 	if config.APIKey == "" {
@@ -104,7 +108,7 @@ func main() {
 			// We could ask for confirmation or list them, but for now let's just warn and exit.
 		}
 
-		fmt.Println("\nBye!")
+		fmt.Println("\nHave a nice day! ;)")
 		os.Exit(0)
 	}()
 
@@ -119,6 +123,18 @@ func printLogo() {
 ██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║      ╚██████╔╝╚██████╔╝
 ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝       ╚═════╝  ╚═════╝
 
+` + ColorReset)
+}
+func printLogo2() {
+	fmt.Print(ColorHighlight + `
+╭─────────────────────────────────────────────────────────────────╮
+│ █████╗  ██████╗ ███████╗███╗   ██╗████████╗    ██████╗  ██████╗ │
+│██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝   ██╔════╝ ██╔═══██╗│
+│███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║█████╗██║  ███╗██║   ██║│
+│██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║╚════╝██║   ██║██║   ██║│
+│██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║      ╚██████╔╝╚██████╔╝│
+│╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝       ╚═════╝  ╚═════╝ │
+╰────────────[ ` + ColorMain + `Use /init command to create AGENTS.md` + ColorHighlight + ` ]────────────╯
 ` + ColorReset)
 }
 
@@ -137,6 +153,7 @@ func showHelp() {
 	fmt.Println("Available commands:")
 
 	printCmd("/help, /?", "Show this help message")
+	printCmd("/init", "Create AGENTS.md file")
 	printCmd("/config", "Display current configuration")
 	printCmd("/shell", "Enter shell mode for direct command execution")
 	printCmd("/bg", "Background process management")
@@ -224,11 +241,23 @@ func runCLI() {
 
 	for {
 		var taskline string
-		// Display current task if available
+		// Display task progress if available
 		if !agentStudioMode && !shellMode {
-			currentTask, _ := getCurrentTask(agent.ID)
-			if currentTask != "No task in progress." {
-				taskline = fmt.Sprintf("%s[%s]%s", ColorHighlight, currentTask, ColorReset)
+			completed, total, err := getTodoProgress(agent.ID)
+			if err == nil && total > 0 {
+				percent := float64(completed) / float64(total) * 100
+				width := 10
+				filled := int(float64(width) * percent / 100)
+				bar := "[" + ColorGreen
+				for i := 0; i < width; i++ {
+					if i < filled {
+						bar += "█"
+					} else {
+						bar += "░"
+					}
+				}
+				bar += ColorReset + "]"
+				taskline = fmt.Sprintf("%s %d/%d", bar, completed, total)
 			}
 		}
 
@@ -877,7 +906,7 @@ func handleSlashCommand(command string) {
 				fmt.Printf("Session '%s' saved.\n", agent.ID)
 			}
 		}
-		fmt.Println("Bye!")
+		fmt.Println("Have a nice day! ;)")
 		os.Exit(0)
 	case "/model":
 		if len(parts) > 1 {
@@ -916,6 +945,59 @@ func handleSlashCommand(command string) {
 				fmt.Printf("  - %s: %s\n", name, server.Command)
 			}
 		}
+	case "/init":
+		if !config.SubagentsEnabled {
+			fmt.Println("Subagents are disabled. Enable them with /subagents on to use this command.")
+			return
+		}
+		task := `Create (or update) a concise AGENTS.md file that enables immediate productivity for AI assistants.
+Focus ONLY on project-specific, non-obvious information that you had to discover by reading files.
+
+CRITICAL: Only include information that is:
+- Non-obvious (couldn't be guessed from standard practices)
+- Project-specific (not generic to the framework/language)
+- Discovered by reading files (config files, code patterns, custom utilities)
+- Essential for avoiding mistakes or following project conventions
+
+1. Discovery Phase:
+	  CRITICAL - First check for existing AGENTS.md files at these EXACT locations IN PROJECT ROOT:
+	  - AGENTS.md (in project/workspace root)
+	  
+	  If found, perform CRITICAL analysis:
+	  - What information is OBVIOUS and must be DELETED?
+	  - What violates the non-obvious-only principle?
+	  - What would an experienced developer already know?
+	  - DELETE first, then consider what to add
+	  - The file should get SHORTER, not longer
+
+2. Analyze codebase:
+	  - Identify stack (Language, framework, build tools)
+	  - Extract commands (Build, test, lint, run)
+	  - Map core architecture
+	  - Document critical patterns (Project-specific utilities, Non-standard approaches)
+	  - Extract code style (From config files only)
+	  - Testing specifics
+
+3. Create or update AGENTS.md files:
+	  - AGENTS.md (General project guidance)
+
+	  Use the following structure for AGENTS.md:
+	  # AGENTS.md
+
+	  This file provides guidance to agents when working with code in this repository.
+	  
+	  [Content]
+
+	  REMEMBER: The goal is to create documentation that enables AI assistants to be immediately productive in this codebase, focusing on project-specific knowledge that isn't obvious from the code structure alone.`
+
+		fmt.Println("Spawning subagent to analyze codebase and create AGENTS.md...")
+		result, err := runSubAgent(task, config)
+		if err != nil {
+			fmt.Printf("Initialization failed: %v\n", err)
+		} else {
+			fmt.Printf("\n=== Initialization Complete ===\n%s\n", result)
+		}
+
 	case "/rag":
 		if len(parts) > 1 {
 			switch parts[1] {
