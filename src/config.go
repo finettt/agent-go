@@ -22,6 +22,7 @@ func loadConfig() *Config {
 		SubagentsEnabled:      true,
 		ExecutionMode:         Ask,
 		OperationMode:         Build,
+		UsageVerboseMode:      UsageSilent,
 	}
 	config.MCPs = make(map[string]MCPServer)
 

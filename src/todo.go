@@ -20,11 +20,11 @@ type TodoList struct {
 }
 
 func getTodoListPath(agentID string) (string, error) {
-	home, err := os.UserHomeDir()
+	cwd, err := os.Getwd()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, ".config", "agent-go", "todos", fmt.Sprintf("%s.json", agentID)), nil
+	return filepath.Join(cwd, ".agent-go", "todos", fmt.Sprintf("%s.json", agentID)), nil
 }
 
 func loadTodoList(agentID string) (*TodoList, error) {
@@ -66,4 +66,48 @@ func saveTodoList(todoList *TodoList) error {
 	}
 
 	return os.WriteFile(path, data, 0644)
+}
+
+func getTodoProgress(agentID string) (int, int, error) {
+	todoList, err := loadTodoList(agentID)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	completed := 0
+	total := len(todoList.Todos)
+	for _, todo := range todoList.Todos {
+		if todo.Status == "completed" {
+			completed++
+		}
+	}
+
+	return completed, total, nil
+}
+
+func getCurrentTask(agentID string) (string, error) {
+	todoList, err := loadTodoList(agentID)
+	if err != nil {
+		return "", err
+	}
+
+	for _, todo := range todoList.Todos {
+		if todo.Status == "in-progress" {
+			return fmt.Sprintf("%s", todo.Task), nil
+		}
+	}
+
+	return "No task in progress.", nil
+}
+
+// clearTodoList clears all todos for the given agent
+func clearTodoList(agentID string) error {
+	// Create a fresh empty todo list
+	todoList := &TodoList{
+		AgentID: agentID,
+		Todos:   []TodoItem{},
+		NextID:  1,
+	}
+
+	return saveTodoList(todoList)
 }

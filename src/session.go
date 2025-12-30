@@ -12,10 +12,14 @@ import (
 
 // Session represents a saved agent session
 type Session struct {
-	ID        string    `json:"id"`
-	Messages  []Message `json:"messages"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID               string    `json:"id"`
+	Messages         []Message `json:"messages"`
+	CreatedAt        time.Time `json:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at"`
+	TotalTokens      int       `json:"total_tokens"`
+	PromptTokens     int       `json:"prompt_tokens"`
+	CompletionTokens int       `json:"completion_tokens"`
+	ToolCalls        int       `json:"tool_calls"`
 }
 
 // getSessionsDir returns the path to the sessions directory
@@ -51,9 +55,13 @@ func saveSession(agent *Agent) error {
 	// If the user uses the tool, agent.ID will be updated.
 
 	session := Session{
-		ID:        agent.ID,
-		Messages:  agent.Messages,
-		UpdatedAt: time.Now(),
+		ID:               agent.ID,
+		Messages:         agent.Messages,
+		UpdatedAt:        time.Now(),
+		TotalTokens:      totalTokens,
+		PromptTokens:     totalPromptTokens,
+		CompletionTokens: totalCompletionTokens,
+		ToolCalls:        totalToolCalls,
 	}
 	// Try to load existing session to preserve CreatedAt
 	existing, err := loadSession(agent.ID)

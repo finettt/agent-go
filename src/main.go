@@ -68,7 +68,11 @@ func main() {
 	}
 
 	// Display ASCII logo
-	printLogo()
+	if _, err := os.Stat("AGENTS.md"); os.IsNotExist(err) {
+		printLogo2()
+	} else {
+		printLogo()
+	}
 
 	config = loadConfig()
 	if config.APIKey == "" {
@@ -104,7 +108,7 @@ func main() {
 			// We could ask for confirmation or list them, but for now let's just warn and exit.
 		}
 
-		fmt.Println("\nBye!")
+		fmt.Println("\nHave a nice day! ;)")
 		os.Exit(0)
 	}()
 
@@ -119,6 +123,18 @@ func printLogo() {
 ██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║      ╚██████╔╝╚██████╔╝
 ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝       ╚═════╝  ╚═════╝
 
+` + ColorReset)
+}
+func printLogo2() {
+	fmt.Print(ColorHighlight + `
+╭─────────────────────────────────────────────────────────────────╮
+│ █████╗  ██████╗ ███████╗███╗   ██╗████████╗    ██████╗  ██████╗ │
+│██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝   ██╔════╝ ██╔═══██╗│
+│███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║█████╗██║  ███╗██║   ██║│
+│██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║╚════╝██║   ██║██║   ██║│
+│██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║      ╚██████╔╝╚██████╔╝│
+│╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝       ╚═════╝  ╚═════╝ │
+╰────────────[ ` + ColorMain + `Use /init command to create AGENTS.md` + ColorHighlight + ` ]────────────╯
 ` + ColorReset)
 }
 
@@ -137,6 +153,7 @@ func showHelp() {
 	fmt.Println("Available commands:")
 
 	printCmd("/help, /?", "Show this help message")
+	printCmd("/init", "Create AGENTS.md file")
 	printCmd("/config", "Display current configuration")
 	printCmd("/shell", "Enter shell mode for direct command execution")
 	printCmd("/bg", "Background process management")
@@ -162,6 +179,7 @@ func showHelp() {
 	printCmd("/cost", "Show current usage statistics")
 
 	printCmd("/todo", "Display the current todo list")
+	printCmd("/current", "Display the current in-progress task")
 
 	printCmd("/notes", "Notes management")
 	printSubCmd("list", "List all notes")
@@ -222,12 +240,35 @@ func runCLI() {
 	fmt.Printf("Welcome to Agent-Go!\n%s%s • %s • %s%s\n", ColorMeta, config.Model, cwd, sandboxStatus, ColorReset)
 
 	for {
+		var taskline string
+		// Display task progress if available
+		if !agentStudioMode && !shellMode {
+			completed, total, err := getTodoProgress(agent.ID)
+			if err == nil && total > 0 {
+				percent := float64(completed) / float64(total) * 100
+				width := 10
+				filled := int(float64(width) * percent / 100)
+				bar := "[" + ColorGreen
+				for i := 0; i < width; i++ {
+					if i < filled {
+						bar += "█"
+					} else {
+						bar += "░"
+					}
+				}
+				bar += ColorReset + "]"
+				taskline = fmt.Sprintf("%s %d/%d", bar, completed, total)
+			}
+		}
+
 		if agentStudioMode {
 			rl.SetPrompt(StyleBold + ColorHighlight + ">>> ")
 		} else if shellMode {
 			rl.SetPrompt(StyleBold + ColorCyan + "! ")
+		} else if config.OperationMode == Plan {
+			rl.SetPrompt(taskline + StyleBold + " ? ")
 		} else {
-			rl.SetPrompt(StyleBold + "> ")
+			rl.SetPrompt(taskline + StyleBold + " > ")
 		}
 
 		userInput, err := rl.Readline()
@@ -342,7 +383,7 @@ func runCLI() {
 				fmt.Printf("%sThink...\n%s", ColorMeta, ColorReset)
 			}
 			if assistantMsg.Content != nil && *assistantMsg.Content != "" {
-				fmt.Printf("%s%s%s\n", ColorMain, *assistantMsg.Content, ColorReset)
+				fmt.Printf("%s● %s%s%s\n", ColorHighlight, ColorMain, *assistantMsg.Content, ColorReset)
 			}
 
 			// Update and display total tokens
@@ -359,20 +400,19 @@ func runCLI() {
 
 			// Display usage based on verbose mode
 			switch config.UsageVerboseMode {
-			case UsageSilent:
-				// Do nothing
 			case UsageDetailed:
 				if resp.Usage.TotalTokens > 0 {
 					fmt.Printf("%sUsage: %d prompt + %d completion = %d total tokens\n", ColorMeta, resp.Usage.PromptTokens, resp.Usage.CompletionTokens, resp.Usage.TotalTokens)
 					fmt.Printf("Total: %s tokens (%d prompt, %d completion), %d tool calls%s\n", formatTokenCount(totalTokens), totalPromptTokens, totalCompletionTokens, totalToolCalls, ColorReset)
 				}
 			case UsageBasic:
-				fallthrough
-			default:
-				// Default behavior (Basic)
 				if resp.Usage.TotalTokens > 0 {
 					fmt.Printf("%sUsed %s%s%s tokens on %s%s\n", ColorMeta, ColorHighlight, formatTokenCount(totalTokens), ColorMeta, config.Model, ColorReset)
 				}
+			case UsageSilent:
+				fallthrough
+			default:
+				// Default behavior (Silent)
 			}
 
 			if len(assistantMsg.ToolCalls) > 0 {
@@ -519,9 +559,9 @@ func handleSlashCommand(command string) {
 		fmt.Printf("%s / %s tokens used\n\n", formatNumber(totalTokens), formatNumber(config.ModelContextLength))
 
 		fmt.Println("Session Statistics:")
-		fmt.Printf("• Prompt Tokens:      %s\n", formatNumber(totalPromptTokens))
-		fmt.Printf("• Completion Tokens:  %s\n", formatNumber(totalCompletionTokens))
-		fmt.Printf("• Tool Calls:         %s\n", formatNumber(totalToolCalls))
+		fmt.Printf("%s•%s Prompt Tokens:      %s\n", ColorHighlight, ColorReset, formatNumber(totalPromptTokens))
+		fmt.Printf("%s•%s Completion Tokens:  %s\n", ColorHighlight, ColorReset, formatNumber(totalCompletionTokens))
+		fmt.Printf("%s•%s Tool Calls:         %s\n", ColorHighlight, ColorReset, formatNumber(totalToolCalls))
 		fmt.Println()
 
 	case "/session":
@@ -558,11 +598,14 @@ func handleSlashCommand(command string) {
 				ID:       loadedSession.ID,
 				Messages: loadedSession.Messages,
 			}
-			// Recalculate tokens? We don't store them, so they'll reset to 0
-			// Ideally we should probably estimate them or store them in session.
-			// For now, resetting to 0 is acceptable behavior, though auto-compress might trigger late.
-			totalTokens = 0
+			// Restore token counts from session
+			totalTokens = loadedSession.TotalTokens
+			totalPromptTokens = loadedSession.PromptTokens
+			totalCompletionTokens = loadedSession.CompletionTokens
+			totalToolCalls = loadedSession.ToolCalls
+
 			fmt.Printf("Session '%s' restored.\n", name)
+			fmt.Printf("Restored token counts: Total: %d, Prompt: %d, Completion: %d, Tool Calls: %d\n", totalTokens, totalPromptTokens, totalCompletionTokens, totalToolCalls)
 		case "new":
 			// Save current session first if it has content
 			if len(agent.Messages) > 1 {
@@ -623,15 +666,61 @@ func handleSlashCommand(command string) {
 			fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
 		}
 	case "/plan":
-		if config.OperationMode == Build {
-			config.OperationMode = Plan
-			fmt.Println("Switched to Plan mode.")
+		if len(parts) > 1 {
+			switch parts[1] {
+			case "view":
+				content, err := os.ReadFile(".agent-go/current_plan.md")
+				if err != nil {
+					if os.IsNotExist(err) {
+						fmt.Println("No active plan (.agent-go/current_plan.md) found.")
+					} else {
+						fmt.Printf("Error reading .agent-go/current_plan.md: %v\n", err)
+					}
+					return
+				}
+				fmt.Println(string(content))
+			case "edit":
+				// Create current_plan.md if it doesn't exist
+				planPath := ".agent-go/current_plan.md"
+				if _, err := os.Stat(planPath); os.IsNotExist(err) {
+					// Ensure directory exists
+					if err := os.MkdirAll(".agent-go", 0755); err != nil {
+						fmt.Printf("Error creating .agent-go directory: %v\n", err)
+						return
+					}
+					if err := os.WriteFile(planPath, []byte("# Plan\n\n"), 0644); err != nil {
+						fmt.Printf("Error creating .agent-go/current_plan.md: %v\n", err)
+						return
+					}
+					fmt.Println("Created new .agent-go/current_plan.md file.")
+				}
+
+				editor := "nano"
+				if runtime.GOOS == "windows" {
+					editor = "notepad"
+				}
+				cmd := exec.Command(editor, planPath)
+				cmd.Stdin = os.Stdin
+				cmd.Stdout = os.Stdout
+				cmd.Stderr = os.Stderr
+				if err := cmd.Run(); err != nil {
+					fmt.Printf("Error opening editor: %v\n", err)
+				}
+			default:
+				fmt.Println("Usage: /plan [view|edit]")
+			}
 		} else {
-			config.OperationMode = Build
-			fmt.Println("Switched to Build mode.")
-		}
-		if err := saveConfig(config); err != nil {
-			fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
+			// Toggle mode
+			if config.OperationMode == Build {
+				config.OperationMode = Plan
+				fmt.Println("Switched to Plan mode.")
+			} else {
+				config.OperationMode = Build
+				fmt.Println("Switched to Build mode.")
+			}
+			if err := saveConfig(config); err != nil {
+				fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
+			}
 		}
 	case "/ask":
 		if len(parts) > 1 {
@@ -709,6 +798,13 @@ func handleSlashCommand(command string) {
 			fmt.Fprintf(os.Stderr, "Error getting todo list: %s\n", err)
 		} else {
 			fmt.Println(list)
+		}
+	case "/current":
+		task, err := getCurrentTask(agent.ID)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error getting current task: %s\n", err)
+		} else {
+			fmt.Println(task)
 		}
 	case "/notes":
 		if len(parts) < 2 {
@@ -812,7 +908,7 @@ func handleSlashCommand(command string) {
 				fmt.Printf("Session '%s' saved.\n", agent.ID)
 			}
 		}
-		fmt.Println("Bye!")
+		fmt.Println("Have a nice day! ;)")
 		os.Exit(0)
 	case "/model":
 		if len(parts) > 1 {
@@ -851,6 +947,59 @@ func handleSlashCommand(command string) {
 				fmt.Printf("  - %s: %s\n", name, server.Command)
 			}
 		}
+	case "/init":
+		if !config.SubagentsEnabled {
+			fmt.Println("Subagents are disabled. Enable them with /subagents on to use this command.")
+			return
+		}
+		task := `Create (or update) a concise AGENTS.md file that enables immediate productivity for AI assistants.
+Focus ONLY on project-specific, non-obvious information that you had to discover by reading files.
+
+CRITICAL: Only include information that is:
+- Non-obvious (couldn't be guessed from standard practices)
+- Project-specific (not generic to the framework/language)
+- Discovered by reading files (config files, code patterns, custom utilities)
+- Essential for avoiding mistakes or following project conventions
+
+1. Discovery Phase:
+	  CRITICAL - First check for existing AGENTS.md files at these EXACT locations IN PROJECT ROOT:
+	  - AGENTS.md (in project/workspace root)
+	  
+	  If found, perform CRITICAL analysis:
+	  - What information is OBVIOUS and must be DELETED?
+	  - What violates the non-obvious-only principle?
+	  - What would an experienced developer already know?
+	  - DELETE first, then consider what to add
+	  - The file should get SHORTER, not longer
+
+2. Analyze codebase:
+	  - Identify stack (Language, framework, build tools)
+	  - Extract commands (Build, test, lint, run)
+	  - Map core architecture
+	  - Document critical patterns (Project-specific utilities, Non-standard approaches)
+	  - Extract code style (From config files only)
+	  - Testing specifics
+
+3. Create or update AGENTS.md files:
+	  - AGENTS.md (General project guidance)
+
+	  Use the following structure for AGENTS.md:
+	  # AGENTS.md
+
+	  This file provides guidance to agents when working with code in this repository.
+	  
+	  [Content]
+
+	  REMEMBER: The goal is to create documentation that enables AI assistants to be immediately productive in this codebase, focusing on project-specific knowledge that isn't obvious from the code structure alone.`
+
+		fmt.Println("Spawning subagent to analyze codebase and create AGENTS.md...")
+		result, err := runSubAgent(task, config)
+		if err != nil {
+			fmt.Printf("Initialization failed: %v\n", err)
+		} else {
+			fmt.Printf("\n=== Initialization Complete ===\n%s\n", result)
+		}
+
 	case "/rag":
 		if len(parts) > 1 {
 			switch parts[1] {
@@ -1074,7 +1223,7 @@ func handleSlashCommand(command string) {
 func buildSystemPrompt(contextSummary string) string {
 	var basePrompt string
 	if config.OperationMode == Plan {
-		basePrompt = "You are an AI assistant in PLAN mode. Your goals are to:\n1. Analyze the user's request.\n2. Create a detailed implementation plan.\n3. Generate a comprehensive TODO list using the `create_todo` tool.\n4. Present the plan to the user using the `suggest_plan` tool for approval.\n\nIMPORTANT: You CANNOT execute shell commands in this mode. Focus purely on planning. Use the `suggest_plan` tool to show your plan and ask for confirmation. If the user approves (answers 'y' to the prompt), the system will automatically switch to 'build' mode for you to start implementation."
+		basePrompt = "You are an AI assistant in PLAN mode. Your goals are to:\n1. Analyze the user's request.\n2. Create a detailed implementation plan.\n3. Generate a comprehensive TODO list using the `create_todo` tool. This is CRITICAL. You MUST create the todo list before suggesting the plan.\n4. Present the plan to the user using the `suggest_plan` tool for approval.\n\nIMPORTANT: You CANNOT execute shell commands in this mode. Focus purely on planning. Use the `suggest_plan` tool to show your plan (providing a name and description) and ask for confirmation. If the user approves (answers 'y' to the prompt), the system will automatically switch to 'build' mode for you to start implementation."
 	} else {
 		basePrompt = "You are an AI assistant in BUILD mode. You can execute commands, write code, and implement solutions. You can manage a todo list by using the `create_todo`, `update_todo`, and `get_todo_list` tools. You can also create notes using `create_note`, `update_note`, and `delete_note` tools. Notes persist across sessions. For multi-step tasks, chain commands with && (e.g., 'echo content > file.py && python3 file.py'). Use execute_command for shell tasks."
 	}
@@ -1215,7 +1364,7 @@ func runTask(task string) {
 		agent.Messages = append(agent.Messages, assistantMsg)
 
 		if assistantMsg.Content != nil && *assistantMsg.Content != "" {
-			fmt.Printf("%s\n", *assistantMsg.Content)
+			fmt.Printf("● %s\n", *assistantMsg.Content)
 		}
 
 		if len(assistantMsg.ToolCalls) > 0 {
@@ -1245,15 +1394,15 @@ func editCommand() {
 
 	editor := "nano"
 	if runtime.GOOS == "windows" {
-		editor = "notepad"
+		editor = "edit"
 	}
 
 	// Open the file in the editor
 	fmt.Printf("Opening %s in %s...\n", tmpFileName, editor)
-	if editor == "nano" {
-		fmt.Println("Make your changes and save the file (Ctrl+O, Enter, then Ctrl+X to exit).")
+	if editor == "vi" {
+		fmt.Println("Make your changes and save the file.")
 	} else {
-		fmt.Println("Make your changes, save the file (Ctrl+S), and close the editor.")
+		fmt.Println("Make your changes, save the file, and close the editor.")
 	}
 
 	cmd := exec.Command(editor, tmpFileName)
@@ -1324,10 +1473,10 @@ func editCommand() {
 		agent.Messages = append(agent.Messages, assistantMsg)
 
 		if assistantMsg.ReasoningContent != nil && *assistantMsg.ReasoningContent != "" {
-			fmt.Printf("%sThink...\n%s", ColorMeta, ColorReset)
+			fmt.Printf("%s%sThink...\n%s", StyleItalic, ColorMeta, ColorReset)
 		}
 		if assistantMsg.Content != nil && *assistantMsg.Content != "" {
-			fmt.Printf("%s%s%s\n", ColorMain, *assistantMsg.Content, ColorReset)
+			fmt.Printf("%s● %s%s%s\n", ColorHighlight, ColorMain, *assistantMsg.Content, ColorReset)
 		}
 
 		// Update and display total tokens
@@ -1344,20 +1493,19 @@ func editCommand() {
 
 		// Display usage based on verbose mode
 		switch config.UsageVerboseMode {
-		case UsageSilent:
-			// Do nothing
 		case UsageDetailed:
 			if resp.Usage.TotalTokens > 0 {
 				fmt.Printf("%sUsage: %d prompt + %d completion = %d total tokens\n", ColorMeta, resp.Usage.PromptTokens, resp.Usage.CompletionTokens, resp.Usage.TotalTokens)
 				fmt.Printf("Total: %s tokens (%d prompt, %d completion), %d tool calls%s\n", formatTokenCount(totalTokens), totalPromptTokens, totalCompletionTokens, totalToolCalls, ColorReset)
 			}
 		case UsageBasic:
-			fallthrough
-		default:
-			// Default behavior (Basic)
 			if resp.Usage.TotalTokens > 0 {
 				fmt.Printf("%sUsed %s%s%s tokens on %s%s\n", ColorMeta, ColorHighlight, formatTokenCount(totalTokens), ColorMeta, config.Model, ColorReset)
 			}
+		case UsageSilent:
+			fallthrough
+		default:
+			// Default behavior (Silent)
 		}
 
 		if len(assistantMsg.ToolCalls) > 0 {

@@ -74,6 +74,9 @@ func compressContext(agent *Agent, config *Config) (string, error) {
 	var compressionBuilder strings.Builder
 	compressionBuilder.WriteString("Compress the following conversation into a brief summary (1-3 sentences), preserving key details and context:\n\n")
 	for _, msg := range messagesToCompress {
+		if msg.Content == nil {
+			continue // Skip messages with no content (e.g. tool calls only)
+		}
 		switch msg.Role {
 		case "user":
 			compressionBuilder.WriteString(fmt.Sprintf("User: %s\n", *msg.Content))

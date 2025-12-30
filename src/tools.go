@@ -18,7 +18,8 @@ type UpdateTodoArgs struct {
 }
 
 type SuggestPlanArgs struct {
-	Plan string `json:"plan"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
 }
 
 // getAvailableTools returns the list of tools available to the agent
@@ -88,6 +89,24 @@ func getAvailableTools(config *Config, includeSpawn bool, operationMode Operatio
 		Function: FunctionDefinition{
 			Name:        "get_todo_list",
 			Description: "Get the current list of todo items.",
+			Parameters:  map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
+		},
+	})
+
+	tools = append(tools, Tool{
+		Type: "function",
+		Function: FunctionDefinition{
+			Name:        "get_current_task",
+			Description: "Get the current in-progress task.",
+			Parameters:  map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
+		},
+	})
+
+	tools = append(tools, Tool{
+		Type: "function",
+		Function: FunctionDefinition{
+			Name:        "clear_todo",
+			Description: "Clear all todo items.",
 			Parameters:  map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
 		},
 	})
@@ -200,9 +219,10 @@ func getAvailableTools(config *Config, includeSpawn bool, operationMode Operatio
 				Parameters: map[string]interface{}{
 					"type": "object",
 					"properties": map[string]interface{}{
-						"plan": map[string]string{"type": "string", "description": "The detailed plan to present to the user"},
+						"name":        map[string]string{"type": "string", "description": "A short, descriptive name for the plan"},
+						"description": map[string]string{"type": "string", "description": "A high-level description of what the plan entails"},
 					},
-					"required": []string{"plan"},
+					"required": []string{"name", "description"},
 				},
 			},
 		})
@@ -359,8 +379,24 @@ func getTodoList(agentID string) (string, error) {
 	var builder strings.Builder
 	builder.WriteString("Current Todo List:\n")
 	for _, todo := range todoList.Todos {
-		builder.WriteString(fmt.Sprintf("- [ID: %d] %s (%s)\n", todo.ID, todo.Task, todo.Status))
+		checkbox := " "
+		switch todo.Status {
+		case "completed":
+			checkbox = "x"
+		case "in-progress":
+			checkbox = "-"
+		}
+
+		builder.WriteString(fmt.Sprintf("%d. [%s] %s \n", todo.ID, checkbox, todo.Task))
 	}
 
 	return builder.String(), nil
+}
+
+// clearTodo clears the todo list for the given agent
+func clearTodo(agentID string) (string, error) {
+	if err := clearTodoList(agentID); err != nil {
+		return "", err
+	}
+	return "Todo list cleared.", nil
 }

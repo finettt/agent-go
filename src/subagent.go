@@ -80,7 +80,7 @@ func runSubAgentWithAgent(task string, agentName string, config *Config) (string
 				} else {
 					output, err = confirmAndExecute(config, args.Command)
 					if err == nil {
-						logMessage = fmt.Sprintf("Executed bash command %s(%s)%s", ColorMeta, args.Command, ColorReset)
+						logMessage = fmt.Sprintf("Bash %s(%s)%s", ColorMeta, args.Command, ColorReset)
 					}
 				}
 			case "create_todo":
