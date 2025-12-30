@@ -190,7 +190,6 @@ Manage Agent-Go's configuration and features from within the application using s
 ```
 > /help
 Available commands:
-  Available commands:
     /help              - Show this help message
     /model <name>      - Set the AI model (e.g., gpt-4)
     /provider <url>    - Set the API provider URL
@@ -472,8 +471,6 @@ On its first run, Agent-Go creates a configuration file at `~/.config/agent-go/c
     }
   }
 }
-```
-
 ```
 
 ### Custom Agent Instructions

@@ -238,7 +238,7 @@ func runCLI() {
 	if _, err := os.Stat("/.dockerenv"); err == nil {
 		sandboxStatus = "Sandbox: On"
 	}
-	fmt.Printf("Welcome to Agent-Go!\n%s%s • %s • %s%s\n", ColorMeta, config.Model, cwd, sandboxStatus, ColorReset)
+	fmt.Printf("Happy new year!\n%s%s • %s • %s%s\n", ColorMeta, config.Model, cwd, sandboxStatus, ColorReset)
 
 	for {
 		var taskline string

@@ -5,6 +5,55 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2025-12-30
+
+### Added
+- **Skills System**:
+  - Implement custom skill system with script-based tools (9790d8c)
+  - Enable direct execution of .sh files (c30f2ab)
+- **Session Management**:
+  - New `/session view <name>` command to inspect session details, metadata, and recent messages (e0139f2)
+  - Persist token usage statistics in session data (87d7596)
+- **CLI Enhancements**:
+  - New `/current` command to display the current in-progress task (faa638a)
+  - Added 'all' option to switch to YOLO mode during execution (20f2804)
+  - Plan viewing and editing capabilities (3d4a9cb)
+  - Progress bar for cost tracking (3338123)
+  - Enhanced output readability with bullets (61ee556)
+  - Changed prompt to '?' when in plan mode (69210f3)
+  - Sandbox mode and environment detection (85cd03c)
+- **Tool Capabilities**:
+  - Added `clear_todo` tool for cleaning up tasks (2de9760)
+  - Enhanced planning tool and prompt display (5c59ebe)
+  - Background command support via `/bg` commands (eee1099)
+- **Installer**:
+  - Rolling update support (e72b5a0)
+  - Pre-built binary downloads (67a3bd6)
+
+### Changed
+- **CLI/UX**:
+  - Refined CLI user experience and interface (84419bc)
+  - Redesigned `/cost` command with progress bar visualization (28a363d)
+  - Set usage display to silent by default (77b878b)
+- **Configuration**:
+  - Increased default context limit (77b878b)
+- **Documentation**:
+  - Removed duplicate content and fixed formatting errors across docs (aa62567)
+  - Updated documentation for modes and commands (b449120)
+  - Added rolling install instructions (a67dcd0)
+- **License**:
+  - Updated license from MIT to Apache 2.0 with Commons Clause (1062479)
+
+### Removed
+- **Streaming**:
+  - Removed streaming functionality for better stability (ddf72e7)
+
+### Fixed
+- **Windows Compatibility**:
+  - Improved compatibility for installer and edit command (cd92922)
+- **Security**:
+  - Fix for potentially unsafe quoting (044acb9)
+
 ## [1.2.0] - 2025-12-18
 
 ### Added

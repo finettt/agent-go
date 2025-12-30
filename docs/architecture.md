@@ -307,7 +307,6 @@ Support for `AGENTS.md` file for custom agent behavior:
 
 ### Enhanced CLI Experience
 
-- **Command History**: Persistent command history across sessions
 - **Command History**: Persistent command history stored in `~/.config/agent-go/history.txt`
 - **Auto-completion**: Intelligent suggestions for commands and models, dynamically fetched from API
 - **Enhanced Autocomplete**: Extended completion for `/agent` commands, agent names, and session names
