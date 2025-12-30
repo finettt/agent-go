@@ -233,3 +233,48 @@ func nameSession(agent *Agent, argsJSON string) (string, error) {
 
 	return fmt.Sprintf("Session renamed from '%s' to '%s'.", oldID, safeName), nil
 }
+
+// formatSessionView returns a formatted string of a specific session
+func formatSessionView(id string) string {
+	session, err := loadSession(id)
+	if err != nil {
+		return fmt.Sprintf("Error loading session '%s': %s", id, err)
+	}
+
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("Session: %s\n", session.ID))
+	sb.WriteString(fmt.Sprintf("Created: %s\n", session.CreatedAt.Format("2006-01-02 15:04:05")))
+	sb.WriteString(fmt.Sprintf("Updated: %s\n", session.UpdatedAt.Format("2006-01-02 15:04:05")))
+	sb.WriteString(fmt.Sprintf("Messages: %d\n", len(session.Messages)))
+	sb.WriteString(fmt.Sprintf("Tokens: %d (Prompt: %d, Completion: %d)\n", session.TotalTokens, session.PromptTokens, session.CompletionTokens))
+	sb.WriteString(fmt.Sprintf("Tool Calls: %d\n", session.ToolCalls))
+	sb.WriteString("\nRecent Messages:\n")
+
+	// Show last 5 messages or fewer if there aren't that many
+	start := len(session.Messages) - 5
+	if start < 0 {
+		start = 0
+	}
+
+	for i := start; i < len(session.Messages); i++ {
+		msg := session.Messages[i]
+		role := msg.Role
+		content := ""
+		if msg.Content != nil {
+			content = *msg.Content
+		} else if len(msg.ToolCalls) > 0 {
+			content = fmt.Sprintf("[Tool Call: %s]", msg.ToolCalls[0].Function.Name)
+		}
+
+		// Truncate content if it's too long
+		if len(content) > 100 {
+			content = content[:97] + "..."
+		}
+		// Replace newlines with spaces for preview
+		content = strings.ReplaceAll(content, "\n", " ")
+
+		sb.WriteString(fmt.Sprintf("- [%s]: %s\n", role, content))
+	}
+
+	return sb.String()
+}

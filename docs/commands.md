@@ -36,6 +36,7 @@ Available commands:
   /subagents on|off  - Toggle sub-agent spawning
   /session new       - Create new session and save current context
   /session list      - View saved sessions
+  /session view <name> - View session details
   /session restore <name> - Restore previous session
   /session rm <name> - Delete saved session
   /agent studio      - Start Agent Studio for creating custom agents
@@ -384,10 +385,47 @@ Current Session: session-20251218-123456
 - Sessions are ordered by last access time
 - Provides quick overview of available sessions
 
+
+### `/session view <name>`
+
+Displays detailed information about a specific session, including metadata, statistics, and a preview of recent messages.
+
+**Usage:**
+
+```
+/session view <name>
+```
+
+**Parameters:**
+
+- `name`: The name of the session to view
+
+**Example:**
+
+```
+> /session view project-alpha
+Session: project-alpha
+Created: 2025-12-15 09:15:00
+Updated: 2025-12-16 16:20:00
+Messages: 150
+Tokens: 89215 (Prompt: 45000, Completion: 44215)
+Tool Calls: 12
+
+Recent Messages:
+- [user]: Can you fix the bug in the login handler?
+- [assistant]: I'll take a look. Please provide the error logs.
+- [user]: Here are the logs...
+```
+
+**Notes:**
+
+- Useful for inspecting a session before restoring it
+- Shows the last 5 messages for context
+- Displays detailed token usage stats
+
 ### `/session restore <name>`
 
 Restores a previously saved session, loading its conversation history and context.
-
 **Usage:**
 
 ```

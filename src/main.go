@@ -187,6 +187,7 @@ func showHelp() {
 
 	printCmd("/session", "Manage chat sessions")
 	printSubCmd("list", "List saved sessions")
+	printSubCmd("view <name>", "View session details")
 	printSubCmd("restore <name>", "Restore a session")
 	printSubCmd("new", "Create a new session with fresh context")
 	printSubCmd("rm <name>", "Delete a saved session")
@@ -572,6 +573,13 @@ func handleSlashCommand(command string) {
 		switch parts[1] {
 		case "list":
 			fmt.Println(formatSessionsList())
+		case "view":
+			if len(parts) < 3 {
+				fmt.Println("Usage: /session view <name>")
+				return
+			}
+			name := parts[2]
+			fmt.Println(formatSessionView(name))
 		case "restore":
 			if len(parts) < 3 {
 				fmt.Println("Usage: /session restore <name>")
@@ -651,7 +659,7 @@ func handleSlashCommand(command string) {
 				fmt.Printf("Session '%s' deleted.\n", name)
 			}
 		default:
-			fmt.Println("Usage: /session [list|restore <name>|new|rm <name>]")
+			fmt.Println("Usage: /session [list|view <name>|restore <name>|new|rm <name>]")
 		}
 
 	case "/mode":
