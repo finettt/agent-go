@@ -76,7 +76,7 @@ func getCurrentTask(agentID string) (string, error) {
 
 	for _, todo := range todoList.Todos {
 		if todo.Status == "in-progress" {
-			return fmt.Sprintf("Current Task: %s", todo.Task), nil
+			return fmt.Sprintf("%s", todo.Task), nil
 		}
 	}
 

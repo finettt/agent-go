@@ -223,11 +223,12 @@ func runCLI() {
 	fmt.Printf("Welcome to Agent-Go!\n%s%s • %s • %s%s\n", ColorMeta, config.Model, cwd, sandboxStatus, ColorReset)
 
 	for {
+		var taskline string
 		// Display current task if available
 		if !agentStudioMode && !shellMode {
 			currentTask, _ := getCurrentTask(agent.ID)
 			if currentTask != "No task in progress." {
-				fmt.Printf("\n%s%s%s\n\n", ColorHighlight, currentTask, ColorReset)
+				taskline = fmt.Sprintf("%s[%s]%s", ColorHighlight, currentTask, ColorReset)
 			}
 		}
 
@@ -236,7 +237,7 @@ func runCLI() {
 		} else if shellMode {
 			rl.SetPrompt(StyleBold + ColorCyan + "! ")
 		} else {
-			rl.SetPrompt(StyleBold + "> ")
+			rl.SetPrompt(taskline + StyleBold + " > ")
 		}
 
 		userInput, err := rl.Readline()
@@ -1090,7 +1091,7 @@ func handleSlashCommand(command string) {
 func buildSystemPrompt(contextSummary string) string {
 	var basePrompt string
 	if config.OperationMode == Plan {
-		basePrompt = "You are an AI assistant in PLAN mode. Your goals are to:\n1. Analyze the user's request.\n2. Create a detailed implementation plan.\n3. Generate a comprehensive TODO list using the `create_todo` tool.\n4. Present the plan to the user using the `suggest_plan` tool for approval.\n\nIMPORTANT: You CANNOT execute shell commands in this mode. Focus purely on planning. Use the `suggest_plan` tool to show your plan and ask for confirmation. If the user approves (answers 'y' to the prompt), the system will automatically switch to 'build' mode for you to start implementation."
+		basePrompt = "You are an AI assistant in PLAN mode. Your goals are to:\n1. Analyze the user's request.\n2. Create a detailed implementation plan.\n3. Generate a comprehensive TODO list using the `create_todo` tool. This is CRITICAL. You MUST create the todo list before suggesting the plan.\n4. Present the plan to the user using the `suggest_plan` tool for approval.\n\nIMPORTANT: You CANNOT execute shell commands in this mode. Focus purely on planning. Use the `suggest_plan` tool to show your plan (providing a name and description) and ask for confirmation. If the user approves (answers 'y' to the prompt), the system will automatically switch to 'build' mode for you to start implementation."
 	} else {
 		basePrompt = "You are an AI assistant in BUILD mode. You can execute commands, write code, and implement solutions. You can manage a todo list by using the `create_todo`, `update_todo`, and `get_todo_list` tools. You can also create notes using `create_note`, `update_note`, and `delete_note` tools. Notes persist across sessions. For multi-step tasks, chain commands with && (e.g., 'echo content > file.py && python3 file.py'). Use execute_command for shell tasks."
 	}
