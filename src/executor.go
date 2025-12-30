@@ -44,7 +44,7 @@ func confirmAndExecute(config *Config, command string) (string, error) {
 
 	if config.ExecutionMode == Ask {
 		// The command is already printed as part of the tool call, so we just ask for confirmation.
-		fmt.Printf("%s$ %s%s\n%s?%s Execute? [y=foreground/b=background/N]: ", ColorCyan, command, ColorReset, ColorHighlight, ColorReset)
+		fmt.Printf("%s$ %s%s\n%s?%s Execute? [y=foreground/b=background/a=all/N]: ", ColorCyan, command, ColorReset, ColorHighlight, ColorReset)
 
 		var response string
 		fmt.Scanln(&response) // This is safer than bufio.NewReader with the readline library.
@@ -54,6 +54,10 @@ func confirmAndExecute(config *Config, command string) (string, error) {
 			return executeCommand(command)
 		case "b", "bg", "background":
 			return executeBackgroundCommand(command)
+		case "a", "all", "always", "yolo":
+			config.ExecutionMode = YOLO
+			fmt.Println("Switched to YOLO mode. Future commands will be executed without confirmation.")
+			return executeCommand(command)
 		default:
 			return "Command not executed by user.", nil
 		}

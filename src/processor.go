@@ -111,7 +111,7 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 			if unmarshalErr := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); unmarshalErr != nil {
 				output = fmt.Sprintf("Failed to parse arguments: %s", unmarshalErr)
 			} else {
-				fmt.Printf("\n%sSuggested Plan: %s%s\n", ColorHighlight, args.Name, ColorReset)
+				fmt.Printf("\n%s%s%sSuggested Plan: %s%s\n", StyleItalic, StyleUnderline, ColorHighlight, args.Name, ColorReset)
 				fmt.Printf("%s%s%s\n", ColorMain, args.Description, ColorReset)
 				fmt.Printf("%sApprove this plan? [y/N]: %s", ColorCyan, ColorReset)
 				var response string
