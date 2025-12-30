@@ -1300,76 +1300,6 @@ Context compressed. Starting new chat with compressed summary as system message.
 
 All slash command changes (except `/help` and `/config`) are automatically saved to your configuration file at `~/.config/agent-go/config.json`. This ensures your preferences persist across sessions.
 
-## Troubleshooting
-
-### Common Issues
-
-**Model not found:**
-
-```
-> /model invalid-model
-Unknown model: invalid-model
-```
-
-Solution: Use `/help` or check your provider's documentation for valid model names.
-
-**Invalid path:**
-
-```
-> /rag path /nonexistent/path
-Error: cannot access /nonexistent/path
-```
-
-Solution: Ensure the directory exists and you have read permissions.
-
-**API connection issues:**
-
-```
-> /model
-Error: could not fetch models from API
-```
-
-Solution: Check your internet connection and API provider URL.
-
-**Context compression errors:**
-
-```
-> /compress
-Error: no messages to compress
-```
-
-Solution: Start a conversation first before attempting to compress context.
-
-**Permission errors:**
-
-```
-> /rag path /protected/path
-Error: permission denied
-```
-
-Solution: Choose a directory you have read access to.
-
-### Getting Help
-
-If you encounter issues not covered here:
-
-1. Use `/help` to see all available commands
-2. Check the main documentation in the `/docs` directory
-3. Review the [Architecture](architecture.md) and [Configuration](configuration.md) documents
-4. For bugs or feature requests, check the GitHub repository
-
-### Debug Mode
-
-For troubleshooting configuration issues:
-
-```bash
-# Enable debug logging
-export DEBUG=1
-./agent-go
-```
-
-This will provide detailed logging information to help diagnose issues.
-
 ## Additional Features
 
 ### `/mode` (or `/plan`)
@@ -1487,6 +1417,14 @@ Agent-Go tracks and displays token usage in real-time:
 > /compress
 Context compressed. Starting new chat with compressed summary as system message.
 [Tokens: 0]  # Token counter resets after compression
+```
+
+**Understanding Token Usage:**
+
+- Tokens are cumulative throughout the session
+- Each API call adds to the total token count
+- Auto-compression triggers at 75% of `model_context_length`
+- Manual compression with `/compress` resets the token counter
 
 ### MCP Tool Usage
 
@@ -1538,15 +1476,6 @@ Current Todo List:
 Updated: Review pull requests (completed)
 
 ```
-[Tokens: 0]  # Token counter resets after compression
-```
-
-**Understanding Token Usage:**
-
-- Tokens are cumulative throughout the session
-- Each API call adds to the total token count
-- Auto-compression triggers at 75% of `model_context_length`
-- Manual compression with `/compress` resets the token counter
 
 ### Command-Line Task Execution
 
