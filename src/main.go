@@ -635,15 +635,61 @@ func handleSlashCommand(command string) {
 			fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
 		}
 	case "/plan":
-		if config.OperationMode == Build {
-			config.OperationMode = Plan
-			fmt.Println("Switched to Plan mode.")
+		if len(parts) > 1 {
+			switch parts[1] {
+			case "view":
+				content, err := os.ReadFile(".agent-go/current_plan.md")
+				if err != nil {
+					if os.IsNotExist(err) {
+						fmt.Println("No active plan (.agent-go/current_plan.md) found.")
+					} else {
+						fmt.Printf("Error reading .agent-go/current_plan.md: %v\n", err)
+					}
+					return
+				}
+				fmt.Println(string(content))
+			case "edit":
+				// Create current_plan.md if it doesn't exist
+				planPath := ".agent-go/current_plan.md"
+				if _, err := os.Stat(planPath); os.IsNotExist(err) {
+					// Ensure directory exists
+					if err := os.MkdirAll(".agent-go", 0755); err != nil {
+						fmt.Printf("Error creating .agent-go directory: %v\n", err)
+						return
+					}
+					if err := os.WriteFile(planPath, []byte("# Plan\n\n"), 0644); err != nil {
+						fmt.Printf("Error creating .agent-go/current_plan.md: %v\n", err)
+						return
+					}
+					fmt.Println("Created new .agent-go/current_plan.md file.")
+				}
+
+				editor := "nano"
+				if runtime.GOOS == "windows" {
+					editor = "notepad"
+				}
+				cmd := exec.Command(editor, planPath)
+				cmd.Stdin = os.Stdin
+				cmd.Stdout = os.Stdout
+				cmd.Stderr = os.Stderr
+				if err := cmd.Run(); err != nil {
+					fmt.Printf("Error opening editor: %v\n", err)
+				}
+			default:
+				fmt.Println("Usage: /plan [view|edit]")
+			}
 		} else {
-			config.OperationMode = Build
-			fmt.Println("Switched to Build mode.")
-		}
-		if err := saveConfig(config); err != nil {
-			fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
+			// Toggle mode
+			if config.OperationMode == Build {
+				config.OperationMode = Plan
+				fmt.Println("Switched to Plan mode.")
+			} else {
+				config.OperationMode = Build
+				fmt.Println("Switched to Build mode.")
+			}
+			if err := saveConfig(config); err != nil {
+				fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
+			}
 		}
 	case "/ask":
 		if len(parts) > 1 {

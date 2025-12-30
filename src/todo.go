@@ -82,3 +82,15 @@ func getCurrentTask(agentID string) (string, error) {
 
 	return "No task in progress.", nil
 }
+
+// clearTodoList clears all todos for the given agent
+func clearTodoList(agentID string) error {
+	// Create a fresh empty todo list
+	todoList := &TodoList{
+		AgentID: agentID,
+		Todos:   []TodoItem{},
+		NextID:  1,
+	}
+
+	return saveTodoList(todoList)
+}

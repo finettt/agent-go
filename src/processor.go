@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
+	"time"
 )
 
 // processToolCalls handles the logic for executing tool calls from the API response
@@ -111,7 +113,7 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 			} else {
 				fmt.Printf("\n%sSuggested Plan: %s%s\n", ColorHighlight, args.Name, ColorReset)
 				fmt.Printf("%s%s%s\n", ColorMain, args.Description, ColorReset)
-				fmt.Printf("%sApprove this plan? [y/N]: %s", ColorRed, ColorReset)
+				fmt.Printf("%sApprove this plan? [y/N]: %s", ColorCyan, ColorReset)
 				var response string
 				fmt.Scanln(&response)
 				if strings.ToLower(strings.TrimSpace(response)) == "y" {
@@ -121,6 +123,35 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 					if err := saveConfig(config); err != nil {
 						fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
 					}
+
+					// Save plan to file
+					timestamp := time.Now().Format("20060102_150405")
+					safeName := strings.ReplaceAll(strings.ToLower(args.Name), " ", "_")
+					safeName = strings.ReplaceAll(safeName, "/", "-") // Basic sanitization
+					filename := fmt.Sprintf("plan_%s_%s.md", timestamp, safeName)
+
+					// Ensure plans directory exists
+					cwd, _ := os.Getwd()
+					agentGoDir := filepath.Join(cwd, ".agent-go")
+					plansDir := filepath.Join(agentGoDir, "plans")
+					if err := os.MkdirAll(plansDir, 0755); err != nil {
+						fmt.Printf("Error creating plans directory: %v\n", err)
+					}
+
+					filePath := filepath.Join(plansDir, filename)
+					content := fmt.Sprintf("# %s\n\n%s", args.Name, args.Description)
+					if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
+						fmt.Printf("Error saving plan to file: %v\n", err)
+					} else {
+						fmt.Printf("Plan saved to %s\n", filePath)
+						// Update config to track current plan? Or just symlink?
+						// Let's create a symlink or just copy to '.agent-go/current_plan.md' for easy access
+						currentPlanPath := filepath.Join(agentGoDir, "current_plan.md")
+						if err := os.WriteFile(currentPlanPath, []byte(content), 0644); err != nil {
+							fmt.Printf("Error saving current_plan.md: %v\n", err)
+						}
+					}
+
 				} else {
 					output = "Plan rejected by user."
 					logMessage = "Plan rejected"
