@@ -598,11 +598,14 @@ func handleSlashCommand(command string) {
 				ID:       loadedSession.ID,
 				Messages: loadedSession.Messages,
 			}
-			// Recalculate tokens? We don't store them, so they'll reset to 0
-			// Ideally we should probably estimate them or store them in session.
-			// For now, resetting to 0 is acceptable behavior, though auto-compress might trigger late.
-			totalTokens = 0
+			// Restore token counts from session
+			totalTokens = loadedSession.TotalTokens
+			totalPromptTokens = loadedSession.PromptTokens
+			totalCompletionTokens = loadedSession.CompletionTokens
+			totalToolCalls = loadedSession.ToolCalls
+
 			fmt.Printf("Session '%s' restored.\n", name)
+			fmt.Printf("Restored token counts: Total: %d, Prompt: %d, Completion: %d, Tool Calls: %d\n", totalTokens, totalPromptTokens, totalCompletionTokens, totalToolCalls)
 		case "new":
 			// Save current session first if it has content
 			if len(agent.Messages) > 1 {
