@@ -19,7 +19,7 @@ jobs:
       (github.event_name == 'issues' && contains(github.event.issue.body, '@claude'))
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
       issues: write
       id-token: write
@@ -51,4 +51,4 @@ jobs:
       - uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.OPENROUTER_TOKEN }}
-          custom_instructions: "You are an expert code reviewer. When summoned, review the changed code in the Pull Request. Look for bugs, security issues, and improvements. Be concise."
+          prompt: "You are an expert code reviewer. When summoned, review the changed code in the Pull Request. Look for bugs, security issues, and improvements. Be concise."
