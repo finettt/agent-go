@@ -1,0 +1,25 @@
+name: AI Review
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write # Required for comment reactions
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+  issue_comment:
+    types: [created]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: AI Code Reviewer
+        uses: QluxLab/Reviewer@v1.3
+        with:
+          openai_api_key: ${{ secrets.OPENROUTER_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          model: 'kwaipilot/kat-coder-pro:free'
+          openai_base_url: 'https://openrouter.ai/api/v1'
