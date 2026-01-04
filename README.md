@@ -69,13 +69,13 @@ graph LR
 
 | Capability | Description |
 | :--- | :--- |
-| ** Native Execution** | Executes shell commands directly (`ls`, `git`, `docker`, etc.) with `&&` chaining support. |
-| ** Agent Studio** | Create, manage, and spawn specialized sub-agents with the `/agent` command family. |
-| ** Infinite Memory** | Intelligent token compression ensures your conversation context is never lost. |
-| ** RAG Engine** | Enable `/rag` to let the agent read your local codebase and documentation for context. |
-| ** MCP Integration** | Connects to **Model Context Protocol** servers (includes `context7` for docs). |
-| ** Project Memory** | Persistent Notes and Todo lists that stick with your project across sessions. |
-| ** Sub-Agents** | Spawns autonomous background threads to handle complex tasks while you keep working. |
+| **Native Execution** | Executes shell commands directly (`ls`, `git`, `docker`, etc.) with `&&` chaining support. |
+| **Agent Studio** | Create, manage, and spawn specialized sub-agents with the `/agent` command family. |
+| **Infinite Memory** | Intelligent token compression ensures your conversation context is never lost. |
+| **RAG Engine** | Enable `/rag` to let the agent read your local codebase and documentation for context. |
+| **MCP Integration** | Connects to **Model Context Protocol** servers (includes `context7` for docs). |
+| **Project Memory** | Persistent Notes and Todo lists that stick with your project across sessions. |
+| **Sub-Agents** | Spawns autonomous background threads to handle complex tasks while you keep working. |
 
 ---
 
