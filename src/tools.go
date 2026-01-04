@@ -207,6 +207,31 @@ func getAvailableTools(config *Config, includeSpawn bool, operationMode Operatio
 				Parameters:  map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
 			},
 		})
+
+		// Add checkpoint tools
+		tools = append(tools, Tool{
+			Type: "function",
+			Function: FunctionDefinition{
+				Name:        "create_checkpoint",
+				Description: "Create a manual checkpoint of the current state (memory + workspace files).",
+				Parameters: map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"name": map[string]string{"type": "string", "description": "Name/Reason for the checkpoint"},
+					},
+					"required": []string{"name"},
+				},
+			},
+		})
+
+		tools = append(tools, Tool{
+			Type: "function",
+			Function: FunctionDefinition{
+				Name:        "list_checkpoints",
+				Description: "List available checkpoints.",
+				Parameters:  map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
+			},
+		})
 	}
 
 	// Add suggest_plan tool only in Plan mode
