@@ -8,7 +8,7 @@
 
   <!-- Branded Badges -->
   <a href="https://golang.org/">
-    <img src="https://img.shields.io/badge/Language-Go_%3E_1.25-FF69F6?style=for-the-badge&logo=go&logoColor=white" alt="Go Version" />
+    <img src="https://img.shields.io/badge/Language-Go_1.25-FF69F6?style=for-the-badge&logo=go&logoColor=white" alt="Go Version" />
   </a>
   <a href="https://github.com/finettt/agent-go/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/License-Apache_2.0-0F0F0F?style=for-the-badge" alt="License" />
