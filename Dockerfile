@@ -12,22 +12,22 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -ldflags "-w -s" -o agent-go ./src
 FROM alpine:latest
 
 RUN apk add nodejs
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN addgroup -S agent-go && adduser -S finett -G agent-go
 
-RUN mkdir -p /home/appuser/.config/agent-go && chown -R appuser:appgroup /home/appuser/.config/agent-go
-VOLUME /home/appuser/.config/agent-go
+RUN mkdir -p /home/finett/.config/agent-go && chown -R finett:agent-go /home/finett/.config/agent-go
+VOLUME /home/finett/.config/agent-go
 
 # Create workspace directory for mounting host files
-RUN mkdir -p /workspace && chown -R appuser:appgroup /workspace
+RUN mkdir -p /workspace && chown -R finett:agent-go /workspace
 VOLUME /workspace
 
 WORKDIR /app
 
 COPY --from=builder /app/agent-go .
 
-RUN chown appuser:appgroup agent-go
+RUN chown finett:agent-go agent-go
 
-USER appuser
+USER finett
 
 # Set working directory to workspace so mounted files are accessible
 WORKDIR /workspace

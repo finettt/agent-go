@@ -213,6 +213,12 @@ func showHelp() {
 	printCmd("/mode", "Toggle between Plan and Build operation modes")
 	printCmd("/plan", "Alias for toggling operation mode")
 	printCmd("/ask on|off", "Enable/Disable confirmation for commands (Ask vs YOLO)")
+
+	printCmd("/checkpoint", "Manage checkpoints")
+	printSubCmd("create [name]", "Create a new checkpoint")
+	printSubCmd("list", "List available checkpoints")
+	printSubCmd("restore <id>", "Restore a checkpoint")
+	printSubCmd("rm <id>", "Delete a checkpoint")
 }
 
 func runCLI() {
@@ -468,7 +474,7 @@ func handleSlashCommand(command string) {
 		editCommand()
 	case "/sandbox":
 		fmt.Println("Building Docker image...")
-		buildCmd := exec.Command("docker", "pull", "ghcr.io/finettt/agent-go")
+		buildCmd := exec.Command("docker", "pull", "ghcr.io/finettt/agent-go:main")
 		buildCmd.Stdout = os.Stdout
 		buildCmd.Stderr = os.Stderr
 		if err := buildCmd.Run(); err != nil {
@@ -480,11 +486,38 @@ func handleSlashCommand(command string) {
 		home, _ := os.UserHomeDir()
 		configDir := filepath.Join(home, ".config", "agent-go")
 
+		// Check if docker socket exists
+		dockerSocket := "/var/run/docker.sock"
+		mountDocker := false
+		if _, err := os.Stat(dockerSocket); err == nil {
+			mountDocker = true
+		}
+
 		fmt.Println("Starting sandbox environment...")
-		runCmd := exec.Command("docker", "run", "-it", "--rm",
+
+		args := []string{"run", "-it", "--rm"}
+
+		// Run as current user on Linux/Mac to avoid permission issues
+		if runtime.GOOS != "windows" {
+			uid := os.Getuid()
+			gid := os.Getgid()
+			args = append(args, "-u", fmt.Sprintf("%d:%d", uid, gid))
+		}
+
+		args = append(args,
+			"-e", "HOME=/home/finett",
 			"-v", fmt.Sprintf("%s:/workspace", cwd),
-			"-v", fmt.Sprintf("%s:/home/appuser/.config/agent-go", configDir),
-			"agent-go-sandbox")
+			"-v", fmt.Sprintf("%s:/home/finett/.config/agent-go", configDir),
+		)
+
+		if mountDocker {
+			args = append(args, "-v", fmt.Sprintf("%s:%s", dockerSocket, dockerSocket))
+			fmt.Println("Docker socket mounted for system checkpoint support.")
+		}
+
+		args = append(args, "ghcr.io/finettt/agent-go:main")
+
+		runCmd := exec.Command("docker", args...)
 
 		runCmd.Stdin = os.Stdin
 		runCmd.Stdout = os.Stdout
@@ -676,6 +709,72 @@ func handleSlashCommand(command string) {
 		if err := saveConfig(config); err != nil {
 			fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
 		}
+	case "/checkpoint":
+		if len(parts) < 2 {
+			fmt.Println("Usage: /checkpoint [create [name]|list|restore <id>|rm <id>]")
+			return
+		}
+		switch parts[1] {
+		case "create":
+			name := "manual-checkpoint"
+			if len(parts) > 2 {
+				name = strings.Join(parts[2:], " ")
+			}
+			id, err := createCheckpoint(agent, name, false)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error creating checkpoint: %v\n", err)
+			} else {
+				fmt.Printf("Checkpoint created: %s (%s)\n", id, name)
+			}
+		case "list":
+			checkpoints, err := listCheckpoints(agent.ID)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error listing checkpoints: %v\n", err)
+				return
+			}
+			if len(checkpoints) == 0 {
+				fmt.Println("No checkpoints found.")
+				return
+			}
+			fmt.Println("Available Checkpoints:")
+			for _, cp := range checkpoints {
+				kind := "Manual"
+				if cp.IsAuto {
+					kind = "Auto"
+				}
+				sys := ""
+				if cp.DockerImageID != "" {
+					sys = " [System Snapshot]"
+				}
+				fmt.Printf("- %s | %s | %s%s (%s)\n", cp.ID, cp.CreatedAt.Format("2006-01-02 15:04:05"), cp.Name, sys, kind)
+			}
+		case "restore":
+			if len(parts) < 3 {
+				fmt.Println("Usage: /checkpoint restore <id>")
+				return
+			}
+			id := parts[2]
+			fmt.Printf("Restoring checkpoint %s... This will revert files and memory.\n", id)
+			if err := restoreCheckpoint(agent, id); err != nil {
+				fmt.Fprintf(os.Stderr, "Error restoring checkpoint: %v\n", err)
+			} else {
+				fmt.Println("Checkpoint restored successfully.")
+			}
+		case "rm":
+			if len(parts) < 3 {
+				fmt.Println("Usage: /checkpoint rm <id>")
+				return
+			}
+			id := parts[2]
+			if err := deleteCheckpoint(agent.ID, id); err != nil {
+				fmt.Fprintf(os.Stderr, "Error deleting checkpoint: %v\n", err)
+			} else {
+				fmt.Printf("Checkpoint %s deleted.\n", id)
+			}
+		default:
+			fmt.Println("Usage: /checkpoint [create [name]|list|restore <id>|rm <id>]")
+		}
+
 	case "/plan":
 		if len(parts) > 1 {
 			switch parts[1] {

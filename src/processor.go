@@ -66,6 +66,28 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 		var err error
 		var logMessage string
 
+		// Auto-checkpoint for dangerous tools
+		// We do this BEFORE the switch to ensure state is saved before any potential damage.
+		// Dangerous tools: execute_command, spawn_agent, use_mcp_tool, kill_background_command
+		dangerousTools := map[string]bool{
+			"execute_command":         true,
+			"spawn_agent":             true,
+			"use_mcp_tool":            true,
+			"kill_background_command": true,
+		}
+
+		if dangerousTools[toolCall.Function.Name] {
+			// Create auto-checkpoint
+			// We skip if we are in Plan mode because commands aren't executed there anyway
+			if config.OperationMode == Build {
+				if _, err := createCheckpoint(agent, fmt.Sprintf("Auto-checkpoint before %s", toolCall.Function.Name), true); err != nil {
+					// Log error but proceed? Or fail?
+					// Ideally we just warn.
+					fmt.Printf("%sWarning: Failed to create auto-checkpoint: %v%s\n", ColorYellow, err, ColorReset)
+				}
+			}
+		}
+
 		switch toolCall.Function.Name {
 		case "execute_command":
 			var args CommandArgs
@@ -216,6 +238,39 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 			output, err = createAgentDefinition(toolCall.Function.Arguments)
 			if err == nil {
 				logMessage = "Created agent definition"
+			}
+		case "create_checkpoint":
+			var args map[string]string
+			if unmarshalErr := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); unmarshalErr != nil {
+				output = fmt.Sprintf("Failed to parse arguments: %s", unmarshalErr)
+			} else {
+				name := args["name"]
+				if name == "" {
+					name = "Manual Checkpoint"
+				}
+				var id string
+				id, err = createCheckpoint(agent, name, false)
+				if err == nil {
+					output = fmt.Sprintf("Checkpoint created with ID: %s", id)
+					logMessage = fmt.Sprintf("Created checkpoint '%s'", name)
+				}
+			}
+		case "list_checkpoints":
+			checkpoints, errC := listCheckpoints(agent.ID)
+			if errC != nil {
+				err = errC
+			} else {
+				if len(checkpoints) == 0 {
+					output = "No checkpoints found."
+				} else {
+					var sb strings.Builder
+					sb.WriteString("Checkpoints:\n")
+					for _, cp := range checkpoints {
+						sb.WriteString(fmt.Sprintf("- %s (%s): %s\n", cp.ID, cp.CreatedAt.Format("2006-01-02 15:04:05"), cp.Name))
+					}
+					output = sb.String()
+				}
+				logMessage = "Listed checkpoints"
 			}
 		default:
 			// Check if it's a custom skill
