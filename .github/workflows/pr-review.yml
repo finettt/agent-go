@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: AI Code Reviewer
-        uses: QluxLab/Reviewer@v1.1
+        uses: QluxLab/Reviewer@v1.2
         with:
           openai_api_key: ${{ secrets.OPENROUTER_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
