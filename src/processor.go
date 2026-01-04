@@ -24,24 +24,25 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 				output = fmt.Sprintf("Failed to parse arguments: %s", unmarshalErr)
 			} else {
 				agentName := strings.TrimSpace(args.Agent)
+				modelName := strings.TrimSpace(args.Model)
 
 				// Avoid dumping long task prompts into the user's console by default.
 				// Only show the full task when sub-agent verbose mode is "Full" (2).
 				if config.SubAgentVerboseMode == 2 {
 					if agentName != "" {
-						fmt.Printf("%sSpawning sub-agent (%s) for task: %s%s%s\n", ColorMeta, agentName, ColorHighlight, args.Task, ColorReset)
+						fmt.Printf("%sSpawning sub-agent (%s, %s) for task: %s%s%s\n", ColorMeta, agentName, modelName, ColorHighlight, args.Task, ColorReset)
 					} else {
-						fmt.Printf("%sSpawning sub-agent for task: %s%s%s\n", ColorMeta, ColorHighlight, args.Task, ColorReset)
+						fmt.Printf("%sSpawning sub-agent (%s) for task: %s%s%s\n", ColorMeta, modelName, ColorHighlight, args.Task, ColorReset)
 					}
 				} else {
 					if agentName != "" {
-						fmt.Printf("%sSpawning sub-agent (%s)%s\n", ColorMeta, agentName, ColorReset)
+						fmt.Printf("%sSpawning sub-agent (%s, %s)%s\n", ColorMeta, agentName, modelName, ColorReset)
 					} else {
-						fmt.Printf("%sSpawning sub-agent%s\n", ColorMeta, ColorReset)
+						fmt.Printf("%sSpawning sub-agent (%s)%s\n", ColorMeta, modelName, ColorReset)
 					}
 				}
 
-				output, err = runSubAgentWithAgent(args.Task, agentName, config)
+				output, err = runSubAgentWithAgent(args.Task, agentName, modelName, config)
 				logMessage = "Sub-agent finished task"
 			}
 
