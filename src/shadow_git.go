@@ -56,7 +56,7 @@ func (g *ShadowGit) Init() error {
 }
 
 // Commit creates a new commit with the current state of the workspace
-func (g *ShadowGit) Commit(message string) (string, error) {
+func (g *ShadowGit) Commit(message string, config *Config) (string, error) {
 	// Add all files
 	if err := g.runGit("add", "."); err != nil {
 		return "", fmt.Errorf("failed to add files: %w", err)
@@ -68,12 +68,57 @@ func (g *ShadowGit) Commit(message string) (string, error) {
 		return g.getCurrentHash()
 	}
 
+	// Auto-generate message if empty or "auto"
+	if (message == "" || message == "auto") && config != nil {
+		generated, err := g.generateCommitMessage(config)
+		if err == nil && generated != "" {
+			message = generated
+		} else if message == "" {
+			message = "Checkpoint: Auto-generated"
+		}
+	} else if message == "" {
+		message = "Checkpoint"
+	}
+
 	// Commit
 	if err := g.runGit("commit", "--allow-empty", "-m", message); err != nil {
 		return "", fmt.Errorf("failed to commit: %w", err)
 	}
 
 	return g.getCurrentHash()
+}
+
+// generateCommitMessage uses the mini model to generate a commit message from staged changes
+func (g *ShadowGit) generateCommitMessage(config *Config) (string, error) {
+	// Get diff of staged changes
+	// We use --cached (or --staged) to get diff of what is about to be committed
+	cmd := exec.Command("git", "--git-dir="+g.RepoDir, "--work-tree="+g.WorkTree, "diff", "--cached")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to get diff: %w", err)
+	}
+
+	diff := string(output)
+	if len(diff) > 4000 {
+		// Truncate diff if too large to avoid hitting token limits
+		diff = diff[:4000] + "\n... (truncated)"
+	}
+
+	// Construct prompt
+	var promptBuilder strings.Builder
+	promptBuilder.WriteString("Generate a concise, conventional commit message for the following changes.\n")
+	promptBuilder.WriteString("- Format: <type>: <subject>\n")
+	promptBuilder.WriteString("- Keep it under 70 characters if possible.\n")
+	promptBuilder.WriteString("- Return ONLY the commit message.\n\n")
+	promptBuilder.WriteString("Changes:\n")
+	promptBuilder.WriteString(diff)
+
+	msg, err := sendMiniLLMRequest(config, []Message{{Role: "user", Content: genericStringPointer(promptBuilder.String())}})
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(msg), nil
 }
 
 // Restore restores the workspace to a specific commit hash

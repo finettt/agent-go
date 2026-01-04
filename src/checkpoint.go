@@ -37,7 +37,7 @@ func ensureCheckpointsDir(agentID string) error {
 }
 
 // createCheckpoint creates a new checkpoint
-func createCheckpoint(agent *Agent, name string, isAuto bool) (string, error) {
+func createCheckpoint(agent *Agent, config *Config, name string, isAuto bool) (string, error) {
 	if err := ensureCheckpointsDir(agent.ID); err != nil {
 		return "", fmt.Errorf("failed to create checkpoint dir: %w", err)
 	}
@@ -50,7 +50,15 @@ func createCheckpoint(agent *Agent, name string, isAuto bool) (string, error) {
 	if err := shadowGit.Init(); err != nil {
 		return "", fmt.Errorf("failed to init shadow git repo: %w", err)
 	}
-	commitHash, err := shadowGit.Commit(fmt.Sprintf("Checkpoint: %s", name))
+
+	// Determine commit message
+	msg := fmt.Sprintf("Checkpoint: %s", name)
+	if isAuto {
+		// Use "auto" to trigger generation if configured
+		msg = "auto"
+	}
+
+	commitHash, err := shadowGit.Commit(msg, config)
 	if err != nil {
 		return "", fmt.Errorf("failed to commit files: %w", err)
 	}

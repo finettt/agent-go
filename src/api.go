@@ -58,6 +58,67 @@ func sendAPIRequest(agent *Agent, config *Config, includeSpawn bool) (*APIRespon
 	return &apiResponse, nil
 }
 
+// sendMiniLLMRequest sends a request to the configured mini model (or fallback to main model)
+func sendMiniLLMRequest(config *Config, messages []Message) (string, error) {
+	model := config.MiniModel
+	if model == "" {
+		model = config.Model
+	}
+
+	requestBody := APIRequest{
+		Model:       model,
+		Messages:    messages,
+		Temperature: CompressionTemp,      // Reuse default temp for utility tasks
+		MaxTokens:   CompressionMaxTokens, // Reuse default max tokens for utility tasks
+	}
+
+	jsonData, err := json.Marshal(requestBody)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	apiURL := strings.TrimSuffix(config.APIURL, "/") + "/v1/chat/completions"
+	req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+config.APIKey)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to send request: %w", err)
+	}
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			fmt.Printf("failed to close response body: %v\n", err)
+		}
+	}()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	var apiResponse APIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
+		return "", fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if len(apiResponse.Choices) == 0 {
+		return "", fmt.Errorf("received empty response from API")
+	}
+
+	content := apiResponse.Choices[0].Message.Content
+	if content == nil {
+		return "", fmt.Errorf("received empty content from API")
+	}
+
+	return *content, nil
+}
+
 func compressContext(agent *Agent, config *Config) (string, error) {
 	if len(agent.Messages) <= 1 {
 		return "", fmt.Errorf("not enough messages to compress")
@@ -87,7 +148,8 @@ func compressContext(agent *Agent, config *Config) (string, error) {
 	compressionBuilder.WriteString("\nBrief summary:")
 	compressionPrompt := compressionBuilder.String()
 
-	// Create the compression request
+	// Use the MAIN model for compression to ensure accuracy and handle larger contexts if needed.
+	// Mini models might have smaller context windows or lower reasoning capabilities for complex summaries.
 	requestBody := APIRequest{
 		Model:       config.Model,
 		Messages:    []Message{{Role: "user", Content: &compressionPrompt}},

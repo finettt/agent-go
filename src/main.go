@@ -166,7 +166,8 @@ func showHelp() {
 	printCmd("/quit", "Exit the application")
 	printCmd("/sandbox", "Relaunch agent-go in a Docker sandbox")
 
-	printCmd("/model <name>", "Set the AI model (e.g., gpt-4)")
+	printCmd("/model <name>", "Set the main AI model (e.g., gpt-4)")
+	printCmd("/model mini <name>", "Set the mini AI model for utility tasks")
 	printCmd("/provider <url>", "Set the API provider URL")
 
 	printCmd("/contextlength <val>", "Set the model context length (e.g., 131072)")
@@ -720,7 +721,7 @@ func handleSlashCommand(command string) {
 			if len(parts) > 2 {
 				name = strings.Join(parts[2:], " ")
 			}
-			id, err := createCheckpoint(agent, name, false)
+			id, err := createCheckpoint(agent, config, name, false)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error creating checkpoint: %v\n", err)
 			} else {
@@ -1022,13 +1023,25 @@ func handleSlashCommand(command string) {
 		os.Exit(0)
 	case "/model":
 		if len(parts) > 1 {
-			config.Model = parts[1]
-			if err := saveConfig(config); err != nil {
-				fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
+			if parts[1] == "mini" {
+				if len(parts) > 2 {
+					config.MiniModel = parts[2]
+					if err := saveConfig(config); err != nil {
+						fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
+					}
+					fmt.Printf("Mini model set to: %s\n", config.MiniModel)
+				} else {
+					fmt.Println("Usage: /model mini <model_name>")
+				}
+			} else {
+				config.Model = parts[1]
+				if err := saveConfig(config); err != nil {
+					fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
+				}
+				fmt.Printf("Model set to: %s\n", config.Model)
 			}
-			fmt.Printf("Model set to: %s\n", config.Model)
 		} else {
-			fmt.Println("Usage: /model <model_name>")
+			fmt.Println("Usage: /model <model_name> OR /model mini <model_name>")
 		}
 	case "/provider":
 		if len(parts) > 1 {
@@ -1042,6 +1055,7 @@ func handleSlashCommand(command string) {
 		}
 	case "/config":
 		fmt.Printf("Model: %s\n", config.Model)
+		fmt.Printf("Mini Model: %s\n", config.MiniModel)
 		fmt.Printf("Provider: %s\n", config.APIURL)
 		fmt.Printf("RAG Enabled: %t\n", config.RAGEnabled)
 		fmt.Printf("RAG Path: %s\n", config.RAGPath)

@@ -14,6 +14,7 @@ func loadConfig() *Config {
 		MaxTokens:             DefaultMaxTokens,
 		APIURL:                DefaultAPIURL,
 		Model:                 DefaultModel,
+		MiniModel:             DefaultMiniModel,
 		RAGEnabled:            false,
 		RAGSnippets:           DefaultRAGSnippets,
 		AutoCompress:          true,
@@ -66,6 +67,9 @@ func loadConfig() *Config {
 	}
 	if model := os.Getenv("OPENAI_MODEL"); model != "" {
 		config.Model = model
+	}
+	if miniModel := os.Getenv("OPENAI_MINI_MODEL"); miniModel != "" {
+		config.MiniModel = miniModel
 	}
 	if ragPath := os.Getenv("RAG_PATH"); ragPath != "" {
 		config.RAGPath = ragPath

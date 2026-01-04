@@ -11,6 +11,7 @@ type Message struct {
 type Config struct {
 	APIURL                string               `json:"api_url"`
 	Model                 string               `json:"model"`
+	MiniModel             string               `json:"mini_model"`
 	APIKey                string               `json:"api_key"`
 	RAGPath               string               `json:"rag_path"`
 	Temp                  float32              `json:"temp"`
@@ -123,7 +124,6 @@ type UseMCPToolArgs struct {
 	Arguments  map[string]interface{} `json:"arguments"`
 }
 
-
 // MCPServer defines the configuration for a single MCP server
 type MCPServer struct {
 	Name    string `json:"name"`
@@ -135,7 +135,7 @@ type Skill struct {
 	Name        string                 `json:"name"`
 	Description string                 `json:"description"`
 	Parameters  map[string]interface{} `json:"parameters"` // JSON Schema for parameters
-	Command     string                 `json:"command"` // The script/command to execute
+	Command     string                 `json:"command"`    // The script/command to execute
 }
 
 type KillBackgroundCommandArgs struct {

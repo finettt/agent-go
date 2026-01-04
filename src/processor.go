@@ -80,7 +80,7 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 			// Create auto-checkpoint
 			// We skip if we are in Plan mode because commands aren't executed there anyway
 			if config.OperationMode == Build {
-				if _, err := createCheckpoint(agent, fmt.Sprintf("Auto-checkpoint before %s", toolCall.Function.Name), true); err != nil {
+				if _, err := createCheckpoint(agent, config, fmt.Sprintf("Auto-checkpoint before %s", toolCall.Function.Name), true); err != nil {
 					// Log error but proceed? Or fail?
 					// Ideally we just warn.
 					fmt.Printf("%sWarning: Failed to create auto-checkpoint: %v%s\n", ColorYellow, err, ColorReset)
@@ -249,7 +249,7 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 					name = "Manual Checkpoint"
 				}
 				var id string
-				id, err = createCheckpoint(agent, name, false)
+				id, err = createCheckpoint(agent, config, name, false)
 				if err == nil {
 					output = fmt.Sprintf("Checkpoint created with ID: %s", id)
 					logMessage = fmt.Sprintf("Created checkpoint '%s'", name)
