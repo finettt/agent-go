@@ -41,6 +41,7 @@ const (
 	DefaultMaxTokens             = 1000
 	DefaultAPIURL                = "https://api.openai.com"
 	DefaultModel                 = "gpt-3.5-turbo"
+	DefaultMiniModel             = "gpt-4o-mini"
 	DefaultRAGSnippets           = 5
 	DefaultAutoCompressThreshold = 20
 	DefaultModelContextLength    = 262144

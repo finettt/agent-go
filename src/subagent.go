@@ -10,12 +10,12 @@ import (
 
 // runSubAgent executes a task in a separate sub-agent context (backward-compatible default behavior).
 func runSubAgent(task string, config *Config) (string, error) {
-	return runSubAgentWithAgent(task, "", config)
+	return runSubAgentWithAgent(task, "", "", config)
 }
 
 // runSubAgentWithAgent executes a task in a separate sub-agent context, optionally using a saved task-specific agent
 // definition (including the built-in "default") as additional system instructions.
-func runSubAgentWithAgent(task string, agentName string, config *Config) (string, error) {
+func runSubAgentWithAgent(task string, agentName string, modelName string, config *Config) (string, error) {
 	sysInfo := getSystemInfo()
 
 	basePrompt := "You are a sub-agent tasked with completing a specific goal. You have access to the 'execute_command' and todo list management tools. Plan your steps and execute them sequentially. When you have finished the task, output the final result as a single response."
@@ -44,10 +44,16 @@ func runSubAgentWithAgent(task string, agentName string, config *Config) (string
 		},
 	}
 
+	// Determine which model to use
+	subConfig := *config
+	if modelName == "mini" && config.MiniModel != "" {
+		subConfig.Model = config.MiniModel
+	}
+
 	// Limit iterations to prevent infinite loops
 	for iteration := 0; iteration < MaxSubAgentIterations; iteration++ {
 		// Use false for includeSpawn to prevent sub-agents from creating more sub-agents
-		resp, err := sendAPIRequest(subAgent, config, false)
+		resp, err := sendAPIRequest(subAgent, &subConfig, false)
 		if err != nil {
 			return "", fmt.Errorf("sub-agent API request failed: %w", err)
 		}
@@ -78,7 +84,7 @@ func runSubAgentWithAgent(task string, agentName string, config *Config) (string
 				if unmarshalErr := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); unmarshalErr != nil {
 					output = fmt.Sprintf("Failed to parse arguments: %s", unmarshalErr)
 				} else {
-					output, err = confirmAndExecute(config, args.Command)
+					output, err = confirmAndExecute(&subConfig, args.Command)
 					if err == nil {
 						logMessage = fmt.Sprintf("Bash %s(%s)%s", ColorMeta, args.Command, ColorReset)
 					}

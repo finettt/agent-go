@@ -182,6 +182,56 @@ func renameSession(oldID, newID string) error {
 	return nil
 }
 
+// generateSessionName uses the mini model to generate a descriptive name for the session
+func generateSessionName(agent *Agent, config *Config) (string, error) {
+	// Construct a prompt for the mini model
+	var promptBuilder strings.Builder
+	promptBuilder.WriteString("Analyze the following conversation and generate a short, descriptive, filesystem-friendly name for this session.\n")
+	promptBuilder.WriteString("- The name should be lowercased, using dashes for spaces (e.g., 'implement-auth-feature').\n")
+	promptBuilder.WriteString("- Maximum length: 50 characters.\n")
+	promptBuilder.WriteString("- Do not include file extensions or special characters other than dashes.\n")
+	promptBuilder.WriteString("- Return ONLY the name, nothing else.\n\n")
+	promptBuilder.WriteString("Conversation Context:\n")
+
+	// Include a few recent messages for context, up to a limit
+	start := len(agent.Messages) - 10
+	if start < 0 {
+		start = 0
+	}
+	for i := start; i < len(agent.Messages); i++ {
+		msg := agent.Messages[i]
+		if msg.Content != nil {
+			role := msg.Role
+			content := *msg.Content
+			// Truncate long messages
+			if len(content) > 200 {
+				content = content[:200] + "..."
+			}
+			promptBuilder.WriteString(fmt.Sprintf("%s: %s\n", role, content))
+		}
+	}
+
+	name, err := sendMiniLLMRequest(config, []Message{{Role: "user", Content: genericStringPointer(promptBuilder.String())}})
+	if err != nil {
+		return "", err
+	}
+
+	// Clean up the response
+	name = strings.TrimSpace(name)
+	name = strings.ReplaceAll(name, "\n", "")
+	name = strings.ReplaceAll(name, "\r", "")
+	name = strings.ReplaceAll(name, "\"", "")
+	name = strings.ReplaceAll(name, "'", "")
+	name = strings.ToLower(name)
+
+	return name, nil
+}
+
+// Helper to get string pointer
+func genericStringPointer(s string) *string {
+	return &s
+}
+
 // NameSessionArgs represents arguments for naming a session
 type NameSessionArgs struct {
 	Name string `json:"name"`

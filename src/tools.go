@@ -303,6 +303,7 @@ func getAvailableTools(config *Config, includeSpawn bool, operationMode Operatio
 					"properties": map[string]interface{}{
 						"task":  map[string]string{"type": "string"},
 						"agent": map[string]string{"type": "string", "description": "Optional agent name (e.g. 'default' or a saved agent) to use as the sub-agent's system prompt."},
+						"model": map[string]string{"type": "string", "description": "Optional model selection ('main' or 'mini'). Defaults to 'main'."},
 					},
 					"required": []string{"task"},
 				},

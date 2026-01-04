@@ -11,6 +11,7 @@ type Message struct {
 type Config struct {
 	APIURL                string               `json:"api_url"`
 	Model                 string               `json:"model"`
+	MiniModel             string               `json:"mini_model"`
 	APIKey                string               `json:"api_key"`
 	RAGPath               string               `json:"rag_path"`
 	Temp                  float32              `json:"temp"`
@@ -115,6 +116,7 @@ type CommandArgs struct {
 type SubAgentTask struct {
 	Task  string `json:"task"`
 	Agent string `json:"agent,omitempty"` // Optional task-specific agent name (e.g., "default" or a saved agent)
+	Model string `json:"model,omitempty"` // Optional model selection ("main" or "mini")
 }
 
 type UseMCPToolArgs struct {
@@ -122,7 +124,6 @@ type UseMCPToolArgs struct {
 	ToolName   string                 `json:"tool_name"`
 	Arguments  map[string]interface{} `json:"arguments"`
 }
-
 
 // MCPServer defines the configuration for a single MCP server
 type MCPServer struct {
@@ -135,7 +136,7 @@ type Skill struct {
 	Name        string                 `json:"name"`
 	Description string                 `json:"description"`
 	Parameters  map[string]interface{} `json:"parameters"` // JSON Schema for parameters
-	Command     string                 `json:"command"` // The script/command to execute
+	Command     string                 `json:"command"`    // The script/command to execute
 }
 
 type KillBackgroundCommandArgs struct {
