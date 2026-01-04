@@ -50,6 +50,7 @@ jobs:
         uses: anthropics/claude-code-action@beta
         env:
           ANTHROPIC_BASE_URL: http://localhost:3456
+          ANTHROPIC_API_KEY: "any-string-is-ok"
         with:
           anthropic_api_key: "any-string-is-ok"
           github_token: ${{ secrets.GITHUB_TOKEN }}
