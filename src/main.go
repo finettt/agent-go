@@ -209,6 +209,7 @@ func showHelp() {
 	printCmd("/subagents", "Configure autonomous sub-agents")
 	printSubCmd("[on|off]", "Enable or disable sub-agents")
 	printSubCmd("verbose <1|2>", "Set verbosity level")
+	printSubCmd("", "Sub-agents can now use 'mini' model for lighter tasks")
 	printCmd("/security", "Spawn a subagent to review current changes")
 
 	printCmd("/mode", "Toggle between Plan and Build operation modes")
