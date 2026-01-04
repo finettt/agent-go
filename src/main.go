@@ -127,14 +127,14 @@ func printLogo() {
 }
 func printLogo2() {
 	fmt.Print(ColorHighlight + `
-╭─────────────────────────────────────────────────────────────────╮
-│ █████╗  ██████╗ ███████╗███╗   ██╗████████╗    ██████╗  ██████╗ │
-│██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝   ██╔════╝ ██╔═══██╗│
-│███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║█████╗██║  ███╗██║   ██║│
-│██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║╚════╝██║   ██║██║   ██║│
-│██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║      ╚██████╔╝╚██████╔╝│
-│╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝       ╚═════╝  ╚═════╝ │
-╰────────────[ ` + ColorMain + `Use /init command to create AGENTS.md` + ColorHighlight + ` ]────────────╯
+╭───────────────────────────────────────────────────────────────────╮
+│  █████╗  ██████╗ ███████╗███╗   ██╗████████╗    ██████╗  ██████╗  │
+│ ██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝   ██╔════╝ ██╔═══██╗ │
+│ ███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║█████╗██║  ███╗██║   ██║ │
+│ ██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║╚════╝██║   ██║██║   ██║ │
+│ ██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║      ╚██████╔╝╚██████╔╝ │
+│ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝       ╚═════╝  ╚═════╝  │
+╰─────────────[ ` + ColorMain + `Use /init command to create AGENTS.md` + ColorHighlight + ` ]─────────────╯
 ` + ColorReset)
 }
 
@@ -234,9 +234,9 @@ func runCLI() {
 	}()
 
 	cwd, _ := os.Getwd()
-	sandboxStatus := "Sandbox: Off"
+	sandboxStatus := fmt.Sprintf("Sandbox: %sOff%s", ColorRed, ColorReset)
 	if _, err := os.Stat("/.dockerenv"); err == nil {
-		sandboxStatus = "Sandbox: On"
+		sandboxStatus = fmt.Sprintf("Sandbox: %sOn%s", ColorGreen, ColorReset)
 	}
 	fmt.Printf("Welcome to Agent-Go!\n%s%s • %s • %s%s\n", ColorMeta, config.Model, cwd, sandboxStatus, ColorReset)
 
@@ -261,15 +261,18 @@ func runCLI() {
 				taskline = fmt.Sprintf("%s %d/%d", bar, completed, total)
 			}
 		}
+		if taskline != "" {
+			taskline += " "
+		}
 
 		if agentStudioMode {
 			rl.SetPrompt(StyleBold + ColorHighlight + ">>> ")
 		} else if shellMode {
 			rl.SetPrompt(StyleBold + ColorCyan + "! ")
 		} else if config.OperationMode == Plan {
-			rl.SetPrompt(taskline + StyleBold + " ? ")
+			rl.SetPrompt(taskline + StyleBold + "? ")
 		} else {
-			rl.SetPrompt(taskline + StyleBold + " > ")
+			rl.SetPrompt(taskline + StyleBold + "> ")
 		}
 
 		userInput, err := rl.Readline()
