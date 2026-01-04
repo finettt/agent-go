@@ -1,0 +1,128 @@
+name: Claude PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  issue_comment:
+    types: [created]
+
+jobs:
+  pr-review:
+    if: |
+      github.event_name == 'pull_request' || 
+      (github.event_name == 'issue_comment' && 
+       contains(github.event.comment.body, '@claude') &&
+       github.event.issue.pull_request)
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Prepare Environment
+        run: |
+          curl -fsSL https://bun.sh/install | bash
+          mkdir -p $HOME/.claude-code-router
+          cat << 'EOF' > $HOME/.claude-code-router/config.json
+          {
+            "log": true,
+            "NON_INTERACTIVE_MODE": true,
+            "OPENAI_API_KEY": "${{ secrets.OPENROUTER_TOKEN }}",
+            "OPENAI_BASE_URL": "https://openrouter.ai/api",
+            "OPENAI_MODEL": "kwaipilot/kat-coder-pro:free"
+          }
+          EOF
+        shell: bash
+
+      - name: Start Claude Code Router
+        run: |
+          nohup ~/.bun/bin/bunx @musistudio/claude-code-router@1.0.8 start &
+          # Wait for router to be ready
+          sleep 5
+          echo "Claude Code Router started"
+        shell: bash
+
+      - name: Get PR Info
+        id: pr_info
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number || github.event.issue.number }}
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          
+          # Get PR diff
+          gh pr diff $PR_NUMBER > pr_diff.txt
+          echo "Diff size: $(wc -l < pr_diff.txt) lines"
+          
+          # Get PR details
+          gh pr view $PR_NUMBER --json title,body,files -q '.' > pr_details.json
+
+      - name: Create Review Prompt
+        run: |
+          cat > /tmp/review_prompt.md << 'EOF'
+          You are a senior code reviewer. Review this Pull Request and provide:
+
+          ## 📋 Summary
+          Brief description of what this PR does.
+
+          ## ✅ What's Good
+          - Highlight positive aspects of the code
+
+          ## ⚠️ Issues Found
+          - List any bugs, security issues, or problems
+          - Be specific with file names and line numbers when possible
+
+          ## 💡 Suggestions
+          - Actionable improvements
+          - Include code examples if helpful
+
+          ## 🎯 Risk Level
+          **[Low/Medium/High]** - Brief explanation
+
+          ## 📝 Verdict
+          **APPROVE** / **REQUEST_CHANGES** / **COMMENT**
+
+          Be constructive, helpful, and focus on significant issues.
+          EOF
+
+      - name: Run Claude Code Review
+        id: claude
+        uses: anthropics/claude-code-action@beta
+        env:
+          ANTHROPIC_BASE_URL: http://localhost:3456
+        with:
+          anthropic_api_key: "placeholder-key"
+          prompt: |
+            Review this Pull Request:
+            
+            $(cat /tmp/review_prompt.md)
+            
+            ---
+            
+            **PR Diff:**
+            ```diff
+            $(cat pr_diff.txt)
+            ```
+
+      - name: Post Review Comment
+        if: always() && steps.claude.outputs.response
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER=${{ steps.pr_info.outputs.pr_number }}
+          
+          gh pr comment $PR_NUMBER --body "## 🤖 Claude Code Review
+          
+          ${{ steps.claude.outputs.response }}
+          
+          ---
+          <sub>Automated review powered by Claude Code Router</sub>"
