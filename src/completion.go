@@ -165,7 +165,7 @@ func buildCompleter(config *Config) readline.AutoCompleter {
 		}
 	} else {
 		// Log error but don't crash, model completion will just be unavailable
-		fmt.Printf("Warning: could not fetch models for autocompletion: %v\n", err)
+		fmt.Printf("%s%sWarning:%s could not fetch models for autocompletion: %v\n\n", ColorYellow, StyleBold, ColorReset, err)
 	}
 
 	// Prepare MCP server completions for the /mcp remove command
