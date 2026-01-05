@@ -10,6 +10,8 @@ on:
     types: [opened, synchronize]
   issue_comment:
     types: [created]
+  pull_request_review_comment:
+    types: [created]
 
 jobs:
   review:
@@ -17,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: AI Code Reviewer
-        uses: QluxLab/Reviewer@v1.3
+        uses: QluxLab/Reviewer@v2.4
         with:
           openai_api_key: ${{ secrets.OPENROUTER_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
