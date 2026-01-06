@@ -25,3 +25,4 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           model: 'kwaipilot/kat-coder-pro:free'
           openai_base_url: 'https://openrouter.ai/api/v1'
+          min_severity: high
