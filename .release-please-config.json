@@ -1,0 +1,71 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "go",
+  "packages": {
+    ".": {
+      "release-type": "go",
+      "changelog-sections": [
+        {
+          "type": "feat",
+          "section": "Added",
+          "hidden": false
+        },
+        {
+          "type": "fix",
+          "section": "Fixed",
+          "hidden": false
+        },
+        {
+          "type": "perf",
+          "section": "Changed",
+          "hidden": false
+        },
+        {
+          "type": "refactor",
+          "section": "Changed",
+          "hidden": false
+        },
+        {
+          "type": "revert",
+          "section": "Removed",
+          "hidden": false
+        },
+        {
+          "type": "docs",
+          "section": "Changed",
+          "hidden": false
+        },
+        {
+          "type": "style",
+          "section": "Changed",
+          "hidden": false
+        },
+        {
+          "type": "chore",
+          "section": "Changed",
+          "hidden": false
+        },
+        {
+          "type": "test",
+          "section": "Changed",
+          "hidden": false
+        },
+        {
+          "type": "build",
+          "section": "Changed",
+          "hidden": false
+        },
+        {
+          "type": "ci",
+          "section": "Changed",
+          "hidden": false
+        }
+      ],
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": false,
+      "draft": false,
+      "prerelease": false
+    }
+  }
+}
