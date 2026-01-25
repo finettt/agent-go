@@ -5,6 +5,64 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0](https://github.com/finettt/agent-go/compare/v1.3.0...v2.0.0) (2026-01-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* **agents:** OperationMode config is deprecated. Use /plan command to toggle between plan/build agents instead.
+
+### Added
+
+* **agent:** allow sub-agents to select model type via spawn_agent tool ([59af5fe](https://github.com/finettt/agent-go/commit/59af5fe05c463322f940626e5889fac4e93e879a))
+* **agents:** add per-agent tool management with allow/deny policies ([d83e58e](https://github.com/finettt/agent-go/commit/d83e58eb7bf2f5e3d805576e3145dbcd8affe587))
+* **agents:** implement agent-based plan/build mode architecture ([90ada5b](https://github.com/finettt/agent-go/commit/90ada5b486b00135614111017f6d60963cca3c89))
+* **ci:** Add pr-review from QluxLab/Reviewer ([f504ad1](https://github.com/finettt/agent-go/commit/f504ad14609cede9220a8eb1846b05ec77e75c1e))
+* **ci:** Add pr-review from QluxLab/Reviewer ([#25](https://github.com/finettt/agent-go/issues/25)) ([f81f144](https://github.com/finettt/agent-go/commit/f81f144b412cf3614438a4616065f74d0b6c5e8f))
+* **compression:** preserve system prompts and task continuity during context compression ([cd8d10e](https://github.com/finettt/agent-go/commit/cd8d10ec74619b09a8e8c28ab76d1d7c2871a5d8))
+* **core:** implement checkpoint and rollback system ([f8b13e1](https://github.com/finettt/agent-go/commit/f8b13e139c30d63992c359a43cbc36047f58a9c2))
+* **core:** implement checkpoint and rollback system ([#21](https://github.com/finettt/agent-go/issues/21)) ([971a39a](https://github.com/finettt/agent-go/commit/971a39ae5df56a7455a065ead6949ae32e734ae5))
+* **core:** integrate mini model for utility tasks ([23499c0](https://github.com/finettt/agent-go/commit/23499c032a3a023d68bc635c0ec35f12b372dfd7))
+
+
+### Fixed
+
+* **tokens:** implement "Last Usage" algorithm for accurate context tracking ([deb0d37](https://github.com/finettt/agent-go/commit/deb0d370be7ffe16023245c461cbb9a876f36d91))
+
+
+### Changed
+
+* add PR review workflow ([896e0d8](https://github.com/finettt/agent-go/commit/896e0d83bc7d19ca81d2a6b28db457e368a1a821))
+* add release-please automation ([2e3c158](https://github.com/finettt/agent-go/commit/2e3c1585f5e4aabc090fe5f4ad7bff0850bd0dbb))
+* **agents:** replace global activeAgentDef with agent.AgentDefName ([5ee620d](https://github.com/finettt/agent-go/commit/5ee620d4cd2c8e1d8e0a5a51431bc807af90682e))
+* **claude:** add claude code router workflow ([19ff0b0](https://github.com/finettt/agent-go/commit/19ff0b05e00c4c69248f4ed487de193f978a3903))
+* **claude:** add claude code router workflow ([#23](https://github.com/finettt/agent-go/issues/23)) ([816b185](https://github.com/finettt/agent-go/commit/816b185d41fcdd1e8b014ea1ce18436e94f7af52))
+* **claude:** add github token input to action step ([124d1e4](https://github.com/finettt/agent-go/commit/124d1e4abc9beb6057ef69de80a0dad14ee6c822))
+* **claude:** add triggers for pr reviews and issues ([ef2734a](https://github.com/finettt/agent-go/commit/ef2734a7ea3214a37402a693b93a8ff9d69ce835))
+* **claude:** configure workflow for interactive pr reviews ([b74690c](https://github.com/finettt/agent-go/commit/b74690cc1a5116dacfc31e2685d4ffd8e26d7205))
+* **claude:** fix environment variable validation failure ([8991021](https://github.com/finettt/agent-go/commit/89910217bd44370bcc01a34ab15ec40dc65c5fb9))
+* **claude:** pass github token to action input ([96d0220](https://github.com/finettt/agent-go/commit/96d022009884d01412a2807966267ca8b272e0ce))
+* **claude:** refactor workflow for general assistant capabilities ([598de39](https://github.com/finettt/agent-go/commit/598de395afc3c6674ac8d37e659aee97d2ffa688))
+* **claude:** remove failed experimental workflow ([a76a27e](https://github.com/finettt/agent-go/commit/a76a27e701b38fce70d898c8e722067b0246e0e9))
+* **claude:** restrict triggers to explicit [@claude](https://github.com/claude) mentions ([e151850](https://github.com/finettt/agent-go/commit/e151850c78cee6e275e6f4f682e18f48fca7a11c))
+* **claude:** unify and configure claude workflow ([2be782d](https://github.com/finettt/agent-go/commit/2be782dc156d3630f275b230280e6090a2e37428))
+* **cli:** polish CLI output and logo alignment ([1f98007](https://github.com/finettt/agent-go/commit/1f9800754d9163db6831e854620858a61301abdc))
+* **cli:** update greeting and colorize warnings ([7f3ff07](https://github.com/finettt/agent-go/commit/7f3ff076da603c9923b546314232f09bc5bdc8fd))
+* **cli:** update subagents help text to mention mini model support ([fc9c867](https://github.com/finettt/agent-go/commit/fc9c8679b8ab4e794852c2c62200b78d3d28dfa0))
+* **install:** update rolling install syntax to use environment variable ([3f705ac](https://github.com/finettt/agent-go/commit/3f705ac4ed30168d22973a741a70c7548daac65e))
+* **install:** update rolling install syntax to use environment variable ([#31](https://github.com/finettt/agent-go/issues/31)) ([8048b48](https://github.com/finettt/agent-go/commit/8048b48f95156bc06d696713db0c720bf49bcce3))
+* **pr-review:** migrate from QluxLab/Reviewer to qodo-ai/pr-agent ([c8b8040](https://github.com/finettt/agent-go/commit/c8b804039a4ed6be57c65afe0c63fd6f38512180))
+* **pr-review:** upgrade QluxLab/Reviewer to v1.1 ([8922d99](https://github.com/finettt/agent-go/commit/8922d993aa611d837fc1cabe7d86f6386bdf00db))
+* **pr-review:** upgrade QluxLab/Reviewer to v1.2 ([8a9c982](https://github.com/finettt/agent-go/commit/8a9c9825ee1043f097880321b13aecf68434a143))
+* **pr-review:** upgrade QluxLab/Reviewer to v1.3 ([054e535](https://github.com/finettt/agent-go/commit/054e53586af266dfab8c67ec9444ad3cefff67a1))
+* **pr-review:** upgrade QluxLab/Reviewer to v2.0 ([85b21f3](https://github.com/finettt/agent-go/commit/85b21f3e67a6bba864e48cbba366c6c456129c45))
+* **pr-review:** upgrade QluxLab/Reviewer to v2.1 ([04531c8](https://github.com/finettt/agent-go/commit/04531c864ba96e253f317e3898b74edfad7c3a29))
+* **pr-review:** upgrade QluxLab/Reviewer to v2.2 ([c526047](https://github.com/finettt/agent-go/commit/c526047281080fb626b3599b8f158d059ef2e09a))
+* **pr-review:** upgrade QluxLab/Reviewer to v2.3 ([6a13273](https://github.com/finettt/agent-go/commit/6a13273c60971a1c24c08bdcde3a1c1d44163289))
+* **pr-review:** upgrade QluxLab/Reviewer to v2.4 ([bf0c871](https://github.com/finettt/agent-go/commit/bf0c871cb958c62c3eb26006769573d7dd9cc243))
+* **pr-review:** upgrade QluxLab/Reviewer to v2.4 ([#27](https://github.com/finettt/agent-go/issues/27)) ([4553580](https://github.com/finettt/agent-go/commit/4553580010b47f77009b084f21933dca030dfbcc))
+* **tools:** unify operation mode and agent policy filtering ([0618e3e](https://github.com/finettt/agent-go/commit/0618e3eaf7a748332c134f49e7553aaa170c9e7e))
+
 ## [1.3.0] - 2025-12-30
 
 ### Added
