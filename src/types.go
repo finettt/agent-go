@@ -36,6 +36,10 @@ const (
 	UsageDetailed = 3
 )
 
+// ExecutionMode controls command confirmation behavior
+// This is INDEPENDENT of agent selection
+type ExecuteMode string
+
 const (
 	// Ask is the default execution mode, which asks the user for confirmation before executing a command.
 	Ask ExecuteMode = "ask"
@@ -43,18 +47,18 @@ const (
 	YOLO ExecuteMode = "yolo"
 )
 
-// ExecuteMode is the mode for executing a command.
-type ExecuteMode string
+// DEPRECATED: OperationMode is deprecated. Use agent definitions (plan.json/build.json) instead.
+// This type remains for backward compatibility and will be removed in v2.0.0.
+type OperationMode string
 
 const (
 	// Build is the default operation mode, which allows command execution.
+	// DEPRECATED: Use the 'build' agent instead.
 	Build OperationMode = "build"
 	// Plan is the operation mode that blocks all command execution and focuses on planning.
+	// DEPRECATED: Use the 'plan' agent instead.
 	Plan OperationMode = "plan"
 )
-
-// OperationMode is the mode of operation (Plan or Build).
-type OperationMode string
 
 // Agent represents an AI agent with its properties and message history
 type Agent struct {

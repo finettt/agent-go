@@ -40,6 +40,17 @@ func loadConfig() *Config {
 		}
 	}
 
+	// MIGRATION: If OperationMode is set, warn user
+	if config.OperationMode == Plan {
+		fmt.Println("Notice: operation_mode='plan' is deprecated. The 'plan' agent will be activated instead.")
+		fmt.Println("  Update your config to remove 'operation_mode'. Use /plan to switch between plan/build agents.")
+	} else if config.OperationMode == Build {
+		// Build is default, only warn if explicitly set in env var
+		if _, exists := os.LookupEnv("OPERATION_MODE"); exists {
+			fmt.Println("Notice: operation_mode config is deprecated. Use /plan to switch between plan/build agents.")
+		}
+	}
+
 	// Add default context7 MCP if no other MCPs are configured after loading
 	if config.MCPs == nil || len(config.MCPs) == 0 {
 		if config.MCPs == nil {
@@ -112,6 +123,7 @@ func loadConfig() *Config {
 			config.OperationMode = Build
 		}
 	}
+
 	return config
 }
 

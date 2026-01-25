@@ -19,6 +19,7 @@ import (
 var config *Config
 var agent *Agent
 var shellMode = false
+var shouldSwitchToBuild = false
 
 // Agent Studio + task-specific agents
 type AgentConfigSnapshot struct {
@@ -74,14 +75,26 @@ func main() {
 		printLogo()
 	}
 
+	// Ensure default agent files exist in the global agents directory
+	if err := ensureDefaultAgentFiles(); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: could not ensure default agent files: %v\n", err)
+	}
+
 	config = loadConfig()
 	if config.APIKey == "" {
 		runSetup()
 	}
 
+	// Determine initial agent based on deprecated OperationMode (for migration)
+	initialAgent := "build" // default
+	if config.OperationMode == Plan {
+		initialAgent = "plan"
+	}
+
 	agent = &Agent{
-		ID:       "main",
-		Messages: make([]Message, 0),
+		ID:           "main",
+		Messages:     make([]Message, 0),
+		AgentDefName: initialAgent,
 	}
 
 	systemPrompt := buildSystemPrompt("")
@@ -435,6 +448,52 @@ func runCLI() {
 
 			if len(assistantMsg.ToolCalls) > 0 {
 				processToolCalls(agent, assistantMsg.ToolCalls, config)
+
+				// Check if we need to switch to build mode after tool processing
+				if shouldSwitchToBuild {
+					// Save current session
+					if len(agent.Messages) > 1 {
+						if err := saveSession(agent); err != nil {
+							fmt.Fprintf(os.Stderr, "Error saving session: %v\n", err)
+						}
+					}
+
+					// Switch to build agent
+					currentID := agent.ID
+					agent = &Agent{
+						ID:           currentID,
+						Messages:     make([]Message, 0),
+						AgentDefName: "build",
+					}
+
+					// Rebuild system prompt (will include plan from current_plan.md)
+					systemPrompt := buildSystemPrompt("")
+					agent.Messages = append(agent.Messages, Message{
+						Role:    "system",
+						Content: &systemPrompt,
+					})
+					totalTokens = 0
+
+					// Update deprecated config for backward compatibility
+					config.OperationMode = Build
+					if err := saveConfig(config); err != nil {
+						fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
+					}
+
+					fmt.Printf("%sSwitched to build mode. Ready to implement the plan.%s\n", ColorGreen, ColorReset)
+
+					// Clear flag
+					shouldSwitchToBuild = false
+
+					// Add automatic message to prompt model to start implementing
+					autoMsg := "Begin implementing the approved plan."
+					agent.Messages = append(agent.Messages, Message{
+						Role:    "user",
+						Content: &autoMsg,
+					})
+
+					// Continue loop - next iteration will start implementation
+				}
 			} else {
 				// Check if we got an empty response
 				if assistantMsg.Content == nil || *assistantMsg.Content == "" {
@@ -711,12 +770,56 @@ func handleSlashCommand(command string) {
 		}
 
 	case "/mode":
-		if config.OperationMode == Build {
+		// Deprecated: redirect to /plan
+		fmt.Println("The /mode command is deprecated. Use /plan to toggle between plan and build modes.")
+		fmt.Println("Note: This only changes which tools are available. Use /ask to control command confirmation.")
+
+		// Automatically switch to appropriate agent
+		var targetAgent string
+		if agent.AgentDefName == "plan" {
+			targetAgent = "build"
+		} else {
+			targetAgent = "plan"
+		}
+
+		// Load target agent
+		def, err := loadAgentDefinition(targetAgent)
+		if err != nil {
+			fmt.Printf("Error loading %s agent: %v\n", targetAgent, err)
+			return
+		}
+		_ = def // def is loaded but not used directly here
+
+		// Save current session if has content
+		if len(agent.Messages) > 1 {
+			if err := saveSession(agent); err != nil {
+				fmt.Fprintf(os.Stderr, "Error saving session: %v\n", err)
+			}
+		}
+
+		// Switch agent
+		currentID := agent.ID
+		agent = &Agent{
+			ID:           currentID,
+			Messages:     make([]Message, 0),
+			AgentDefName: targetAgent,
+		}
+
+		// Rebuild system prompt with new agent
+		systemPrompt := buildSystemPrompt("")
+		agent.Messages = append(agent.Messages, Message{
+			Role:    "system",
+			Content: &systemPrompt,
+		})
+		totalTokens = 0
+
+		fmt.Printf("Switched to %s mode.\n", targetAgent)
+
+		// Update deprecated config for backward compatibility
+		if targetAgent == "plan" {
 			config.OperationMode = Plan
-			fmt.Println("Switched to Plan mode.")
 		} else {
 			config.OperationMode = Build
-			fmt.Println("Switched to Build mode.")
 		}
 		if err := saveConfig(config); err != nil {
 			fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
@@ -832,17 +935,58 @@ func handleSlashCommand(command string) {
 				fmt.Println("Usage: /plan [view|edit]")
 			}
 		} else {
-			// Toggle mode
-			if config.OperationMode == Build {
+			// NEW BEHAVIOR: Toggle between plan and build agents
+			var targetAgent string
+			if agent.AgentDefName == "plan" {
+				targetAgent = "build"
+			} else {
+				targetAgent = "plan"
+			}
+
+			// Load target agent
+			def, err := loadAgentDefinition(targetAgent)
+			if err != nil {
+				fmt.Printf("Error loading %s agent: %v\n", targetAgent, err)
+				return
+			}
+			_ = def // def is loaded but not used directly here
+
+			// Save current session if has content
+			if len(agent.Messages) > 1 {
+				if err := saveSession(agent); err != nil {
+					fmt.Fprintf(os.Stderr, "Error saving session: %v\n", err)
+				}
+			}
+
+			// Switch agent
+			currentID := agent.ID
+			agent = &Agent{
+				ID:           currentID,
+				Messages:     make([]Message, 0),
+				AgentDefName: targetAgent,
+			}
+
+			// Rebuild system prompt with new agent
+			systemPrompt := buildSystemPrompt("")
+			agent.Messages = append(agent.Messages, Message{
+				Role:    "system",
+				Content: &systemPrompt,
+			})
+			totalTokens = 0
+
+			fmt.Printf("Switched to %s mode.\n", targetAgent)
+
+			// Update deprecated config for backward compatibility
+			if targetAgent == "plan" {
 				config.OperationMode = Plan
-				fmt.Println("Switched to Plan mode.")
 			} else {
 				config.OperationMode = Build
-				fmt.Println("Switched to Build mode.")
 			}
 			if err := saveConfig(config); err != nil {
 				fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
 			}
+
+			// Note: ExecutionMode (Ask/YOLO) remains unchanged
 		}
 	case "/ask":
 		if len(parts) > 1 {
@@ -1354,10 +1498,20 @@ CRITICAL: Only include information that is:
 
 func buildSystemPrompt(contextSummary string) string {
 	var basePrompt string
+
+	// If build agent is active AND there's a current plan, include it
+	if agent != nil && agent.AgentDefName == "build" {
+		cwd, _ := os.Getwd()
+		planPath := filepath.Join(cwd, ".agent-go", "current_plan.md")
+		if planContent, err := os.ReadFile(planPath); err == nil && len(planContent) > 0 {
+			basePrompt = fmt.Sprintf("=== Current Plan to Implement ===\n%s\n\n", string(planContent))
+		}
+	}
+
 	if config.OperationMode == Plan {
-		basePrompt = "You are an AI assistant in PLAN mode. Your goals are to:\n1. Analyze the user's request.\n2. Create a detailed implementation plan.\n3. Generate a comprehensive TODO list using the `create_todo` tool. This is CRITICAL. You MUST create the todo list before suggesting the plan.\n4. Present the plan to the user using the `suggest_plan` tool for approval.\n\nIMPORTANT: You CANNOT execute shell commands in this mode. Focus purely on planning. Use the `suggest_plan` tool to show your plan (providing a name and description) and ask for confirmation. If the user approves (answers 'y' to the prompt), the system will automatically switch to 'build' mode for you to start implementation."
+		basePrompt += "You are an AI assistant in PLAN mode. Your goals are to:\n1. Analyze the user's request.\n2. Create a detailed implementation plan.\n3. Generate a comprehensive TODO list using the `create_todo` tool. This is CRITICAL. You MUST create the todo list before suggesting the plan.\n4. Present the plan to the user using the `suggest_plan` tool for approval.\n\nIMPORTANT: You CANNOT execute shell commands in this mode. Focus purely on planning. Use the `suggest_plan` tool to show your plan (providing a name and description) and ask for confirmation. If the user approves (answers 'y' to the prompt), the system will automatically switch to 'build' mode for you to start implementation."
 	} else {
-		basePrompt = "You are an AI assistant in BUILD mode. You can execute commands, write code, and implement solutions. You can manage a todo list by using the `create_todo`, `update_todo`, and `get_todo_list` tools. You can also create notes using `create_note`, `update_note`, and `delete_note` tools. Notes persist across sessions. For multi-step tasks, chain commands with && (e.g., 'echo content > file.py && python3 file.py'). Use execute_command for shell tasks."
+		basePrompt += "You are an AI assistant in BUILD mode. You can execute commands, write code, and implement solutions. You can manage a todo list by using the `create_todo`, `update_todo`, and `get_todo_list` tools. You can also create notes using `create_note`, `update_note`, and `delete_note` tools. Notes persist across sessions. For multi-step tasks, chain commands with && (e.g., 'echo content > file.py && python3 file.py'). Use execute_command for shell tasks."
 	}
 
 	// If a task-specific agent is active, prepend its system prompt.

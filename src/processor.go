@@ -140,14 +140,20 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 				var response string
 				fmt.Scanln(&response)
 				if strings.ToLower(strings.TrimSpace(response)) == "y" {
+					// User approved the plan: mark for deferred switch to build mode
+					output = "Plan approved by user. Switching to build mode to implement the plan..."
+					logMessage = "Plan approved - will switch to build agent"
+
+					// Set flag for deferred agent switch in main loop
+					shouldSwitchToBuild = true
+
+					// Optionally keep deprecated OperationMode in sync
 					config.OperationMode = Build
-					output = "Plan approved by user. Switched to Build mode. You may now execute commands."
-					logMessage = "Plan approved - Switched to Build mode"
 					if err := saveConfig(config); err != nil {
 						fmt.Fprintf(os.Stderr, "Error saving config: %s\n", err)
 					}
 
-					// Save plan to file
+					// Save plan to file (same behavior as before)
 					timestamp := time.Now().Format("20060102_150405")
 					safeName := strings.ReplaceAll(strings.ToLower(args.Name), " ", "_")
 					safeName = strings.ReplaceAll(safeName, "/", "-") // Basic sanitization
@@ -167,8 +173,7 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 						fmt.Printf("Error saving plan to file: %v\n", err)
 					} else {
 						fmt.Printf("Plan saved to %s\n", filePath)
-						// Update config to track current plan? Or just symlink?
-						// Let's create a symlink or just copy to '.agent-go/current_plan.md' for easy access
+						// Also update '.agent-go/current_plan.md' for easy access / inclusion in prompts
 						currentPlanPath := filepath.Join(agentGoDir, "current_plan.md")
 						if err := os.WriteFile(currentPlanPath, []byte(content), 0644); err != nil {
 							fmt.Printf("Error saving current_plan.md: %v\n", err)

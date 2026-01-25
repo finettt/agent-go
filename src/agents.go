@@ -29,7 +29,14 @@ type AgentDefinition struct {
 }
 
 func isBuiltInAgentName(name string) bool {
-	return strings.TrimSpace(name) == "default"
+	builtins := []string{"default", "plan", "build"}
+	trimmed := strings.TrimSpace(name)
+	for _, b := range builtins {
+		if trimmed == b {
+			return true
+		}
+	}
+	return false
 }
 
 func builtInDefaultAgentSystemPrompt() string {
@@ -44,23 +51,101 @@ Behavior:
 `)
 }
 
+func getBuiltInPlanAgent() *AgentDefinition {
+	return &AgentDefinition{
+		Name:        "plan",
+		Description: "Planning mode - creates detailed plans without execution",
+		SystemPrompt: `You are an AI assistant in PLANNING mode. Your goals are to:
+1. Analyze the user's request thoroughly
+2. Break down complex tasks into clear, actionable steps
+3. Create a detailed implementation plan
+4. Generate a comprehensive TODO list using the create_todo tool
+5. Present the plan using the suggest_plan tool for approval
+
+IMPORTANT: You CANNOT execute shell commands in this mode. Focus purely on planning and strategy. When the user approves your plan, they will switch to Build mode for implementation.`,
+		AllowedTools: []string{
+			"create_todo",
+			"update_todo",
+			"get_todo_list",
+			"get_current_task",
+			"clear_todo",
+			"create_note",
+			"update_note",
+			"delete_note",
+			"name_session",
+			"suggest_plan",
+			"create_agent_definition",
+			"use_mcp_tool",
+			"spawn_agent",
+		},
+	}
+}
+
+func getBuiltInBuildAgent() *AgentDefinition {
+	return &AgentDefinition{
+		Name:        "build",
+		Description: "Build mode - executes commands and implements solutions",
+		SystemPrompt: `You are an AI assistant in BUILD mode. You can execute commands, write code, and implement solutions.
+
+Capabilities:
+- Execute shell commands via execute_command
+- Manage background processes
+- Create and restore checkpoints
+- Manage todo lists and notes
+- Use MCP tools for extended functionality
+
+Best Practices:
+- For multi-step tasks, chain commands with && (e.g., 'echo content > file.py && python3 file.py')
+- Use background execution for long-running processes
+- Create checkpoints before risky operations
+- Update todo lists to track progress
+- Be direct and technical in communication`,
+		AllowedTools: []string{
+			"execute_command",
+			"kill_background_command",
+			"get_background_logs",
+			"list_background_commands",
+			"create_checkpoint",
+			"list_checkpoints",
+			"create_todo",
+			"update_todo",
+			"get_todo_list",
+			"get_current_task",
+			"clear_todo",
+			"create_note",
+			"update_note",
+			"delete_note",
+			"name_session",
+			"use_mcp_tool",
+			"spawn_agent",
+		},
+	}
+}
+
 func getBuiltInAgentDefinition(name string) (*AgentDefinition, bool) {
 	safe, err := sanitizeAgentName(name)
 	if err != nil {
 		return nil, false
 	}
-	if safe != "default" {
+
+	switch safe {
+	case "default":
+		// The default agent has no tool restrictions - it uses all available tools
+		// based on the operation mode (Plan vs Build). The tool availability is
+		// controlled by getAvailableTools() which filters based on mode.
+		return &AgentDefinition{
+			Name:         "default",
+			Description:  "Built-in default agent with full tool access",
+			SystemPrompt: builtInDefaultAgentSystemPrompt(),
+			// No AllowedTools or DeniedTools - allows all tools
+		}, true
+	case "plan":
+		return getBuiltInPlanAgent(), true
+	case "build":
+		return getBuiltInBuildAgent(), true
+	default:
 		return nil, false
 	}
-	// The default agent has no tool restrictions - it uses all available tools
-	// based on the operation mode (Plan vs Build). The tool availability is
-	// controlled by getAvailableTools() which filters based on mode.
-	return &AgentDefinition{
-		Name:         "default",
-		Description:  "Built-in default agent with full tool access",
-		SystemPrompt: builtInDefaultAgentSystemPrompt(),
-		// No AllowedTools or DeniedTools - allows all tools
-	}, true
 }
 
 // getAgentsDir returns the path to the agents directory.
@@ -139,14 +224,47 @@ func saveAgentDefinition(def *AgentDefinition) error {
 	return os.WriteFile(path, data, 0644)
 }
 
-func loadAgentDefinition(name string) (*AgentDefinition, error) {
-	// Built-in agent fallback (no file required).
-	if def, ok := getBuiltInAgentDefinition(name); ok {
-		// If a file exists with the same name, we'll prefer the file (but "default" is reserved).
-		// We still attempt file loading below; if it doesn't exist, we return the built-in.
-		_ = def
+// ensureDefaultAgentFiles creates plan.json and build.json in the default agents directory if they don't exist
+func ensureDefaultAgentFiles() error {
+	agentsDir := getAgentsDir()
+	if err := ensureAgentsDir(); err != nil {
+		return err
 	}
 
+	planPath := filepath.Join(agentsDir, "plan.json")
+	buildPath := filepath.Join(agentsDir, "build.json")
+
+	// Generate plan.json if missing
+	if _, err := os.Stat(planPath); os.IsNotExist(err) {
+		planAgent := getBuiltInPlanAgent()
+		planAgent.CreatedAt = time.Now()
+		planAgent.UpdatedAt = time.Now()
+		data, _ := json.MarshalIndent(planAgent, "", "  ")
+		if err := os.WriteFile(planPath, data, 0644); err != nil {
+			return fmt.Errorf("failed to create plan.json in agents dir: %w", err)
+		}
+		fmt.Printf("Created plan.json in %s\n", agentsDir)
+	}
+
+	// Generate build.json if missing
+	if _, err := os.Stat(buildPath); os.IsNotExist(err) {
+		buildAgent := getBuiltInBuildAgent()
+		buildAgent.CreatedAt = time.Now()
+		buildAgent.UpdatedAt = time.Now()
+		data, _ := json.MarshalIndent(buildAgent, "", "  ")
+		if err := os.WriteFile(buildPath, data, 0644); err != nil {
+			return fmt.Errorf("failed to create build.json in agents dir: %w", err)
+		}
+		fmt.Printf("Created build.json in %s\n", agentsDir)
+	}
+
+	return nil
+}
+
+func loadAgentDefinition(name string) (*AgentDefinition, error) {
+	// Priority: User config → Built-in
+
+	// 1. Try user config directory
 	path, err := getAgentPath(name)
 	if err != nil {
 		return nil, err
@@ -155,6 +273,7 @@ func loadAgentDefinition(name string) (*AgentDefinition, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
+			// 2. Fallback to built-in
 			if def, ok := getBuiltInAgentDefinition(name); ok {
 				return def, nil
 			}
