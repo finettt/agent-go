@@ -376,7 +376,13 @@ func runCLI() {
 			var resp *APIResponse
 			var err error
 
-			resp, err = sendAPIRequest(agent, config, config.SubagentsEnabled)
+			// Load agent definition if one is active
+			var agentDef *AgentDefinition
+			if agent.AgentDefName != "" {
+				agentDef, _ = loadAgentDefinition(agent.AgentDefName)
+			}
+
+			resp, err = sendAPIRequest(agent, config, config.SubagentsEnabled, agentDef)
 
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %s\n", err)
@@ -641,8 +647,9 @@ func handleSlashCommand(command string) {
 
 			// Reconstruct agent from session
 			agent = &Agent{
-				ID:       loadedSession.ID,
-				Messages: loadedSession.Messages,
+				ID:           loadedSession.ID,
+				Messages:     loadedSession.Messages,
+				AgentDefName: loadedSession.AgentDefName,
 			}
 			// Restore token counts from session
 			totalTokens = loadedSession.TotalTokens
@@ -651,6 +658,9 @@ func handleSlashCommand(command string) {
 			totalToolCalls = loadedSession.ToolCalls
 
 			fmt.Printf("Session '%s' restored.\n", name)
+			if loadedSession.AgentDefName != "" {
+				fmt.Printf("Active agent: %s\n", loadedSession.AgentDefName)
+			}
 			fmt.Printf("Restored token counts: Total: %d, Prompt: %d, Completion: %d, Tool Calls: %d\n", totalTokens, totalPromptTokens, totalCompletionTokens, totalToolCalls)
 		case "new":
 			// Save current session first if it has content
@@ -1288,7 +1298,7 @@ CRITICAL: Only include information that is:
 				}
 			}
 			currentID := agent.ID
-			agent = &Agent{ID: currentID, Messages: make([]Message, 0)}
+			agent = &Agent{ID: currentID, Messages: make([]Message, 0), AgentDefName: name}
 			systemPrompt := buildSystemPrompt("")
 			agent.Messages = append(agent.Messages, Message{Role: "system", Content: &systemPrompt})
 			totalTokens = 0
@@ -1316,7 +1326,7 @@ CRITICAL: Only include information that is:
 				}
 			}
 			currentID := agent.ID
-			agent = &Agent{ID: currentID, Messages: make([]Message, 0)}
+			agent = &Agent{ID: currentID, Messages: make([]Message, 0), AgentDefName: ""}
 			systemPrompt := buildSystemPrompt("")
 			agent.Messages = append(agent.Messages, Message{Role: "system", Content: &systemPrompt})
 			totalTokens = 0
@@ -1473,7 +1483,13 @@ func runTask(task string) {
 		var resp *APIResponse
 		var err error
 
-		resp, err = sendAPIRequest(agent, config, config.SubagentsEnabled)
+		// Load agent definition if one is active
+		var agentDef *AgentDefinition
+		if agent.AgentDefName != "" {
+			agentDef, _ = loadAgentDefinition(agent.AgentDefName)
+		}
+
+		resp, err = sendAPIRequest(agent, config, config.SubagentsEnabled, agentDef)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
@@ -1582,7 +1598,13 @@ func editCommand() {
 		var resp *APIResponse
 		var err error
 
-		resp, err = sendAPIRequest(agent, config, config.SubagentsEnabled)
+		// Load agent definition if one is active
+		var agentDef *AgentDefinition
+		if agent.AgentDefName != "" {
+			agentDef, _ = loadAgentDefinition(agent.AgentDefName)
+		}
+
+		resp, err = sendAPIRequest(agent, config, config.SubagentsEnabled, agentDef)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %s\n", err)

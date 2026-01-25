@@ -257,7 +257,7 @@ func getAvailableTools(config *Config, includeSpawn bool, operationMode Operatio
 			Type: "function",
 			Function: FunctionDefinition{
 				Name:        "create_agent_definition",
-				Description: "Create a new task-specific agent definition (name + system prompt) and save it for later use via /agent commands.",
+				Description: "Create a new task-specific agent definition (name + system prompt) and save it for later use via /agent commands. Optionally restrict which tools the agent can use via allowed_tools (whitelist) or denied_tools (blacklist).",
 				Parameters: map[string]interface{}{
 					"type": "object",
 					"properties": map[string]interface{}{
@@ -267,6 +267,8 @@ func getAvailableTools(config *Config, includeSpawn bool, operationMode Operatio
 						"model":         map[string]string{"type": "string", "description": "Optional model override for this agent."},
 						"temperature":   map[string]string{"type": "number", "description": "Optional temperature override (0.0-2.0)."},
 						"max_tokens":    map[string]string{"type": "integer", "description": "Optional max tokens override."},
+						"allowed_tools": map[string]interface{}{"type": "array", "items": map[string]string{"type": "string"}, "description": "Optional whitelist of tool names this agent may use. If set, only these tools are available."},
+						"denied_tools":  map[string]interface{}{"type": "array", "items": map[string]string{"type": "string"}, "description": "Optional blacklist of tool names this agent may NOT use. Only used if allowed_tools is empty."},
 					},
 					"required": []string{"name", "system_prompt"},
 				},

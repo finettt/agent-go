@@ -58,8 +58,9 @@ type OperationMode string
 
 // Agent represents an AI agent with its properties and message history
 type Agent struct {
-	ID       string    // Unique identifier for the agent
-	Messages []Message // List of messages in the conversation
+	ID           string    // Unique identifier for the agent
+	Messages     []Message // List of messages in the conversation
+	AgentDefName string    `json:"agent_def_name,omitempty"` // Name of the agent definition in use
 }
 
 type APIRequest struct {

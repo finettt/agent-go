@@ -22,8 +22,10 @@ func runSubAgentWithAgent(task string, agentName string, modelName string, confi
 
 	systemPrompt := sysInfo + "\n\n" + basePrompt
 
+	var def *AgentDefinition
 	if strings.TrimSpace(agentName) != "" {
-		def, err := loadAgentDefinition(agentName)
+		var err error
+		def, err = loadAgentDefinition(agentName)
 		if err != nil {
 			return "", fmt.Errorf("failed to load agent '%s' for sub-agent: %w", agentName, err)
 		}
@@ -53,7 +55,8 @@ func runSubAgentWithAgent(task string, agentName string, modelName string, confi
 	// Limit iterations to prevent infinite loops
 	for iteration := 0; iteration < MaxSubAgentIterations; iteration++ {
 		// Use false for includeSpawn to prevent sub-agents from creating more sub-agents
-		resp, err := sendAPIRequest(subAgent, &subConfig, false)
+		// Pass the agent definition for tool filtering
+		resp, err := sendAPIRequest(subAgent, &subConfig, false, def)
 		if err != nil {
 			return "", fmt.Errorf("sub-agent API request failed: %w", err)
 		}

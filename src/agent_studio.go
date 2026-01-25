@@ -85,7 +85,8 @@ func runAgentStudioTurn(cfg *Config) error {
 	cfgCopy.OperationMode = Plan
 
 	for {
-		resp, err := sendAPIRequest(studioAgent, &cfgCopy, false)
+		// No agent definition for studio mode
+		resp, err := sendAPIRequest(studioAgent, &cfgCopy, false, nil)
 		if err != nil {
 			return err
 		}

@@ -20,6 +20,12 @@ type AgentDefinition struct {
 	MaxTokens    *int      `json:"max_tokens,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
+	// AllowedTools is an optional whitelist of tool function names this agent may use.
+	// When non-empty, only the listed tools will be exposed to the model.
+	AllowedTools []string `json:"allowed_tools,omitempty"`
+	// DeniedTools is an optional blacklist of tool function names this agent may NOT use.
+	// Only used when AllowedTools is empty.
+	DeniedTools []string `json:"denied_tools,omitempty"`
 }
 
 func isBuiltInAgentName(name string) bool {
@@ -99,6 +105,11 @@ func saveAgentDefinition(def *AgentDefinition) error {
 
 	if strings.TrimSpace(def.SystemPrompt) == "" {
 		return fmt.Errorf("system_prompt cannot be empty")
+	}
+
+	// Validate tool policy
+	if len(def.AllowedTools) > 0 && len(def.DeniedTools) > 0 {
+		fmt.Printf("Warning: Both allowed_tools and denied_tools are set for agent '%s'. Using allowed_tools (whitelist mode).\n", def.Name)
 	}
 
 	if err := ensureAgentsDir(); err != nil {
@@ -326,6 +337,18 @@ func formatAgentView(name string) string {
 	if def.MaxTokens != nil {
 		b.WriteString(fmt.Sprintf("MaxTokens: %d\n", *def.MaxTokens))
 	}
+
+	// Display tool policy if configured
+	if len(def.AllowedTools) > 0 {
+		b.WriteString(fmt.Sprintf("Tool Policy: Whitelist (%d tools)\n", len(def.AllowedTools)))
+		b.WriteString("Allowed Tools: " + strings.Join(def.AllowedTools, ", ") + "\n")
+	} else if len(def.DeniedTools) > 0 {
+		b.WriteString(fmt.Sprintf("Tool Policy: Blacklist (%d tools denied)\n", len(def.DeniedTools)))
+		b.WriteString("Denied Tools: " + strings.Join(def.DeniedTools, ", ") + "\n")
+	} else {
+		b.WriteString("Tool Policy: All tools available\n")
+	}
+
 	if !isBuiltInAgentName(def.Name) {
 		b.WriteString(fmt.Sprintf("Created: %s\n", def.CreatedAt.Format("2006-01-02 15:04:05")))
 		b.WriteString(fmt.Sprintf("Updated: %s\n", def.UpdatedAt.Format("2006-01-02 15:04:05")))
@@ -344,6 +367,9 @@ type CreateAgentDefinitionArgs struct {
 	Model        string   `json:"model,omitempty"`
 	Temperature  *float32 `json:"temperature,omitempty"`
 	MaxTokens    *int     `json:"max_tokens,omitempty"`
+	// Optional tool policy
+	AllowedTools []string `json:"allowed_tools,omitempty"`
+	DeniedTools  []string `json:"denied_tools,omitempty"`
 }
 
 // createAgentDefinition is a tool handler that persists a new agent definition to disk.
@@ -368,6 +394,8 @@ func createAgentDefinition(argsJSON string) (string, error) {
 		Model:        strings.TrimSpace(args.Model),
 		Temperature:  args.Temperature,
 		MaxTokens:    args.MaxTokens,
+		AllowedTools: args.AllowedTools,
+		DeniedTools:  args.DeniedTools,
 	}
 
 	// Prevent silent overwrite: if exists, require user to delete first.
