@@ -1,16 +1,33 @@
-name: Release Assets
+name: Release
 
 on:
   push:
-    tags:
-      - "v*.*.*"
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      released: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - name: Run Release Please
+        id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          config-file: .release-please-config.json
+          manifest-file: .release-please-manifest.json
+
   build:
     name: Build Binaries
+    needs: release-please
+    if: ${{ needs.release-please.outputs.released == 'true' }}
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     strategy:
       matrix:
         goos: [linux, windows, darwin]
@@ -25,7 +42,7 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v5
       
-      - name: Install dependencies (UPX)
+      - name: Install UPX
         run: |
           sudo apt-get update
           sudo apt-get install -y upx-ucl
@@ -42,40 +59,36 @@ jobs:
           fi
           go build -v -o $BINARY_NAME ./src
 
-      - name: Compress binary with UPX
+      - name: Compress with UPX
         if: matrix.goos != 'windows' && matrix.goarch != 'arm64'
         run: |
           BINARY_NAME="bin/agent-go-${{ matrix.goos }}-${{ matrix.goarch }}"
-          if [ "${{ matrix.goos }}" = "windows" ]; then
-            BINARY_NAME+=".exe"
-          fi
           upx --best --lzma --force-macos $BINARY_NAME
 
-      - name: Archive and Upload Artifact
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: agent-go-${{ matrix.goos }}-${{ matrix.goarch }}
           path: bin/*
           retention-days: 1 
 
-  release:
+  upload-assets:
     name: Upload Release Assets
-    needs: build
+    needs: [release-please, build]
+    if: ${{ needs.release-please.outputs.released == 'true' }}
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: write
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v5
-      - name: Download all build artifacts
+      - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-      - name: Upload Assets to Existing Release
+
+      - name: Upload to Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ needs.release-please.outputs.tag_name }}
           files: artifacts/**/agent-go-*
-          # Don't regenerate notes - use release-please's notes
           generate_release_notes: false
