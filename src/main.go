@@ -30,6 +30,12 @@ type AgentConfigSnapshot struct {
 
 var prevAgentConfigSnapshot *AgentConfigSnapshot
 
+// Current context tokens (from last API response - "Last Usage" algorithm)
+var currentContextTokens = 0    // Current usage.total_tokens (last response)
+var currentPromptTokens = 0     // Current usage.prompt_tokens (last response)
+var currentCompletionTokens = 0 // Current usage.completion_tokens (last response)
+
+// Session cumulative tokens (total spent across all requests)
 var totalTokens = 0
 var totalPromptTokens = 0
 var totalCompletionTokens = 0
@@ -379,11 +385,15 @@ func runCLI() {
 
 		// Agentic loop
 		for {
-			// Auto-compress context if enabled and token count exceeds 75% of context length
-			if config.AutoCompress && totalTokens > (config.ModelContextLength*3/4) {
+			// Auto-compress context if enabled and current context exceeds 75% of limit
+			// Uses "Last Usage" algorithm - currentContextTokens reflects actual context size
+			if config.AutoCompress && currentContextTokens > (config.ModelContextLength*3/4) {
+				fmt.Printf("%sAuto-compression triggered (context: %d / %d = %.1f%%)%s\n",
+					ColorYellow, currentContextTokens, config.ModelContextLength,
+					float64(currentContextTokens)/float64(config.ModelContextLength)*100, ColorReset)
 				compressAndStartNewChat()
-				fmt.Println("Context compressed due to token limit. New user input is required.")
-				continue // Restart the outer loop to get fresh user input
+				// Continue the agentic loop - the agent will keep working with compressed context
+				// No break here - let the agent continue its task
 			}
 
 			var resp *APIResponse
@@ -417,8 +427,14 @@ func runCLI() {
 				fmt.Printf("%s● %s%s%s\n", ColorHighlight, ColorMain, *assistantMsg.Content, ColorReset)
 			}
 
-			// Update and display total tokens
+			// Update tokens using "Last Usage" algorithm
 			if resp.Usage.TotalTokens > 0 {
+				// Current context (from last API response - this is the ACTUAL context size)
+				currentContextTokens = resp.Usage.TotalTokens
+				currentPromptTokens = resp.Usage.PromptTokens
+				currentCompletionTokens = resp.Usage.CompletionTokens
+
+				// Session cumulative stats (total spent across all requests)
 				totalTokens += resp.Usage.TotalTokens
 				totalPromptTokens += resp.Usage.PromptTokens
 				totalCompletionTokens += resp.Usage.CompletionTokens
@@ -472,7 +488,14 @@ func runCLI() {
 						Role:    "system",
 						Content: &systemPrompt,
 					})
+
+					// Reset both current context and session stats when switching modes
+					currentContextTokens = 0
+					currentPromptTokens = 0
+					currentCompletionTokens = 0
 					totalTokens = 0
+					totalPromptTokens = 0
+					totalCompletionTokens = 0
 
 					// Update deprecated config for backward compatibility
 					config.OperationMode = Build
@@ -628,10 +651,10 @@ func handleSlashCommand(command string) {
 		fmt.Printf("Usage verbose mode set to %d\n", mode)
 
 	case "/cost":
-		// Calculate percentage
+		// Calculate percentage based on CURRENT context (Last Usage algorithm)
 		percent := 0.0
 		if config.ModelContextLength > 0 {
-			percent = float64(totalTokens) / float64(config.ModelContextLength) * 100
+			percent = float64(currentContextTokens) / float64(config.ModelContextLength) * 100
 		}
 		if percent > 100 {
 			percent = 100
@@ -658,11 +681,14 @@ func handleSlashCommand(command string) {
 		}
 		bar += ColorReset + "]"
 
-		fmt.Printf("\nContext Usage (Model: %s%s%s)\n", ColorHighlight, config.Model, ColorReset)
+		fmt.Printf("\n%sCurrent Context Usage%s (Model: %s%s%s)\n", StyleBold, ColorReset, ColorHighlight, config.Model, ColorReset)
 		fmt.Printf("%s %.1f%%\n", bar, percent)
-		fmt.Printf("%s / %s tokens used\n\n", formatNumber(totalTokens), formatNumber(config.ModelContextLength))
+		fmt.Printf("%s / %s tokens in context\n", formatNumber(currentContextTokens), formatNumber(config.ModelContextLength))
+		fmt.Printf("%s  ├─ Prompt: %s tokens\n", ColorMeta, formatNumber(currentPromptTokens))
+		fmt.Printf("%s  └─ Completion: %s tokens%s\n\n", ColorMeta, formatNumber(currentCompletionTokens), ColorReset)
 
-		fmt.Println("Session Statistics:")
+		fmt.Printf("%sSession Statistics%s (cumulative):\n", StyleBold, ColorReset)
+		fmt.Printf("%s•%s Total Tokens:       %s\n", ColorHighlight, ColorReset, formatNumber(totalTokens))
 		fmt.Printf("%s•%s Prompt Tokens:      %s\n", ColorHighlight, ColorReset, formatNumber(totalPromptTokens))
 		fmt.Printf("%s•%s Completion Tokens:  %s\n", ColorHighlight, ColorReset, formatNumber(totalCompletionTokens))
 		fmt.Printf("%s•%s Tool Calls:         %s\n", ColorHighlight, ColorReset, formatNumber(totalToolCalls))
@@ -710,7 +736,10 @@ func handleSlashCommand(command string) {
 				Messages:     loadedSession.Messages,
 				AgentDefName: loadedSession.AgentDefName,
 			}
-			// Restore token counts from session
+			// Restore token counts from session (both current context and cumulative)
+			currentContextTokens = loadedSession.CurrentContextTokens
+			currentPromptTokens = loadedSession.CurrentPromptTokens
+			currentCompletionTokens = loadedSession.CurrentCompletionTokens
 			totalTokens = loadedSession.TotalTokens
 			totalPromptTokens = loadedSession.PromptTokens
 			totalCompletionTokens = loadedSession.CompletionTokens
@@ -720,7 +749,10 @@ func handleSlashCommand(command string) {
 			if loadedSession.AgentDefName != "" {
 				fmt.Printf("Active agent: %s\n", loadedSession.AgentDefName)
 			}
-			fmt.Printf("Restored token counts: Total: %d, Prompt: %d, Completion: %d, Tool Calls: %d\n", totalTokens, totalPromptTokens, totalCompletionTokens, totalToolCalls)
+			fmt.Printf("Current context: %d tokens (Prompt: %d, Completion: %d)\n",
+				currentContextTokens, currentPromptTokens, currentCompletionTokens)
+			fmt.Printf("Session total: %d tokens (Prompt: %d, Completion: %d), Tool Calls: %d\n",
+				totalTokens, totalPromptTokens, totalCompletionTokens, totalToolCalls)
 		case "new":
 			// Save current session first if it has content
 			if len(agent.Messages) > 1 {
@@ -737,7 +769,10 @@ func handleSlashCommand(command string) {
 				Messages: make([]Message, 0),
 			}
 
-			// Reset token counters
+			// Reset both current context and session stats for new session
+			currentContextTokens = 0
+			currentPromptTokens = 0
+			currentCompletionTokens = 0
 			totalTokens = 0
 			totalPromptTokens = 0
 			totalCompletionTokens = 0
@@ -811,7 +846,14 @@ func handleSlashCommand(command string) {
 			Role:    "system",
 			Content: &systemPrompt,
 		})
+
+		// Reset both current context and session stats when switching agents
+		currentContextTokens = 0
+		currentPromptTokens = 0
+		currentCompletionTokens = 0
 		totalTokens = 0
+		totalPromptTokens = 0
+		totalCompletionTokens = 0
 
 		fmt.Printf("Switched to %s mode.\n", targetAgent)
 
@@ -972,7 +1014,14 @@ func handleSlashCommand(command string) {
 				Role:    "system",
 				Content: &systemPrompt,
 			})
+
+			// Reset both current context and session stats when switching agents
+			currentContextTokens = 0
+			currentPromptTokens = 0
+			currentCompletionTokens = 0
 			totalTokens = 0
+			totalPromptTokens = 0
+			totalCompletionTokens = 0
 
 			fmt.Printf("Switched to %s mode.\n", targetAgent)
 
@@ -1333,7 +1382,15 @@ CRITICAL: Only include information that is:
 			Role:    "system",
 			Content: &systemPrompt,
 		})
+
+		// Reset both current context and session stats when clearing
+		currentContextTokens = 0
+		currentPromptTokens = 0
+		currentCompletionTokens = 0
 		totalTokens = 0
+		totalPromptTokens = 0
+		totalCompletionTokens = 0
+
 		fmt.Println("Context cleared.")
 	case "/subagents":
 		if len(parts) > 1 {
@@ -1443,7 +1500,15 @@ CRITICAL: Only include information that is:
 			agent = &Agent{ID: currentID, Messages: make([]Message, 0), AgentDefName: name}
 			systemPrompt := buildSystemPrompt("")
 			agent.Messages = append(agent.Messages, Message{Role: "system", Content: &systemPrompt})
+
+			// Reset both current context and session stats when activating agent
+			currentContextTokens = 0
+			currentPromptTokens = 0
+			currentCompletionTokens = 0
 			totalTokens = 0
+			totalPromptTokens = 0
+			totalCompletionTokens = 0
+
 			fmt.Printf("Active agent set to '%s'. Context cleared.\n", name)
 
 		case "clear":
@@ -1470,7 +1535,15 @@ CRITICAL: Only include information that is:
 			agent = &Agent{ID: currentID, Messages: make([]Message, 0), AgentDefName: ""}
 			systemPrompt := buildSystemPrompt("")
 			agent.Messages = append(agent.Messages, Message{Role: "system", Content: &systemPrompt})
+
+			// Reset both current context and session stats when clearing agent
+			currentContextTokens = 0
+			currentPromptTokens = 0
+			currentCompletionTokens = 0
 			totalTokens = 0
+			totalPromptTokens = 0
+			totalCompletionTokens = 0
+
 			fmt.Println("Active agent cleared. Context cleared.")
 
 		case "rm":
@@ -1571,22 +1644,39 @@ func compressAndStartNewChat() {
 		return
 	}
 
+	// Preserve the current agent definition name (if any) to maintain agent-specific instructions
+	currentAgentDefName := agent.AgentDefName
+	currentID := agent.ID
+
 	// Create a new agent with the compressed context
 	agent = &Agent{
-		ID:       "main",
-		Messages: make([]Message, 0),
+		ID:           currentID,
+		Messages:     make([]Message, 0),
+		AgentDefName: currentAgentDefName, // Preserve agent definition
 	}
 
+	// Build system prompt with compressed summary
+	// This will automatically include:
+	// - Agent-specific instructions (if active)
+	// - Current plan (for build mode)
+	// - AGENTS.md content
+	// - MCP tools information
+	// - Notes and agent listings
 	systemPrompt := buildSystemPrompt(compressedContent)
 	agent.Messages = append(agent.Messages, Message{
 		Role:    "system",
 		Content: &systemPrompt,
 	})
 
-	fmt.Println("Context compressed. Starting new chat with compressed summary as system message.")
+	fmt.Printf("%sContext compressed. Continuing with task...%s\n", ColorGreen, ColorReset)
 
-	// Reset total tokens after compression
-	totalTokens = 0
+	// Reset current context tokens after compression (context is now clean)
+	currentContextTokens = 0
+	currentPromptTokens = 0
+	currentCompletionTokens = 0
+
+	// Note: Session cumulative stats (totalTokens, etc.) are NOT reset
+	// They continue to track total usage across compressions
 }
 
 func runSetup() {
@@ -1741,11 +1831,14 @@ func editCommand() {
 	// Now trigger the model response (agentic loop)
 	// We'll call the same loop that processes user input
 	for {
-		// Auto-compress context if enabled and token count exceeds 75% of context length
-		if config.AutoCompress && totalTokens > (config.ModelContextLength*3/4) {
+		// Auto-compress context if enabled and current context exceeds 75% of limit
+		// Uses "Last Usage" algorithm - currentContextTokens reflects actual context size
+		if config.AutoCompress && currentContextTokens > (config.ModelContextLength*3/4) {
+			fmt.Printf("%sAuto-compression triggered (context: %d / %d = %.1f%%)%s\n",
+				ColorYellow, currentContextTokens, config.ModelContextLength,
+				float64(currentContextTokens)/float64(config.ModelContextLength)*100, ColorReset)
 			compressAndStartNewChat()
-			fmt.Println("Context compressed due to token limit. New user input is required.")
-			return // Exit after compression
+			// Continue the agentic loop - the agent will keep working with compressed context
 		}
 
 		var resp *APIResponse
@@ -1779,8 +1872,14 @@ func editCommand() {
 			fmt.Printf("%s● %s%s%s\n", ColorHighlight, ColorMain, *assistantMsg.Content, ColorReset)
 		}
 
-		// Update and display total tokens
+		// Update tokens using "Last Usage" algorithm
 		if resp.Usage.TotalTokens > 0 {
+			// Current context (from last API response - this is the ACTUAL context size)
+			currentContextTokens = resp.Usage.TotalTokens
+			currentPromptTokens = resp.Usage.PromptTokens
+			currentCompletionTokens = resp.Usage.CompletionTokens
+
+			// Session cumulative stats (total spent across all requests)
 			totalTokens += resp.Usage.TotalTokens
 			totalPromptTokens += resp.Usage.PromptTokens
 			totalCompletionTokens += resp.Usage.CompletionTokens

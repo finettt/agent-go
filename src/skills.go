@@ -1,4 +1,5 @@
 package main
+
 import (
 	"encoding/json"
 	"fmt"
@@ -82,7 +83,7 @@ func loadSkillsFromDir(dir string) ([]Skill, error) {
 
 func loadSkillFromScript(path string) (*Skill, error) {
 	name := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
-	
+
 	// Default parameters for script skills
 	params := map[string]interface{}{
 		"type": "object",
