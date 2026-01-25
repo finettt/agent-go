@@ -40,7 +40,7 @@ curl -fsSL https://raw.githubusercontent.com/finettt/agent-go/main/install-agent
 
 **Rolling Install (Build from Source)**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/finettt/agent-go/main/install-agent-go.sh | bash -s -- --rolling
+curl -fsSL https://raw.githubusercontent.com/finettt/agent-go/main/install-agent-go.sh | ROLLING=1 bash
 ```
 
 ---
