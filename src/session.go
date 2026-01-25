@@ -12,15 +12,22 @@ import (
 
 // Session represents a saved agent session
 type Session struct {
-	ID               string    `json:"id"`
-	Messages         []Message `json:"messages"`
-	AgentDefName     string    `json:"agent_def_name,omitempty"`
-	CreatedAt        time.Time `json:"created_at"`
-	UpdatedAt        time.Time `json:"updated_at"`
-	TotalTokens      int       `json:"total_tokens"`
-	PromptTokens     int       `json:"prompt_tokens"`
-	CompletionTokens int       `json:"completion_tokens"`
-	ToolCalls        int       `json:"tool_calls"`
+	ID           string    `json:"id"`
+	Messages     []Message `json:"messages"`
+	AgentDefName string    `json:"agent_def_name,omitempty"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+
+	// Current context tokens (from last API response - "Last Usage" algorithm)
+	CurrentContextTokens    int `json:"current_context_tokens"`
+	CurrentPromptTokens     int `json:"current_prompt_tokens"`
+	CurrentCompletionTokens int `json:"current_completion_tokens"`
+
+	// Session cumulative tokens (total spent across all requests)
+	TotalTokens      int `json:"total_tokens"`
+	PromptTokens     int `json:"prompt_tokens"`
+	CompletionTokens int `json:"completion_tokens"`
+	ToolCalls        int `json:"tool_calls"`
 }
 
 // getSessionsDir returns the path to the sessions directory
@@ -56,10 +63,17 @@ func saveSession(agent *Agent) error {
 	// If the user uses the tool, agent.ID will be updated.
 
 	session := Session{
-		ID:               agent.ID,
-		Messages:         agent.Messages,
-		AgentDefName:     agent.AgentDefName,
-		UpdatedAt:        time.Now(),
+		ID:           agent.ID,
+		Messages:     agent.Messages,
+		AgentDefName: agent.AgentDefName,
+		UpdatedAt:    time.Now(),
+
+		// Current context
+		CurrentContextTokens:    currentContextTokens,
+		CurrentPromptTokens:     currentPromptTokens,
+		CurrentCompletionTokens: currentCompletionTokens,
+
+		// Session cumulative
 		TotalTokens:      totalTokens,
 		PromptTokens:     totalPromptTokens,
 		CompletionTokens: totalCompletionTokens,
@@ -298,7 +312,10 @@ func formatSessionView(id string) string {
 	sb.WriteString(fmt.Sprintf("Created: %s\n", session.CreatedAt.Format("2006-01-02 15:04:05")))
 	sb.WriteString(fmt.Sprintf("Updated: %s\n", session.UpdatedAt.Format("2006-01-02 15:04:05")))
 	sb.WriteString(fmt.Sprintf("Messages: %d\n", len(session.Messages)))
-	sb.WriteString(fmt.Sprintf("Tokens: %d (Prompt: %d, Completion: %d)\n", session.TotalTokens, session.PromptTokens, session.CompletionTokens))
+	sb.WriteString(fmt.Sprintf("Current Context: %d tokens (Prompt: %d, Completion: %d)\n",
+		session.CurrentContextTokens, session.CurrentPromptTokens, session.CurrentCompletionTokens))
+	sb.WriteString(fmt.Sprintf("Session Total: %d tokens (Prompt: %d, Completion: %d)\n",
+		session.TotalTokens, session.PromptTokens, session.CompletionTokens))
 	sb.WriteString(fmt.Sprintf("Tool Calls: %d\n", session.ToolCalls))
 	sb.WriteString("\nRecent Messages:\n")
 
