@@ -52,10 +52,14 @@ func getBuiltInAgentDefinition(name string) (*AgentDefinition, bool) {
 	if safe != "default" {
 		return nil, false
 	}
+	// The default agent has no tool restrictions - it uses all available tools
+	// based on the operation mode (Plan vs Build). The tool availability is
+	// controlled by getAvailableTools() which filters based on mode.
 	return &AgentDefinition{
 		Name:         "default",
-		Description:  "Built-in default agent",
+		Description:  "Built-in default agent with full tool access",
 		SystemPrompt: builtInDefaultAgentSystemPrompt(),
+		// No AllowedTools or DeniedTools - allows all tools
 	}, true
 }
 

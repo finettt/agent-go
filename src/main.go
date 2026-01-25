@@ -1268,15 +1268,13 @@ CRITICAL: Only include information that is:
 			}
 
 			// Snapshot current settings only when activating from "no active agent".
-			if activeAgentDef == nil {
+			if agent.AgentDefName == "" {
 				prevAgentConfigSnapshot = &AgentConfigSnapshot{
 					Model:     config.Model,
 					Temp:      config.Temp,
 					MaxTokens: config.MaxTokens,
 				}
 			}
-
-			activeAgentDef = def
 
 			// Apply optional overrides (in-memory only).
 			if strings.TrimSpace(def.Model) != "" {
@@ -1302,14 +1300,13 @@ CRITICAL: Only include information that is:
 			systemPrompt := buildSystemPrompt("")
 			agent.Messages = append(agent.Messages, Message{Role: "system", Content: &systemPrompt})
 			totalTokens = 0
-			fmt.Printf("Active agent set to '%s'. Context cleared.\n", activeAgentDef.Name)
+			fmt.Printf("Active agent set to '%s'. Context cleared.\n", name)
 
 		case "clear":
-			if activeAgentDef == nil {
+			if agent.AgentDefName == "" {
 				fmt.Println("No active agent.")
 				return
 			}
-			activeAgentDef = nil
 			if prevAgentConfigSnapshot != nil {
 				config.Model = prevAgentConfigSnapshot.Model
 				config.Temp = prevAgentConfigSnapshot.Temp
@@ -1343,8 +1340,8 @@ CRITICAL: Only include information that is:
 				return
 			}
 			// If the deleted agent is active, clear it.
-			if activeAgentDef != nil && activeAgentDef.Name == name {
-				activeAgentDef = nil
+			if agent.AgentDefName == name {
+				agent.AgentDefName = ""
 			}
 			fmt.Printf("Agent '%s' deleted.\n", name)
 		default:
@@ -1364,8 +1361,10 @@ func buildSystemPrompt(contextSummary string) string {
 	}
 
 	// If a task-specific agent is active, prepend its system prompt.
-	if activeAgentDef != nil && strings.TrimSpace(activeAgentDef.SystemPrompt) != "" {
-		basePrompt = fmt.Sprintf("=== Active Task-Specific Agent: %s ===\n%s\n\n%s", activeAgentDef.Name, activeAgentDef.SystemPrompt, basePrompt)
+	if agent != nil && agent.AgentDefName != "" {
+		if def, err := loadAgentDefinition(agent.AgentDefName); err == nil && strings.TrimSpace(def.SystemPrompt) != "" {
+			basePrompt = fmt.Sprintf("=== Active Task-Specific Agent: %s ===\n%s\n\n%s", def.Name, def.SystemPrompt, basePrompt)
+		}
 	}
 
 	// Add compressed context if available
