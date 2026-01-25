@@ -9,17 +9,12 @@ error_exit() {
     exit 1
 }
 
-ROLLING=false
-
-# Parse arguments
-for arg in "$@"; do
-    case $arg in
-        --rolling)
-            ROLLING=true
-            shift
-            ;;
-    esac
-done
+# Check for ROLLING environment variable first
+if [ "$ROLLING" = "1" ] || [ "$ROLLING" = "true" ]; then
+    ROLLING=true
+else
+    ROLLING=false
+fi
 
 # Check if running as root
 if [[ $EUID -eq 0 ]]; then
