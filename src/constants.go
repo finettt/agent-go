@@ -40,7 +40,7 @@ const (
 // Default configuration values
 const (
 	DefaultTemp                  = 0.1
-	DefaultMaxTokens             = 1000
+	DefaultMaxTokens             = -1
 	DefaultAPIURL                = "https://api.openai.com"
 	DefaultModel                 = "gpt-3.5-turbo"
 	DefaultMiniModel             = "gpt-4o-mini"

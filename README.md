@@ -16,6 +16,9 @@
   <a href="#">
     <img src="https://img.shields.io/badge/Platform-Win_|_Mac_|_Linux-4AF6F6?style=for-the-badge&logo=linux&logoColor=black" alt="Platform" />
   </a>
+  <a href="https://github.com/finettt/agent-go/releases">
+    <img src="https://img.shields.io/badge/Version-2.0.0-4AF6F6?style=for-the-badge" alt="Version" />
+  </a>
   <a href="https://zread.ai/finettt/agent-go" target="_blank">
     <img src="https://img.shields.io/badge/Ask_Zread-_.svg?style=for-the-badge&color=00b0aa&labelColor=000000&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTQuOTYxNTYgMS42MDAxSDIuMjQxNTZDMS44ODgxIDEuNjAwMSAxLjYwMTU2IDEuODg2NjQgMS42MDE1NiAyLjI0MDFWNC45NjAxQzEuNjAxNTYgNS4zMTM1NiAxLjg4ODEgNS42MDAxIDIuMjQxNTYgNS42MDAxSDQuOTYxNTZDNS4zMTUwMiA1LjYwMDEgNS42MDE1NiA1LjMxMzU2IDUuNjAxNTYgNC45NjAxVjIuMjQwMUM1LjYwMTU2IDEuODg2NjQgNS4zMTUwMiAxLjYwMDEgNC45NjE1NiAxLjYwMDFaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00Ljk2MTU2IDEwLjM5OTlIMi4yNDE1NkMxLjg4ODEgMTAuMzk5OSAxLjYwMTU2IDEwLjY4NjQgMS42MDE1NiAxMS4wMzk5VjEzLjc1OTlDMS42MDE1NiAxNC4xMTM0IDEuODg4MSAxNC4zOTk5IDIuMjQxNTYgMTQuMzk5OUg0Ljk2MTU2QzUuMzE1MDIgMTQuMzk5OSA1LjYwMTU2IDE0LjExMzQgNS42MDE1NiAxMy43NTk5VjExLjAzOTlDNS42MDE1NiAxMC42ODY0IDUuMzE1MDIgMTAuMzk5OSA0Ljk2MTU2IDEwLjM5OTlaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik0xMy43NTg0IDEuNjAwMUgxMS4wMzg0QzEwLjY4NSAxLjYwMDEgMTAuMzk4NCAxLjg4NjY0IDEwLjM5ODQgMi4yNDAxVjQuOTYwMUMxMC4zOTg0IDUuMzEzNTYgMTAuNjg1IDUuNjAwMSAxMS4wMzg0IDUuNjAwMUgxMy43NTg0QzE0LjExMTkgNS42MDAxIDE0LjM5ODQgNS4zMTM1NiAxNC4zOTg0IDQuOTYwMVYyLjI0MDFDMTQuMzk4NCAxLjg4NjY0IDE0LjExMTkgMS42MDAxIDEzLjc1ODQgMS42MDAxWiIgZmlsbD0iI2ZmZiIvPgo8cGF0aCBkPSJNNCAxMkwxMiA0TDQgMTJaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00IDEyTDEyIDQiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K&logoColor=ffffff" alt="zread"/>
   </a>
@@ -79,6 +82,9 @@ graph LR
 | **MCP Integration** | Connects to **Model Context Protocol** servers (includes `context7` for docs). |
 | **Project Memory** | Persistent Notes and Todo lists that stick with your project across sessions. |
 | **Sub-Agents** | Spawns autonomous background threads to handle complex tasks while you keep working. |
+| **Checkpoint System** | Save and restore work progress with checkpoint and rollback capabilities. |
+| **Mini Model Integration** | Use lightweight models for utility tasks to optimize costs. |
+| **Enhanced Token Tracking** | Accurate context tracking with "Last Usage" algorithm for better memory management. |
 
 ---
 
@@ -110,7 +116,6 @@ Control the environment with `/` commands.
 *   `/agent studio` - Interactively build a new custom agent.
 *   `/session save` - Snapshot your current workspace context.
 *   `/rag on` - Activate local file awareness.
-*   `/stream on` - Toggle matrix-style text streaming.
 *   `/shell` - Drop into a standard system shell (bypass AI).
 
 > Type `/help` inside the tool for the full command list.
@@ -131,6 +136,8 @@ export OPENAI_MODEL="gpt-4-turbo"      # Recommended
 export RAG_ENABLED=1                   # Enable local file search
 export AUTO_COMPRESS=1                 # Enable infinite memory
 ```
+
+> **Note:** As of v2.0.0, the `OperationMode` configuration is deprecated. Use the `/plan` command to toggle between plan/build modes instead.
 
 ### Custom Instructions (`AGENTS.md`)
 Drop an `AGENTS.md` file in your current directory to give the agent project-specific rules.

@@ -25,18 +25,19 @@ The configuration file is automatically created on first run or when settings ar
 ```json
 {
   "api_url": "https://api.openai.com",
-  "model": "gpt-4-turbo",
+  "model": "gpt-3.5-turbo",
+  "mini_model": "gpt-4o-mini",
   "api_key": "sk-your-secret-api-key-here",
   "temp": 0.1,
-  "max_tokens": 1000,
+  "max_tokens": -1,
   "rag_enabled": true,
   "rag_path": "/home/user/documents",
   "rag_snippets": 5,
   "auto_compress": true,
   "auto_compress_threshold": 20,
-  "model_context_length": 131072,
-  "stream": false,
+  "model_context_length": 262144,
   "subagents_enabled": true,
+  "execution_mode": "ask",
   "mcp_servers": {
     "context7": {
       "name": "context7",
@@ -55,8 +56,9 @@ The configuration file is automatically created on first run or when settings ar
 | `api_url` | string | `"https://api.openai.com"` | Base URL for the AI API provider |
 | `api_key` | string | `""` | API key for authentication (required) |
 | `model` | string | `"gpt-3.5-turbo"` | AI model to use for responses |
+| `mini_model` | string | `"gpt-4o-mini"` | Lightweight AI model for utility tasks (subagents can use via `{"model": "mini"}`) |
 | `temp` | float | `0.1` | Controls randomness (0.0-1.0, lower = more deterministic) |
-| `max_tokens` | int | `1000` | Maximum tokens per response |
+| `max_tokens` | int | `-1` (unlimited) | Maximum tokens per response |
 
 #### RAG Configuration
 
@@ -72,16 +74,14 @@ The configuration file is automatically created on first run or when settings ar
 |-----------|------|---------|-------------|
 | `auto_compress` | bool | `true` | Enable automatic context compression |
 | `auto_compress_threshold` | int | `20` | Threshold for auto compression (percentage of context length) |
-| `model_context_length` | int | `131072` | Maximum context length for the AI model |
+| `model_context_length` | int | `262144` | Maximum context length for the AI model |
 
-#### Streaming and Sub-agent Configuration
+#### Sub-agent and Execution Configuration
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `stream` | bool | `false` | Enable/disable streaming mode for real-time responses |
 | `subagents_enabled` | bool | `true` | Enable/disable sub-agent spawning capability |
 | `execution_mode` | string | `"ask"` | Execution mode: `"ask"` (confirm commands) or `"yolo"` (auto-execute) |
-| `operation_mode` | string | `"build"` | Operation mode: `"build"` (execute commands) or `"plan"` (plan only) |
 
 #### MCP Server Configuration
 
@@ -100,7 +100,20 @@ The configuration file is automatically created on first run or when settings ar
 ```
 
 **Default MCP Server:**
-The `context7` server is automatically configured for accessing up-to-date library documentation.
+The `context7` server is **automatically injected at runtime** if no MCP servers are configured. This provides default access to up-to-date library documentation.
+
+#### Deprecated Configuration Parameters
+
+| Parameter | Status | Replacement |
+|-----------|--------|-------------|
+| `operation_mode` | **DEPRECATED** | Use `/plan` command to toggle between `plan` and `build` agents |
+| `OPERATION_MODE` (env) | **DEPRECATED** | Use `/plan` command; agents now control plan/build behavior |
+| `stream` | **Not implemented** | Streaming configuration is not currently active in code |
+
+**Migration Note for `operation_mode`:**
+- Old: `"operation_mode": "plan"` in config
+- New: Use `/plan` to activate the `plan` agent, or `/plan` again to switch back to `build` agent
+- The config field is retained for backward compatibility but emits a deprecation warning
 
 ## Environment Variables
 
@@ -118,16 +131,16 @@ Environment variables provide a way to override configuration settings without m
 | `OPENAI_KEY` | API key for authentication | `sk-proj-abc123...` |
 | `OPENAI_BASE` | Base URL for API provider | `https://api.openai.com` |
 | `OPENAI_MODEL` | AI model to use | `gpt-4-turbo` |
+| `OPENAI_MINI_MODEL` | Mini model for utility tasks | `gpt-4o-mini` |
 | `RAG_PATH` | Path to RAG documents | `/home/user/documents` |
-| `RAG_ENABLED` | Enable RAG feature (`1`=enabled, `0`=disabled) | `1` |
-| `RAG_SNIPPETS` | Number of RAG snippets | `5` |
-| `AUTO_COMPRESS` | Enable auto context compression (`1`=enabled, `0`=disabled) | `1` |
-| `AUTO_COMPRESS_THRESHOLD` | Threshold for auto compression | `20` |
-| `MODEL_CONTEXT_LENGTH` | Model context length | `131072` |
-| `STREAM_ENABLED` | Enable streaming mode (`1`=enabled, `0`=disabled) | `1` or `true` |
-| `SUBAGENTS_ENABLED` | Enable sub-agent spawning (`1`=enabled, `0`=disabled) | `1` or `true` |
+| `RAG_ENABLED` | Enable RAG feature (only `"1"` enables) | `1` |
+| `RAG_SNIPPETS` | Number of RAG snippets (integer > 0) | `5` |
+| `AUTO_COMPRESS` | Enable auto context compression (only `"1"` enables) | `1` |
+| `AUTO_COMPRESS_THRESHOLD` | Threshold for auto compression (integer > 0) | `20` |
+| `MODEL_CONTEXT_LENGTH` | Model context length (integer > 0) | `262144` |
+| `SUBAGENTS_ENABLED` | **Can only disable** with `"0"` or `"false"` (no enable option via env) | `0` |
 | `EXECUTION_MODE` | Set execution mode | `"ask"` or `"yolo"` |
-| `OPERATION_MODE` | Set operation mode | `"build"` or `"plan"` |
+| `OPERATION_MODE` | **DEPRECATED** - Set operation mode | `"build"` or `"plan"` |
 
 ### Environment Variable Examples
 
@@ -169,7 +182,7 @@ export RAG_PATH="/optimized/documents"
 export RAG_SNIPPETS=8
 export AUTO_COMPRESS=1
 export AUTO_COMPRESS_THRESHOLD=25
-export MODEL_CONTEXT_LENGTH=131072
+export MODEL_CONTEXT_LENGTH=262144
 ```
 
 ## Configuration Priority and Merging
@@ -219,7 +232,7 @@ export RAG_SNIPPETS=10
   "rag_snippets": 10,                          // from environment variable
   "auto_compress": true,                       // from config file
   "auto_compress_threshold": 20,               // from config file
-  "model_context_length": 131072,              // from config file
+  "model_context_length": 262144,              // from default
   "api_key": ""                                // from environment variable (if set)
 }
 ```
@@ -240,7 +253,7 @@ For local development with custom documents:
   "temperature": 0.2,
   "auto_compress": true,
   "auto_compress_threshold": 15,
-  "model_context_length": 32768
+  "model_context_length": 262144
 }
 ```
 
@@ -257,7 +270,7 @@ For production with minimal features:
   "temperature": 0.0,
   "auto_compress": true,
   "auto_compress_threshold": 25,
-  "model_context_length": 16384
+  "model_context_length": 262144
 }
 ```
 
@@ -279,7 +292,7 @@ export OPENAI_BASE="https://api.openai.com"
 export OPENAI_MODEL="gpt-4"
 export RAG_ENABLED=0
 export AUTO_COMPRESS=1
-export MODEL_CONTEXT_LENGTH=131072
+export MODEL_CONTEXT_LENGTH=262144
 ```
 
 ### Scenario 4: RAG-Optimized Setup
@@ -297,7 +310,7 @@ For heavy RAG usage with large document collections:
   "temperature": 0.1,
   "auto_compress": true,
   "auto_compress_threshold": 30,
-  "model_context_length": 131072
+  "model_context_length": 262144
 }
 ```
 
@@ -559,13 +572,15 @@ export OPENAI_KEY="dev-key" && ./agent-go
 
 ### MCP Server Management
 
-Configure MCP servers for extended functionality:
+Configure MCP servers for extended functionality via slash commands or configuration file:
 
 ```bash
-# Add MCP servers programmatically
-export MCP_SERVERS='{"time":{"name":"time","command":"uvx mcp-server-time"}}'
+# Add MCP servers via slash commands (recommended)
+# Start agent-go and use:
+# /mcp add time uvx mcp-server-time
+# /mcp add weather npx -y @weather/mcp-server
 
-# Or via configuration file
+# Or manually edit configuration file
 cat > ~/.config/agent-go/config.json <<EOF
 {
   "api_key": "${OPENAI_KEY}",
@@ -581,6 +596,9 @@ cat > ~/.config/agent-go/config.json <<EOF
   }
 }
 EOF
+
+# Note: MCP_SERVERS environment variable is NOT currently implemented
+# Use slash commands or edit config.json directly
 ```
 
 **Common MCP Servers:**

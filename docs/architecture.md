@@ -57,8 +57,8 @@ The main application serves as the entry point and orchestrates the overall flow
 - **Custom Instructions**: Support for AGENTS.md file for custom agent behavior
 - **Command Line Task Execution**: Direct task execution without interactive mode
 - **Shell Mode**: Direct command execution interface for interactive shell sessions
-- **Plan Mode**: A strategic mode where command execution is blocked, allowing users to brainstorm and plan complex tasks safely
-- **YOLO Mode**: "You Only Look Once" mode for rapid, uninterrupted command execution without confirmation prompts
+- **Plan/Build Agents**: Agent-based approach where plan and build are separate agent definitions with different tool access (replaces the deprecated `operation_mode` config flag)
+- **YOLO Mode**: "You Only Look Once" mode for rapid, uninterrupted command execution without confirmation prompts via `execution_mode`
 
 ### 2. Configuration Management (`config.go`)
 
@@ -68,9 +68,10 @@ Handles configuration loading and management with hierarchical precedence:
 - **Validation**: Ensures required fields are present and valid
 - **Persistence**: Saves configuration to `~/.config/agent-go/config.json`
 - **RAG Configuration**: Separate settings for Retrieval-Augmented Generation
-- **Model Management**: Default model settings and validation
-- **Context Management**: Auto-compression settings and context length configuration
+- **Model Management**: Default model settings (main and mini models) and validation
+- **Context Management**: Auto-compression settings and context length configuration (default: 262144 tokens)
 - **Environment Variable Support**: Comprehensive environment variable override support
+- **Deprecated Fields**: `operation_mode` retained for backward compatibility but emits deprecation warnings
 
 ### 3. API Communication (`api.go`)
 
@@ -84,7 +85,7 @@ Manages communication with OpenAI-compatible APIs:
 - **Model Flexibility**: Works with any OpenAI-compatible API provider
 - **Retry Logic**: Basic retry mechanism for transient failures
 - **Context Compression**: Intelligent conversation summarization using AI
-- **Token Tracking**: Real-time token usage monitoring and management
+- **Token Tracking**: Real-time token usage monitoring with "Last Usage" algorithm (current context from most recent API response)
 
 ### 4. Command Execution (`executor.go`)
 
@@ -96,8 +97,8 @@ Handles secure shell command execution:
 - **Multi-step Execution**: Supports chained commands with `&&` operator
 - **Platform Independence**: Works across different operating systems (Windows, macOS, Linux)
 - **Command Display**: Shows executed commands with color coding for user feedback
-- **Ask/YOLO Modes**: Configurable execution safety with "Ask" (confirm before run) and "YOLO" (auto-run) modes
-- **Plan Mode Restriction**: Enforces safety by blocking command execution when in Plan mode
+- **Ask/YOLO Modes**: Configurable execution safety with "Ask" (confirm before run) and "YOLO" (auto-run) modes via `execution_mode`
+- **Plan Agent Restriction**: Plan agent has restricted tool access (no `execute_command`), enforced via agent definition
 
 ### 5. Tool Management (`tools.go` and `processor.go`)
 
@@ -254,7 +255,7 @@ Gathers system context for the AI:
 Defines the core data structures used throughout the application:
 
 - **Message**: Represents conversation messages with role and content
-- **Config**: Configuration structure with all settings
+- **Config**: Configuration structure with all settings (including deprecated `operation_mode`)
 - **API Request/Response**: Structures for API communication
 - **RAG Settings**: Dedicated structures for RAG configuration
 - **Tool Calls**: Function calling structures for command execution
@@ -263,7 +264,9 @@ Defines the core data structures used throughout the application:
 - **Command Arguments**: Structured command parameters for safe execution
 - **MCP Types**: MCP server configuration and tool arguments
 - **Streaming Types**: Structures for handling streaming responses
-- **Agent Type**: Agent structure with ID and message history
+- **Agent Type**: Agent structure with ID, message history, and active agent definition name
+- **Agent Definition**: Structure for task-specific agent configurations (system prompt, model overrides)
+- **Session**: Structure for saving/restoring conversation state with token tracking
 
 ## Enhanced Features
 
@@ -311,9 +314,9 @@ Support for `AGENTS.md` file for custom agent behavior:
 - **Auto-completion**: Intelligent suggestions for commands and models, dynamically fetched from API
 - **Enhanced Autocomplete**: Extended completion for `/agent` commands, agent names, and session names
 - **Error Messages**: Clear, user-friendly error messages with actionable suggestions
-- **Visual Feedback**: Token usage displayed in real-time with color coding (green)
+- **Visual Feedback**: Token usage displayed based on verbosity mode (1=Silent, 2=Basic, 3=Detailed)
 - **Unlimited Context**: No message count limits with intelligent compression
-- **Token Tracking**: Cumulative token usage monitoring throughout the session
+- **Token Tracking**: Dual tracking - current context (from last API response) and cumulative session stats
 - **Shell Mode**: Direct command execution interface for interactive sessions with `exit` to return
 - **Multi-line Support**: Proper handling of complex command input
 - **Color Coding**: Commands (red), AI responses (blue), token info (green) using ANSI codes
@@ -348,9 +351,9 @@ Agent-Go now supports unlimited conversation history with intelligent compressio
 ### Unlimited Context
 
 - **No Message Limits**: Removed the previous 20-message constraint
-- **Memory Management**: While unlimited, users should be mindful of very long conversations
+- **Memory Management**: Tracks context via "Last Usage" algorithm (current context = total_tokens from most recent API response)
 - **Token Management**: Users can use `/compress` to manage context length
-- **Auto-compression**: Automatically compresses context when approaching token limits
+- **Auto-compression**: Automatically compresses context at 75% of `model_context_length` (default: 262144 tokens)
 
 ### Context Compression
 
@@ -371,10 +374,11 @@ Agent-Go now supports unlimited conversation history with intelligent compressio
 
 ### Auto-compression Logic
 
-- **Threshold**: Automatically compresses when token count exceeds 75% of context length
-- **Configurable**: Users can adjust the threshold via environment variables
+- **Threshold**: Automatically compresses when `currentContextTokens` exceeds 75% of `model_context_length`
+- **Configurable**: Users can adjust `model_context_length` and enable/disable via config or `/contextlength` command
 - **Smart Detection**: Only compresses when there are sufficient messages to summarize
-- **User Notification**: Clearly informs users when context is compressed
+- **User Notification**: Clearly informs users when context is compressed with percentage display
+- **Token Reset**: Resets current context tokens to 0 after compression; session cumulative stats continue
 
 ## Security Considerations
 
