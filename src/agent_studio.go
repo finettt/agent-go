@@ -9,11 +9,8 @@ import (
 // agentStudioMode toggles a dedicated interactive flow to create task-specific agents.
 var agentStudioMode = false
 
-// studioAgent holds the in-progress “studio chat” conversation state.
+// studioAgent holds the in-progress "studio chat" conversation state.
 var studioAgent *Agent
-
-// activeAgentDef is the currently selected task-specific agent definition used to build the system prompt.
-var activeAgentDef *AgentDefinition
 
 func buildAgentStudioSystemPrompt() string {
 	// We deliberately do NOT include getMCPToolInfo() here to avoid costly MCP connects
@@ -85,7 +82,8 @@ func runAgentStudioTurn(cfg *Config) error {
 	cfgCopy.OperationMode = Plan
 
 	for {
-		resp, err := sendAPIRequest(studioAgent, &cfgCopy, false)
+		// No agent definition for studio mode
+		resp, err := sendAPIRequest(studioAgent, &cfgCopy, false, nil)
 		if err != nil {
 			return err
 		}

@@ -20,10 +20,23 @@ type AgentDefinition struct {
 	MaxTokens    *int      `json:"max_tokens,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
+	// AllowedTools is an optional whitelist of tool function names this agent may use.
+	// When non-empty, only the listed tools will be exposed to the model.
+	AllowedTools []string `json:"allowed_tools,omitempty"`
+	// DeniedTools is an optional blacklist of tool function names this agent may NOT use.
+	// Only used when AllowedTools is empty.
+	DeniedTools []string `json:"denied_tools,omitempty"`
 }
 
 func isBuiltInAgentName(name string) bool {
-	return strings.TrimSpace(name) == "default"
+	builtins := []string{"default", "plan", "build"}
+	trimmed := strings.TrimSpace(name)
+	for _, b := range builtins {
+		if trimmed == b {
+			return true
+		}
+	}
+	return false
 }
 
 func builtInDefaultAgentSystemPrompt() string {
@@ -38,19 +51,101 @@ Behavior:
 `)
 }
 
+func getBuiltInPlanAgent() *AgentDefinition {
+	return &AgentDefinition{
+		Name:        "plan",
+		Description: "Planning mode - creates detailed plans without execution",
+		SystemPrompt: `You are an AI assistant in PLANNING mode. Your goals are to:
+1. Analyze the user's request thoroughly
+2. Break down complex tasks into clear, actionable steps
+3. Create a detailed implementation plan
+4. Generate a comprehensive TODO list using the create_todo tool
+5. Present the plan using the suggest_plan tool for approval
+
+IMPORTANT: You CANNOT execute shell commands in this mode. Focus purely on planning and strategy. When the user approves your plan, they will switch to Build mode for implementation.`,
+		AllowedTools: []string{
+			"create_todo",
+			"update_todo",
+			"get_todo_list",
+			"get_current_task",
+			"clear_todo",
+			"create_note",
+			"update_note",
+			"delete_note",
+			"name_session",
+			"suggest_plan",
+			"create_agent_definition",
+			"use_mcp_tool",
+			"spawn_agent",
+		},
+	}
+}
+
+func getBuiltInBuildAgent() *AgentDefinition {
+	return &AgentDefinition{
+		Name:        "build",
+		Description: "Build mode - executes commands and implements solutions",
+		SystemPrompt: `You are an AI assistant in BUILD mode. You can execute commands, write code, and implement solutions.
+
+Capabilities:
+- Execute shell commands via execute_command
+- Manage background processes
+- Create and restore checkpoints
+- Manage todo lists and notes
+- Use MCP tools for extended functionality
+
+Best Practices:
+- For multi-step tasks, chain commands with && (e.g., 'echo content > file.py && python3 file.py')
+- Use background execution for long-running processes
+- Create checkpoints before risky operations
+- Update todo lists to track progress
+- Be direct and technical in communication`,
+		AllowedTools: []string{
+			"execute_command",
+			"kill_background_command",
+			"get_background_logs",
+			"list_background_commands",
+			"create_checkpoint",
+			"list_checkpoints",
+			"create_todo",
+			"update_todo",
+			"get_todo_list",
+			"get_current_task",
+			"clear_todo",
+			"create_note",
+			"update_note",
+			"delete_note",
+			"name_session",
+			"use_mcp_tool",
+			"spawn_agent",
+		},
+	}
+}
+
 func getBuiltInAgentDefinition(name string) (*AgentDefinition, bool) {
 	safe, err := sanitizeAgentName(name)
 	if err != nil {
 		return nil, false
 	}
-	if safe != "default" {
+
+	switch safe {
+	case "default":
+		// The default agent has no tool restrictions - it uses all available tools
+		// based on the operation mode (Plan vs Build). The tool availability is
+		// controlled by getAvailableTools() which filters based on mode.
+		return &AgentDefinition{
+			Name:         "default",
+			Description:  "Built-in default agent with full tool access",
+			SystemPrompt: builtInDefaultAgentSystemPrompt(),
+			// No AllowedTools or DeniedTools - allows all tools
+		}, true
+	case "plan":
+		return getBuiltInPlanAgent(), true
+	case "build":
+		return getBuiltInBuildAgent(), true
+	default:
 		return nil, false
 	}
-	return &AgentDefinition{
-		Name:         "default",
-		Description:  "Built-in default agent",
-		SystemPrompt: builtInDefaultAgentSystemPrompt(),
-	}, true
 }
 
 // getAgentsDir returns the path to the agents directory.
@@ -101,6 +196,11 @@ func saveAgentDefinition(def *AgentDefinition) error {
 		return fmt.Errorf("system_prompt cannot be empty")
 	}
 
+	// Validate tool policy
+	if len(def.AllowedTools) > 0 && len(def.DeniedTools) > 0 {
+		fmt.Printf("Warning: Both allowed_tools and denied_tools are set for agent '%s'. Using allowed_tools (whitelist mode).\n", def.Name)
+	}
+
 	if err := ensureAgentsDir(); err != nil {
 		return err
 	}
@@ -124,14 +224,47 @@ func saveAgentDefinition(def *AgentDefinition) error {
 	return os.WriteFile(path, data, 0644)
 }
 
-func loadAgentDefinition(name string) (*AgentDefinition, error) {
-	// Built-in agent fallback (no file required).
-	if def, ok := getBuiltInAgentDefinition(name); ok {
-		// If a file exists with the same name, we'll prefer the file (but "default" is reserved).
-		// We still attempt file loading below; if it doesn't exist, we return the built-in.
-		_ = def
+// ensureDefaultAgentFiles creates plan.json and build.json in the default agents directory if they don't exist
+func ensureDefaultAgentFiles() error {
+	agentsDir := getAgentsDir()
+	if err := ensureAgentsDir(); err != nil {
+		return err
 	}
 
+	planPath := filepath.Join(agentsDir, "plan.json")
+	buildPath := filepath.Join(agentsDir, "build.json")
+
+	// Generate plan.json if missing
+	if _, err := os.Stat(planPath); os.IsNotExist(err) {
+		planAgent := getBuiltInPlanAgent()
+		planAgent.CreatedAt = time.Now()
+		planAgent.UpdatedAt = time.Now()
+		data, _ := json.MarshalIndent(planAgent, "", "  ")
+		if err := os.WriteFile(planPath, data, 0644); err != nil {
+			return fmt.Errorf("failed to create plan.json in agents dir: %w", err)
+		}
+		fmt.Printf("Created plan.json in %s\n", agentsDir)
+	}
+
+	// Generate build.json if missing
+	if _, err := os.Stat(buildPath); os.IsNotExist(err) {
+		buildAgent := getBuiltInBuildAgent()
+		buildAgent.CreatedAt = time.Now()
+		buildAgent.UpdatedAt = time.Now()
+		data, _ := json.MarshalIndent(buildAgent, "", "  ")
+		if err := os.WriteFile(buildPath, data, 0644); err != nil {
+			return fmt.Errorf("failed to create build.json in agents dir: %w", err)
+		}
+		fmt.Printf("Created build.json in %s\n", agentsDir)
+	}
+
+	return nil
+}
+
+func loadAgentDefinition(name string) (*AgentDefinition, error) {
+	// Priority: User config → Built-in
+
+	// 1. Try user config directory
 	path, err := getAgentPath(name)
 	if err != nil {
 		return nil, err
@@ -140,6 +273,7 @@ func loadAgentDefinition(name string) (*AgentDefinition, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
+			// 2. Fallback to built-in
 			if def, ok := getBuiltInAgentDefinition(name); ok {
 				return def, nil
 			}
@@ -326,6 +460,18 @@ func formatAgentView(name string) string {
 	if def.MaxTokens != nil {
 		b.WriteString(fmt.Sprintf("MaxTokens: %d\n", *def.MaxTokens))
 	}
+
+	// Display tool policy if configured
+	if len(def.AllowedTools) > 0 {
+		b.WriteString(fmt.Sprintf("Tool Policy: Whitelist (%d tools)\n", len(def.AllowedTools)))
+		b.WriteString("Allowed Tools: " + strings.Join(def.AllowedTools, ", ") + "\n")
+	} else if len(def.DeniedTools) > 0 {
+		b.WriteString(fmt.Sprintf("Tool Policy: Blacklist (%d tools denied)\n", len(def.DeniedTools)))
+		b.WriteString("Denied Tools: " + strings.Join(def.DeniedTools, ", ") + "\n")
+	} else {
+		b.WriteString("Tool Policy: All tools available\n")
+	}
+
 	if !isBuiltInAgentName(def.Name) {
 		b.WriteString(fmt.Sprintf("Created: %s\n", def.CreatedAt.Format("2006-01-02 15:04:05")))
 		b.WriteString(fmt.Sprintf("Updated: %s\n", def.UpdatedAt.Format("2006-01-02 15:04:05")))
@@ -344,6 +490,9 @@ type CreateAgentDefinitionArgs struct {
 	Model        string   `json:"model,omitempty"`
 	Temperature  *float32 `json:"temperature,omitempty"`
 	MaxTokens    *int     `json:"max_tokens,omitempty"`
+	// Optional tool policy
+	AllowedTools []string `json:"allowed_tools,omitempty"`
+	DeniedTools  []string `json:"denied_tools,omitempty"`
 }
 
 // createAgentDefinition is a tool handler that persists a new agent definition to disk.
@@ -368,6 +517,8 @@ func createAgentDefinition(argsJSON string) (string, error) {
 		Model:        strings.TrimSpace(args.Model),
 		Temperature:  args.Temperature,
 		MaxTokens:    args.MaxTokens,
+		AllowedTools: args.AllowedTools,
+		DeniedTools:  args.DeniedTools,
 	}
 
 	// Prevent silent overwrite: if exists, require user to delete first.

@@ -9,8 +9,14 @@ import (
 	"strings"
 )
 
-func sendAPIRequest(agent *Agent, config *Config, includeSpawn bool) (*APIResponse, error) {
+func sendAPIRequest(agent *Agent, config *Config, includeSpawn bool, agentDef *AgentDefinition) (*APIResponse, error) {
 	apiURL := strings.TrimSuffix(config.APIURL, "/") + "/v1/chat/completions"
+
+	// Build base tools (now includes all tools)
+	baseTools := getAvailableTools(config, includeSpawn, config.OperationMode)
+
+	// Apply operation mode filtering and agent-specific policy
+	tools := filterToolsByPolicy(baseTools, agentDef, config.OperationMode)
 
 	requestBody := APIRequest{
 		Model:       config.Model,
@@ -18,7 +24,7 @@ func sendAPIRequest(agent *Agent, config *Config, includeSpawn bool) (*APIRespon
 		Temperature: config.Temp,
 		MaxTokens:   config.MaxTokens,
 		ToolChoice:  "auto",
-		Tools:       getAvailableTools(config, includeSpawn, config.OperationMode),
+		Tools:       tools,
 	}
 
 	jsonData, err := json.Marshal(requestBody)

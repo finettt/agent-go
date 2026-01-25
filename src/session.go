@@ -14,6 +14,7 @@ import (
 type Session struct {
 	ID               string    `json:"id"`
 	Messages         []Message `json:"messages"`
+	AgentDefName     string    `json:"agent_def_name,omitempty"`
 	CreatedAt        time.Time `json:"created_at"`
 	UpdatedAt        time.Time `json:"updated_at"`
 	TotalTokens      int       `json:"total_tokens"`
@@ -57,6 +58,7 @@ func saveSession(agent *Agent) error {
 	session := Session{
 		ID:               agent.ID,
 		Messages:         agent.Messages,
+		AgentDefName:     agent.AgentDefName,
 		UpdatedAt:        time.Now(),
 		TotalTokens:      totalTokens,
 		PromptTokens:     totalPromptTokens,
