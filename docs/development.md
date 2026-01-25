@@ -135,7 +135,7 @@ agent-go/
 - **`src/main.go`**: Application entry point, CLI loop, and signal handling
 - **`src/api.go`**: OpenAI API integration, streaming, and response processing
 - **`src/config.go`**: Configuration loading and validation
-- **`src/constants.go`**: Application constants and defaults
+- **`src/constants.go`**: Application constants and defaults (includes `DefaultMaxTokens = -1` for unlimited tokens)
 - **`src/executor.go`**: Secure command execution
 - **`src/processor.go`**: Tool call processing and coordination
 - **`src/tools.go`**: Tool definitions and schemas

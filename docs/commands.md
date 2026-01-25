@@ -715,49 +715,67 @@ Agent 'test-agent' deleted successfully.
 
 ## Usage Tracking Commands
 
-### `/usage`
+### `/usage <1|2|3>`
 
-Displays detailed token usage statistics for the current session, including cumulative counts and breakdowns.
+Sets the usage verbosity mode for token tracking display. Controls how much detail is shown after each API response.
 
 **Usage:**
 
 ```
-/usage
+/usage <1|2|3>
 ```
 
-**Example:**
+**Parameters:**
+
+- `1` - **Silent**: No usage information displayed
+- `2` - **Basic**: Shows simple token summary (e.g., "Used 15.4K tokens on gpt-4-turbo")
+- `3` - **Detailed**: Shows full breakdown of prompt, completion, and total tokens, plus cumulative session stats
+
+**Examples:**
 
 ```
-> /usage
-=== Token Usage Statistics ===
+> /usage 1
+Usage verbose mode set to 1
 
-Current Session:
-- Total Tokens: 15,432
-  * Prompt Tokens: 8,241
-  * Completion Tokens: 7,191
-  * Tokens (Reasoning): 0
+> /usage 2
+Usage verbose mode set to 2
 
-Cumulative Totals:
-- Total: 15,432 tokens
-- Estimated Cost: $0.03 (based on current pricing)
+> /usage 3
+Usage verbose mode set to 3
+```
 
-Session Information:
-- Start Time: 2025-12-18 10:30:00
-- Current Session: session-20251218-123456
-- Active Agent: default
+**Usage Display Examples:**
+
+**Mode 1 (Silent):**
+```
+> Create a Python script
+[No usage information shown]
+```
+
+**Mode 2 (Basic):**
+```
+> Create a Python script
+● [Response content]
+Used 1.2K tokens on gpt-4-turbo
+```
+
+**Mode 3 (Detailed):**
+```
+> Create a Python script
+● [Response content]
+Usage: 650 prompt + 550 completion = 1200 total tokens
+Total: 15.4K tokens (8241 prompt, 7191 completion), 5 tool calls
 ```
 
 **Notes:**
 
-- Shows both prompt and completion token counts
-- Displays tokens used for reasoning (if applicable)
-- Provides cost estimation based on current model pricing
-- Cumulative counts include all API calls in the session
-- Resets after context compression
+- Default mode is 1 (Silent)
+- Setting is saved to configuration file
+- Use `/cost` to see detailed session statistics regardless of verbosity mode
 
 ### `/cost`
 
-Displays detailed cost tracking information, including current session costs and historical data.
+Displays comprehensive token usage and context statistics for the current session, with a visual progress bar showing context utilization.
 
 **Usage:**
 
@@ -769,61 +787,61 @@ Displays detailed cost tracking information, including current session costs and
 
 ```
 > /cost
-=== Cost Tracking Information ===
 
-Current Session:
-- API Cost: $0.03
-- Tokens Used: 15,432
-- Model: gpt-4-turbo
+Current Context Usage (Model: gpt-4-turbo)
+[████████████████████████░░░░░░] 78.5%
+15,432 / 262,144 tokens in context
+  ├─ Prompt: 8,241 tokens
+  └─ Completion: 7,191 tokens
 
-Historical Costs:
-- Today: $0.45
-- This Week: $2.15
-- This Month: $15.80
-
-Cost Breakdown:
-- Chat Completion: $0.03 (100%)
-
-Session: session-20251218-123456
+Session Statistics (cumulative):
+• Total Tokens:       45,678
+• Prompt Tokens:      24,120
+• Completion Tokens:  21,558
+• Tool Calls:         12
 ```
 
 **Notes:**
 
-- Tracks costs across sessions and time periods
-- Provides historical cost data for budgeting
-- Breaks down costs by operation type
-- Useful for monitoring API usage expenses
+- Shows **current context size** (from last API response) vs. model's maximum context length
+- Progress bar color changes based on usage: green (<50%), yellow (50-80%), red (>80%)
+- **Current context** reflects actual memory usage; **session statistics** show cumulative API usage
+- Token counts use human-readable suffixes (K for thousands, M for millions)
+- Resets current context to 0 after `/compress` or context clear
+- Session statistics accumulate across all API calls until session ends or context is cleared
+- Uses "Last Usage" algorithm: current context = total_tokens from most recent API response
 
-### `/verbose on|off`
+### `/subagents verbose <1|2>`
 
-Toggles verbose logging mode for enhanced debugging and monitoring.
+Sets the verbosity level for sub-agent operations.
 
 **Usage:**
 
 ```
-/verbose on
-/verbose off
+/subagents verbose <1|2>
 ```
+
+**Parameters:**
+
+- `1` - **Default**: Standard sub-agent output
+- `2` - **Full**: Detailed sub-agent execution logs
 
 **Example:**
 
 ```
-> /verbose on
-Verbose mode enabled.
-Detailed logging active for agent operations.
+> /subagents verbose 1
+Sub-agent verbose mode set to 1
 
-> /verbose off
-Verbose mode disabled.
-Reduced logging output.
+> /subagents verbose 2
+Sub-agent verbose mode set to 2
 ```
 
 **Notes:**
 
-- Enables detailed logging for debugging
-- Shows internal agent operations and decision-making
-- Useful for troubleshooting complex issues
-- Can be configured via environment variables
-- Affects subagent and tool execution logging
+- Controls how much detail is shown during sub-agent execution
+- Mode 2 shows full tool calls, iterations, and internal decision-making
+- Useful for debugging complex sub-agent workflows
+- Setting is saved to configuration file
 
 ### `/security`
 
@@ -1302,30 +1320,52 @@ All slash command changes (except `/help` and `/config`) are automatically saved
 
 ## Additional Features
 
-### `/mode` (or `/plan`)
+### `/mode` (DEPRECATED - use `/plan`)
 
-Toggles between **Plan** mode and **Build** mode.
+**DEPRECATED:** This command is retained for backward compatibility but you should use `/plan` instead.
 
-- **Build Mode** (Default): The agent has access to all tools, including `execute_command`. This is the standard mode for getting things done.
-- **Plan Mode**: The agent is restricted from executing commands. It can only think and use the `suggest_plan` tool to propose a detailed plan to the user. This is useful for complex tasks where you want to agree on a strategy before any code is modified.
+Toggles between the `plan` and `build` agents. See `/plan` below for current usage.
+
+### `/plan`
+
+Toggles between the **plan** agent and **build** agent. These are separate agent definitions with different tool access and system prompts.
+
+- **Build Agent** (Default): Has access to all tools including `execute_command`, file operations, and system commands. Use this for implementation and execution.
+- **Plan Agent**: Specialized for strategic planning. Can create todos and use `suggest_plan` tool to propose detailed implementation plans. Command execution is restricted to planning-only tools.
 
 **Usage:**
 
 ```
-/mode
-# or
-/plan
+/plan                 # Toggle between plan and build agents
+/plan view           # View current plan from .agent-go/current_plan.md
+/plan edit           # Edit current plan in nano/notepad
 ```
 
-**Example:**
+**Examples:**
 
 ```
-> /mode
-Switched to Plan mode.
+> /plan
+Switched to plan mode.
 
 > /plan
-Switched to Build mode.
+Switched to build mode.
+
+> /plan view
+# Plan
+
+## Implementation Strategy
+...
+
+> /plan edit
+[Opens .agent-go/current_plan.md in editor]
 ```
+
+**Notes:**
+
+- Plan/build is now managed via agent definitions, not just a config flag
+- When a plan is approved via `suggest_plan` tool, system automatically switches to build agent
+- Current plan is stored in `.agent-go/current_plan.md` and injected into build agent's system prompt
+- `/mode` command is deprecated; use `/plan` instead
 
 ### `/ask on|off`
 

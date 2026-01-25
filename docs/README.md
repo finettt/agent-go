@@ -43,13 +43,13 @@ Run shell commands in the background with full monitoring and management:
 
 ### Enhanced Features
 
-- **Usage Tracking**: `/usage` and `/cost` commands for detailed token and cost monitoring
+- **Usage Tracking**: `/usage <1|2|3>` command for verbosity control (Silent/Basic/Detailed) and `/cost` for detailed context and session statistics
 - **Security Review**: `/security` command to spawn subagent for code review
 - **Note Mentions**: Support for `#note-name` syntax to inject note content
-- **Verbose Mode**: `/verbose` command for enhanced logging control
-- **Plan Mode**: Implementation with execution safety for complex multi-step tasks
+- **Plan/Build Agents**: Separate agent definitions for planning vs. implementation with automatic mode switching
 - **Reasoning Support**: Chain-of-thought reasoning with "Think..." indicator
 - **Token Formatting**: Human-readable K/M suffixes for large token counts
+- **Dual Token Tracking**: "Last Usage" algorithm tracks both current context size and cumulative session usage
 
 ### MCP (Model Context Protocol) Integration
 
@@ -117,6 +117,7 @@ Persistent notes feature for storing and retrieving important information across
 4. Discover [Agent Studio](commands.md#agent-studio) for creating custom agents
 5. Utilize [Session Management](commands.md#session) for context switching and continuity
 6. Explore [Background Commands](commands.md#background-commands) for parallel task execution
-7. Explore [Advanced Workflows](examples.md#advanced-workflows) for complex scenarios
-8. Optimize [Configuration](configuration.md) for your use case
-9. Learn about [Usage Tracking](commands.md#usage-tracking) for cost management
+7. Use [Plan/Build Workflow](commands.md#plan) - `/plan view` & `/plan edit` for strategic planning
+8. Explore [Advanced Workflows](examples.md#advanced-workflows) for complex scenarios
+9. Optimize [Configuration](configuration.md) for your use case
+10. Learn about [Usage Tracking](commands.md#usage-tracking) - `/usage` for verbosity, `/cost` for detailed stats
