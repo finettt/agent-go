@@ -12,11 +12,11 @@ import (
 func sendAPIRequest(agent *Agent, config *Config, includeSpawn bool, agentDef *AgentDefinition) (*APIResponse, error) {
 	apiURL := strings.TrimSuffix(config.APIURL, "/") + "/v1/chat/completions"
 
-	// Build base tools
+	// Build base tools (now includes all tools)
 	baseTools := getAvailableTools(config, includeSpawn, config.OperationMode)
 
-	// Apply agent-specific filtering
-	tools := filterToolsByPolicy(baseTools, agentDef)
+	// Apply operation mode filtering and agent-specific policy
+	tools := filterToolsByPolicy(baseTools, agentDef, config.OperationMode)
 
 	requestBody := APIRequest{
 		Model:       config.Model,

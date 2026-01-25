@@ -22,6 +22,22 @@ type SuggestPlanArgs struct {
 	Description string `json:"description"`
 }
 
+// BuildModeTools lists the tools that are only available in Build mode
+var BuildModeTools = []string{
+	"execute_command",
+	"kill_background_command",
+	"get_background_logs",
+	"list_background_commands",
+	"create_checkpoint",
+	"list_checkpoints",
+}
+
+// PlanModeTools lists the tools that are only available in Plan mode
+var PlanModeTools = []string{
+	"suggest_plan",
+	"create_agent_definition",
+}
+
 // getAvailableTools returns the list of tools available to the agent
 func getAvailableTools(config *Config, includeSpawn bool, operationMode OperationMode) []Tool {
 	tools := []Tool{}
@@ -38,22 +54,21 @@ func getAvailableTools(config *Config, includeSpawn bool, operationMode Operatio
 		})
 	}
 
-	if operationMode == Build {
-		tools = append(tools, Tool{
-			Type: "function",
-			Function: FunctionDefinition{
-				Name:        "execute_command",
-				Description: "Execute shell command (foreground). In Ask mode the user may choose to run it in the background at approval time.",
-				Parameters: map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"command": map[string]string{"type": "string"},
-					},
-					"required": []string{"command"},
+	// Build mode tools
+	tools = append(tools, Tool{
+		Type: "function",
+		Function: FunctionDefinition{
+			Name:        "execute_command",
+			Description: "Execute shell command (foreground). In Ask mode the user may choose to run it in the background at approval time.",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"command": map[string]string{"type": "string"},
 				},
+				"required": []string{"command"},
 			},
-		})
-	}
+		},
+	})
 
 	tools = append(tools, Tool{
 		Type: "function",
@@ -173,108 +188,104 @@ func getAvailableTools(config *Config, includeSpawn bool, operationMode Operatio
 		},
 	})
 
-	// Add background command tools only in Build mode
-	if operationMode == Build {
-		tools = append(tools, Tool{
-			Type: "function",
-			Function: FunctionDefinition{
-				Name:        "kill_background_command",
-				Description: "Kill a running background command by PID.",
-				Parameters: map[string]interface{}{
-					"type":       "object",
-					"properties": map[string]interface{}{"pid": map[string]interface{}{"type": "integer"}},
-					"required":   []string{"pid"},
-				},
+	// Background command tools (Build mode)
+	tools = append(tools, Tool{
+		Type: "function",
+		Function: FunctionDefinition{
+			Name:        "kill_background_command",
+			Description: "Kill a running background command by PID.",
+			Parameters: map[string]interface{}{
+				"type":       "object",
+				"properties": map[string]interface{}{"pid": map[string]interface{}{"type": "integer"}},
+				"required":   []string{"pid"},
 			},
-		})
-		tools = append(tools, Tool{
-			Type: "function",
-			Function: FunctionDefinition{
-				Name:        "get_background_logs",
-				Description: "Get the logs (stdout/stderr) of a background command by PID.",
-				Parameters: map[string]interface{}{
-					"type":       "object",
-					"properties": map[string]interface{}{"pid": map[string]interface{}{"type": "integer"}},
-					"required":   []string{"pid"},
-				},
+		},
+	})
+	tools = append(tools, Tool{
+		Type: "function",
+		Function: FunctionDefinition{
+			Name:        "get_background_logs",
+			Description: "Get the logs (stdout/stderr) of a background command by PID.",
+			Parameters: map[string]interface{}{
+				"type":       "object",
+				"properties": map[string]interface{}{"pid": map[string]interface{}{"type": "integer"}},
+				"required":   []string{"pid"},
 			},
-		})
-		tools = append(tools, Tool{
-			Type: "function",
-			Function: FunctionDefinition{
-				Name:        "list_background_commands",
-				Description: "List all running background commands.",
-				Parameters:  map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
-			},
-		})
+		},
+	})
+	tools = append(tools, Tool{
+		Type: "function",
+		Function: FunctionDefinition{
+			Name:        "list_background_commands",
+			Description: "List all running background commands.",
+			Parameters:  map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
+		},
+	})
 
-		// Add checkpoint tools
-		tools = append(tools, Tool{
-			Type: "function",
-			Function: FunctionDefinition{
-				Name:        "create_checkpoint",
-				Description: "Create a manual checkpoint of the current state (memory + workspace files).",
-				Parameters: map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"name": map[string]string{"type": "string", "description": "Name/Reason for the checkpoint"},
-					},
-					"required": []string{"name"},
+	// Checkpoint tools (Build mode)
+	tools = append(tools, Tool{
+		Type: "function",
+		Function: FunctionDefinition{
+			Name:        "create_checkpoint",
+			Description: "Create a manual checkpoint of the current state (memory + workspace files).",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"name": map[string]string{"type": "string", "description": "Name/Reason for the checkpoint"},
 				},
+				"required": []string{"name"},
 			},
-		})
+		},
+	})
 
-		tools = append(tools, Tool{
-			Type: "function",
-			Function: FunctionDefinition{
-				Name:        "list_checkpoints",
-				Description: "List available checkpoints.",
-				Parameters:  map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
-			},
-		})
-	}
+	tools = append(tools, Tool{
+		Type: "function",
+		Function: FunctionDefinition{
+			Name:        "list_checkpoints",
+			Description: "List available checkpoints.",
+			Parameters:  map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
+		},
+	})
 
-	// Add suggest_plan tool only in Plan mode
-	if operationMode == Plan {
-		tools = append(tools, Tool{
-			Type: "function",
-			Function: FunctionDefinition{
-				Name:        "suggest_plan",
-				Description: "Suggest a plan to the user and ask for approval.",
-				Parameters: map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"name":        map[string]string{"type": "string", "description": "A short, descriptive name for the plan"},
-						"description": map[string]string{"type": "string", "description": "A high-level description of what the plan entails"},
-					},
-					"required": []string{"name", "description"},
+	// Plan mode tools
+	tools = append(tools, Tool{
+		Type: "function",
+		Function: FunctionDefinition{
+			Name:        "suggest_plan",
+			Description: "Suggest a plan to the user and ask for approval.",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"name":        map[string]string{"type": "string", "description": "A short, descriptive name for the plan"},
+					"description": map[string]string{"type": "string", "description": "A high-level description of what the plan entails"},
 				},
+				"required": []string{"name", "description"},
 			},
-		})
+		},
+	})
 
-		// Agent Studio: allow creating task-specific agents (persisted on disk).
-		tools = append(tools, Tool{
-			Type: "function",
-			Function: FunctionDefinition{
-				Name:        "create_agent_definition",
-				Description: "Create a new task-specific agent definition (name + system prompt) and save it for later use via /agent commands. Optionally restrict which tools the agent can use via allowed_tools (whitelist) or denied_tools (blacklist).",
-				Parameters: map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"name":          map[string]string{"type": "string", "description": "Unique agent name (short, filesystem-friendly; spaces become dashes)."},
-						"description":   map[string]string{"type": "string", "description": "Optional short description of what the agent does."},
-						"system_prompt": map[string]string{"type": "string", "description": "The full system prompt for the agent."},
-						"model":         map[string]string{"type": "string", "description": "Optional model override for this agent."},
-						"temperature":   map[string]string{"type": "number", "description": "Optional temperature override (0.0-2.0)."},
-						"max_tokens":    map[string]string{"type": "integer", "description": "Optional max tokens override."},
-						"allowed_tools": map[string]interface{}{"type": "array", "items": map[string]string{"type": "string"}, "description": "Optional whitelist of tool names this agent may use. If set, only these tools are available."},
-						"denied_tools":  map[string]interface{}{"type": "array", "items": map[string]string{"type": "string"}, "description": "Optional blacklist of tool names this agent may NOT use. Only used if allowed_tools is empty."},
-					},
-					"required": []string{"name", "system_prompt"},
+	// Agent Studio: allow creating task-specific agents (persisted on disk).
+	tools = append(tools, Tool{
+		Type: "function",
+		Function: FunctionDefinition{
+			Name:        "create_agent_definition",
+			Description: "Create a new task-specific agent definition (name + system prompt) and save it for later use via /agent commands. Optionally restrict which tools the agent can use via allowed_tools (whitelist) or denied_tools (blacklist).",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"name":          map[string]string{"type": "string", "description": "Unique agent name (short, filesystem-friendly; spaces become dashes)."},
+					"description":   map[string]string{"type": "string", "description": "Optional short description of what the agent does."},
+					"system_prompt": map[string]string{"type": "string", "description": "The full system prompt for the agent."},
+					"model":         map[string]string{"type": "string", "description": "Optional model override for this agent."},
+					"temperature":   map[string]string{"type": "number", "description": "Optional temperature override (0.0-2.0)."},
+					"max_tokens":    map[string]string{"type": "integer", "description": "Optional max tokens override."},
+					"allowed_tools": map[string]interface{}{"type": "array", "items": map[string]string{"type": "string"}, "description": "Optional whitelist of tool names this agent may use. If set, only these tools are available."},
+					"denied_tools":  map[string]interface{}{"type": "array", "items": map[string]string{"type": "string"}, "description": "Optional blacklist of tool names this agent may NOT use. Only used if allowed_tools is empty."},
 				},
+				"required": []string{"name", "system_prompt"},
 			},
-		})
-	}
+		},
+	})
 
 	// Add generic MCP tool
 	tools = append(tools, Tool{

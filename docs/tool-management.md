@@ -2,7 +2,12 @@
 
 ## Overview
 
-Agent-Go supports per-agent tool control, allowing you to restrict which tools specific agents can access. This enables creating specialized agents with limited capabilities for security, safety, or role-specific purposes.
+Agent-Go supports comprehensive tool control through two complementary systems:
+
+1. **Operation Mode Filtering**: Build mode vs Plan mode determines baseline tool availability
+2. **Per-Agent Tool Policies**: Individual agents can further restrict which tools they can access
+
+This enables creating specialized agents with limited capabilities for security, safety, or role-specific purposes.
 
 ## Tool Policy Types
 
