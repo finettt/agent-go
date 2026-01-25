@@ -26,8 +26,10 @@ const (
 
 // Context compression settings
 const (
-	CompressionTemp      = 0.15
-	CompressionMaxTokens = 1500
+	CompressionTemp                      = 0.15
+	CompressionMaxTokens                 = 1500
+	CompressionExcludeSystemPrompts      = true // Always exclude system prompts from compression
+	CompressionPreserveAgentInstructions = true // Preserve agent-specific instructions
 )
 
 // Sub-agent limits

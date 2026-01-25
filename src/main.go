@@ -381,9 +381,12 @@ func runCLI() {
 		for {
 			// Auto-compress context if enabled and token count exceeds 75% of context length
 			if config.AutoCompress && totalTokens > (config.ModelContextLength*3/4) {
+				fmt.Printf("%sAuto-compression triggered (tokens: %d / %d = %.1f%%)%s\n",
+					ColorYellow, totalTokens, config.ModelContextLength,
+					float64(totalTokens)/float64(config.ModelContextLength)*100, ColorReset)
 				compressAndStartNewChat()
-				fmt.Println("Context compressed due to token limit. New user input is required.")
-				continue // Restart the outer loop to get fresh user input
+				// Continue the agentic loop - the agent will keep working with compressed context
+				// No break here - let the agent continue its task
 			}
 
 			var resp *APIResponse
@@ -1571,22 +1574,36 @@ func compressAndStartNewChat() {
 		return
 	}
 
+	// Preserve the current agent definition name (if any) to maintain agent-specific instructions
+	currentAgentDefName := agent.AgentDefName
+	currentID := agent.ID
+
 	// Create a new agent with the compressed context
 	agent = &Agent{
-		ID:       "main",
-		Messages: make([]Message, 0),
+		ID:           currentID,
+		Messages:     make([]Message, 0),
+		AgentDefName: currentAgentDefName, // Preserve agent definition
 	}
 
+	// Build system prompt with compressed summary
+	// This will automatically include:
+	// - Agent-specific instructions (if active)
+	// - Current plan (for build mode)
+	// - AGENTS.md content
+	// - MCP tools information
+	// - Notes and agent listings
 	systemPrompt := buildSystemPrompt(compressedContent)
 	agent.Messages = append(agent.Messages, Message{
 		Role:    "system",
 		Content: &systemPrompt,
 	})
 
-	fmt.Println("Context compressed. Starting new chat with compressed summary as system message.")
+	fmt.Printf("%sContext compressed. Continuing with task...%s\n", ColorGreen, ColorReset)
 
 	// Reset total tokens after compression
 	totalTokens = 0
+	totalPromptTokens = 0
+	totalCompletionTokens = 0
 }
 
 func runSetup() {
@@ -1743,9 +1760,11 @@ func editCommand() {
 	for {
 		// Auto-compress context if enabled and token count exceeds 75% of context length
 		if config.AutoCompress && totalTokens > (config.ModelContextLength*3/4) {
+			fmt.Printf("%sAuto-compression triggered (tokens: %d / %d = %.1f%%)%s\n",
+				ColorYellow, totalTokens, config.ModelContextLength,
+				float64(totalTokens)/float64(config.ModelContextLength)*100, ColorReset)
 			compressAndStartNewChat()
-			fmt.Println("Context compressed due to token limit. New user input is required.")
-			return // Exit after compression
+			// Continue the agentic loop - the agent will keep working with compressed context
 		}
 
 		var resp *APIResponse

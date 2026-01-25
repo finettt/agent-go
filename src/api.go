@@ -125,17 +125,39 @@ func sendMiniLLMRequest(config *Config, messages []Message) (string, error) {
 	return *content, nil
 }
 
+// separateMessages separates system messages from conversation messages (user/assistant/tool)
+func separateMessages(messages []Message) ([]Message, []Message) {
+	systemMsgs := []Message{}
+	conversationMsgs := []Message{}
+
+	for _, msg := range messages {
+		if msg.Role == "system" {
+			systemMsgs = append(systemMsgs, msg)
+		} else {
+			conversationMsgs = append(conversationMsgs, msg)
+		}
+	}
+
+	return systemMsgs, conversationMsgs
+}
+
 func compressContext(agent *Agent, config *Config) (string, error) {
 	if len(agent.Messages) <= 1 {
 		return "", fmt.Errorf("not enough messages to compress")
 	}
 
-	var messagesToCompress []Message
-	for _, msg := range agent.Messages {
-		if msg.Role != "system" {
-			messagesToCompress = append(messagesToCompress, msg)
-		}
+	// Separate system messages from conversation messages
+	systemMsgs, conversationMsgs := separateMessages(agent.Messages)
+
+	// Log message breakdown
+	fmt.Printf("%sCompressing context: %d total messages (%d system, %d conversation)%s\n",
+		ColorMeta, len(agent.Messages), len(systemMsgs), len(conversationMsgs), ColorReset)
+
+	if len(conversationMsgs) == 0 {
+		return "", fmt.Errorf("no conversation messages to compress (only system messages)")
 	}
+
+	messagesToCompress := conversationMsgs
 
 	// Build the prompt for compression
 	var compressionBuilder strings.Builder
