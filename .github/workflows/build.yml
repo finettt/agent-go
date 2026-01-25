@@ -3,8 +3,22 @@ name: Build
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'go.mod'
+      - 'go.sum'
+      - 'Makefile'
+      - 'Dockerfile'
+      - '.github/workflows/build.yml'
   pull_request:
     branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'go.mod'
+      - 'go.sum'
+      - 'Makefile'
+      - 'Dockerfile'
+      - '.github/workflows/build.yml'
 
 jobs:
   build:
@@ -14,10 +28,6 @@ jobs:
       matrix:
         goos: [linux, windows, darwin]
         goarch: [amd64, arm64]
-        # Exclude unsupported combinations if needed, though the 'if' condition below is more targeted
-        # exclude:
-        #   - goos: windows
-        #     goarch: arm64
     steps:
     - name: Set up Go
       uses: actions/setup-go@v5
