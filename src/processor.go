@@ -28,17 +28,19 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 
 				// Avoid dumping long task prompts into the user's console by default.
 				// Only show the full task when sub-agent verbose mode is "Full" (2).
-				if config.SubAgentVerboseMode == 2 {
-					if agentName != "" {
-						fmt.Printf("%sSpawning sub-agent (%s, %s) for task: %s%s%s\n", ColorMeta, agentName, modelName, ColorHighlight, args.Task, ColorReset)
+				if !pipelineMode {
+					if config.SubAgentVerboseMode == 2 {
+						if agentName != "" {
+							fmt.Printf("%sSpawning sub-agent (%s, %s) for task: %s%s%s\n", ColorMeta, agentName, modelName, ColorHighlight, args.Task, ColorReset)
+						} else {
+							fmt.Printf("%sSpawning sub-agent (%s) for task: %s%s%s\n", ColorMeta, modelName, ColorHighlight, args.Task, ColorReset)
+						}
 					} else {
-						fmt.Printf("%sSpawning sub-agent (%s) for task: %s%s%s\n", ColorMeta, modelName, ColorHighlight, args.Task, ColorReset)
-					}
-				} else {
-					if agentName != "" {
-						fmt.Printf("%sSpawning sub-agent (%s, %s)%s\n", ColorMeta, agentName, modelName, ColorReset)
-					} else {
-						fmt.Printf("%sSpawning sub-agent (%s)%s\n", ColorMeta, modelName, ColorReset)
+						if agentName != "" {
+							fmt.Printf("%sSpawning sub-agent (%s, %s)%s\n", ColorMeta, agentName, modelName, ColorReset)
+						} else {
+							fmt.Printf("%sSpawning sub-agent (%s)%s\n", ColorMeta, modelName, ColorReset)
+						}
 					}
 				}
 
@@ -48,8 +50,10 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 
 			if err != nil {
 				output = fmt.Sprintf("Tool execution error: %s", err)
-				fmt.Printf("%s%s%s\n", ColorRed, output, ColorReset)
-			} else if logMessage != "" {
+				if !pipelineMode {
+					fmt.Printf("%s%s%s\n", ColorRed, output, ColorReset)
+				}
+			} else if logMessage != "" && !pipelineMode {
 				fmt.Printf("%s%s%s\n", ColorMeta, logMessage, ColorReset)
 			}
 
@@ -95,13 +99,18 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 			if unmarshalErr := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); unmarshalErr != nil {
 				output = fmt.Sprintf("Failed to parse arguments: %s", unmarshalErr)
 			} else {
-				// Only show execution message if not in Plan mode
-				if config.OperationMode != Plan {
+				// Only show execution message if not in Plan mode and not in pipeline mode
+				if config.OperationMode != Plan && !pipelineMode {
 					logMessage = fmt.Sprintf("%sExecuting command: %s%s\n", ColorMeta, args.Command, ColorReset)
 				}
 
 				// Background execution is a user choice in Ask mode (not agent-controlled).
-				output, err = confirmAndExecute(config, args.Command)
+				if pipelineMode {
+					// In pipeline mode, always execute silently in the foreground without prompts/logs.
+					output, err = executeCommandSilent(args.Command)
+				} else {
+					output, err = confirmAndExecute(config, args.Command)
+				}
 				if output == "Command not executed by user." {
 					logMessage = fmt.Sprintf("%sCommand not executed by user.%s\n", ColorMeta, ColorReset)
 				}
@@ -134,11 +143,18 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 			if unmarshalErr := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); unmarshalErr != nil {
 				output = fmt.Sprintf("Failed to parse arguments: %s", unmarshalErr)
 			} else {
-				fmt.Printf("\n%s%s%sSuggested Plan: %s%s\n", StyleItalic, StyleUnderline, ColorHighlight, args.Name, ColorReset)
-				fmt.Printf("%s%s%s\n", ColorMain, args.Description, ColorReset)
-				fmt.Printf("%sApprove this plan? [y/N]: %s", ColorCyan, ColorReset)
+				if !pipelineMode {
+					fmt.Printf("\n%s%s%sSuggested Plan: %s%s\n", StyleItalic, StyleUnderline, ColorHighlight, args.Name, ColorReset)
+					fmt.Printf("%s%s%s\n", ColorMain, args.Description, ColorReset)
+					fmt.Printf("%sApprove this plan? [y/N]: %s", ColorCyan, ColorReset)
+				}
 				var response string
-				fmt.Scanln(&response)
+				if pipelineMode {
+					// In pipeline mode we cannot interactively ask; default to rejection
+					response = "n"
+				} else {
+					fmt.Scanln(&response)
+				}
 				if strings.ToLower(strings.TrimSpace(response)) == "y" {
 					// User approved the plan: mark for deferred switch to build mode
 					output = "Plan approved by user. Switching to build mode to implement the plan..."
@@ -164,14 +180,18 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 					agentGoDir := filepath.Join(cwd, ".agent-go")
 					plansDir := filepath.Join(agentGoDir, "plans")
 					if err := os.MkdirAll(plansDir, 0755); err != nil {
-						fmt.Printf("Error creating plans directory: %v\n", err)
+						if !pipelineMode {
+							fmt.Printf("Error creating plans directory: %v\n", err)
+						}
 					}
 
 					filePath := filepath.Join(plansDir, filename)
 					content := fmt.Sprintf("# %s\n\n%s", args.Name, args.Description)
 					if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
-						fmt.Printf("Error saving plan to file: %v\n", err)
-					} else {
+						if !pipelineMode {
+							fmt.Printf("Error saving plan to file: %v\n", err)
+						}
+					} else if !pipelineMode {
 						fmt.Printf("Plan saved to %s\n", filePath)
 						// Also update '.agent-go/current_plan.md' for easy access / inclusion in prompts
 						currentPlanPath := filepath.Join(agentGoDir, "current_plan.md")
@@ -315,14 +335,16 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 
 		if err != nil {
 			output = fmt.Sprintf("Tool execution error: %s", err)
-			// Print error in meta color or red?
-			fmt.Printf("%s%s%s\n", ColorRed, output, ColorReset)
-		} else if logMessage != "" {
+			if !pipelineMode {
+				// Print error in meta color or red?
+				fmt.Printf("%s%s%s\n", ColorRed, output, ColorReset)
+			}
+		} else if logMessage != "" && !pipelineMode {
 			// Always log the action summary (formerly only in verbose)
 			// In verbose mode, we might want even more details, but for now let's make the summary always visible
 			// as requested: "what is currently output in verbose mode should be output always".
 			// The previous code only printed logMessage if config.Verbose.
-			// Now we print it always.
+			// Now we print it always (except in pipeline mode).
 			fmt.Printf("%s%s%s\n", ColorMeta, logMessage, ColorReset)
 
 		}

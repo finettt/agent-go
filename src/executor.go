@@ -37,6 +37,11 @@ func confirmAndExecute(config *Config, command string) (string, error) {
 		return "", fmt.Errorf("command execution is blocked in Plan mode. Switch to Build mode to execute commands")
 	}
 
+	// In pipeline mode, skip all prompts and execute directly
+	if pipelineMode {
+		return executeCommandSilent(command)
+	}
+
 	// We need to lock here because multiple sub-agents might try to execute commands
 	// or ask for confirmation simultaneously, which would mess up the console I/O.
 	executionMutex.Lock()
@@ -69,6 +74,27 @@ func confirmAndExecute(config *Config, command string) (string, error) {
 
 // executeCommand executes a shell command and returns its output
 func executeCommand(command string) (string, error) {
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		cmd = exec.Command("cmd", "/C", command)
+	} else {
+		cmd = exec.Command("sh", "-c", command)
+	}
+
+	output, err := cmd.CombinedOutput()
+	outputStr := string(output)
+
+	if err != nil {
+		// Return output even on error - useful for diagnostics
+		return outputStr, fmt.Errorf("command execution failed: %w", err)
+	}
+
+	return outputStr, nil
+}
+
+// executeCommandSilent executes a shell command silently without any prompts or output messages.
+// Used exclusively in pipeline mode.
+func executeCommandSilent(command string) (string, error) {
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
 		cmd = exec.Command("cmd", "/C", command)

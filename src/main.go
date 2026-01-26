@@ -20,6 +20,7 @@ var config *Config
 var agent *Agent
 var shellMode = false
 var shouldSwitchToBuild = false
+var pipelineMode = false
 
 // Agent Studio + task-specific agents
 type AgentConfigSnapshot struct {
@@ -66,8 +67,63 @@ func formatNumber(n int) string {
 	return string(result)
 }
 
+// isPipeMode detects if stdin is being piped or redirected
+func isPipeMode() bool {
+	stat, err := os.Stdin.Stat()
+	if err != nil {
+		return false
+	}
+	return (stat.Mode() & os.ModeCharDevice) == 0
+}
+
+// isTTY detects if stdout is a TTY (for color control)
+func isTTY() bool {
+	stat, err := os.Stdout.Stat()
+	if err != nil {
+		return false
+	}
+	return (stat.Mode() & os.ModeCharDevice) != 0
+}
+
+// initializeColors conditionally disables colors for non-TTY output
+func initializeColors() {
+	if !isTTY() {
+		// Disable all colors for non-TTY output
+		ColorRed = ""
+		ColorGreen = ""
+		ColorBlue = ""
+		ColorYellow = ""
+		ColorPurple = ""
+		ColorCyan = ""
+		ColorWhite = ""
+		ColorBlack = ""
+		ColorHighlight = ""
+		ColorMain = ""
+		ColorMeta = ""
+		StyleBold = ""
+		StyleDim = ""
+		StyleItalic = ""
+		StyleUnderline = ""
+		StyleBlink = ""
+		StyleReverse = ""
+		StyleHidden = ""
+		StyleStrikethrough = ""
+		ColorReset = ""
+	}
+}
+
 func main() {
-	// Check for command line task argument
+	// Initialize colors based on TTY detection
+	initializeColors()
+
+	// Check for pipeline mode (stdin is piped and we have CLI args)
+	if isPipeMode() && len(os.Args) > 1 {
+		task := strings.Join(os.Args[1:], " ")
+		runPipelineMode(task)
+		return
+	}
+
+	// Check for command line task argument (no stdin piped)
 	if len(os.Args) > 1 {
 		task := strings.Join(os.Args[1:], " ")
 		runTask(task)
@@ -1572,12 +1628,17 @@ CRITICAL: Only include information that is:
 func buildSystemPrompt(contextSummary string) string {
 	var basePrompt string
 
+	// Add pipeline mode context at the very beginning
+	if pipelineMode {
+		basePrompt = "=== PIPELINE MODE ===\nYou are operating in PIPELINE MODE. The user has provided a task via command-line arguments and additional context via stdin (piped input). Your output will be used in a shell pipeline, so:\n- Be concise and direct in your response\n- Tools can still be executed but all output is suppressed\n- Focus on providing the final result that will be useful in the pipeline\n- No interactive prompts are allowed\n\n"
+	}
+
 	// If build agent is active AND there's a current plan, include it
 	if agent != nil && agent.AgentDefName == "build" {
 		cwd, _ := os.Getwd()
 		planPath := filepath.Join(cwd, ".agent-go", "current_plan.md")
 		if planContent, err := os.ReadFile(planPath); err == nil && len(planContent) > 0 {
-			basePrompt = fmt.Sprintf("=== Current Plan to Implement ===\n%s\n\n", string(planContent))
+			basePrompt += fmt.Sprintf("=== Current Plan to Implement ===\n%s\n\n", string(planContent))
 		}
 	}
 
@@ -1759,6 +1820,100 @@ func runTask(task string) {
 				fmt.Printf("%sWarning: Received empty response from model%s\n", ColorYellow, ColorReset)
 			}
 			break // No more tools to call, end agent turn
+		}
+		// Continue loop to send tool output back to API
+	}
+}
+
+// runPipelineMode executes a task in pipeline mode with stdin content.
+// It combines the CLI task string and stdin content into a single user message and
+// prints ONLY the final assistant response content to stdout with no prefixes or colors.
+func runPipelineMode(task string) {
+	// Enable global pipeline mode flag for other components (e.g. tools, executor)
+	pipelineMode = true
+
+	// Load configuration
+	config = loadConfig()
+	if config.APIKey == "" {
+		fmt.Fprintln(os.Stderr, "Error: API key not set. Please run the interactive setup first.")
+		os.Exit(1)
+	}
+
+	// Read stdin content
+	stdinBytes, err := io.ReadAll(os.Stdin)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error reading stdin: %v\n", err)
+		os.Exit(1)
+	}
+	stdinContent := strings.TrimSpace(string(stdinBytes))
+
+	// Combine task and stdin into user message
+	var userMessage string
+	if stdinContent != "" {
+		userMessage = fmt.Sprintf("%s\n\nInput:\n%s", task, stdinContent)
+	} else {
+		userMessage = task
+	}
+
+	if strings.TrimSpace(userMessage) == "" {
+		fmt.Fprintln(os.Stderr, "Error: no task provided and stdin is empty.")
+		os.Exit(1)
+	}
+
+	// Create agent instance
+	agent = &Agent{
+		ID:       "main",
+		Messages: make([]Message, 0),
+	}
+
+	systemPrompt := buildSystemPrompt("")
+	agent.Messages = append(agent.Messages, Message{
+		Role:    "system",
+		Content: &systemPrompt,
+	})
+
+	// Add the combined message as a user message
+	agent.Messages = append(agent.Messages, Message{
+		Role:    "user",
+		Content: &userMessage,
+	})
+
+	// Execute the task using the agentic loop
+	for {
+		var resp *APIResponse
+		var err error
+
+		// Load agent definition if one is active
+		var agentDef *AgentDefinition
+		if agent.AgentDefName != "" {
+			agentDef, _ = loadAgentDefinition(agent.AgentDefName)
+		}
+
+		resp, err = sendAPIRequest(agent, config, config.SubagentsEnabled, agentDef)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+			os.Exit(1)
+		}
+
+		if len(resp.Choices) == 0 {
+			fmt.Fprintf(os.Stderr, "Error: received an empty response from the API\n")
+			os.Exit(1)
+		}
+
+		assistantMsg := resp.Choices[0].Message
+		agent.Messages = append(agent.Messages, assistantMsg)
+
+		// In pipeline mode, print only the final assistant content, with no prefixes/colors.
+		// We print content on every non-tool-only turn; the typical last turn has no tool calls.
+		if assistantMsg.Content != nil && *assistantMsg.Content != "" {
+			fmt.Println(*assistantMsg.Content)
+		}
+
+		if len(assistantMsg.ToolCalls) > 0 {
+			processToolCalls(agent, assistantMsg.ToolCalls, config)
+		} else {
+			// No more tools to call, end agent turn
+			break
 		}
 		// Continue loop to send tool output back to API
 	}

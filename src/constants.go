@@ -1,7 +1,7 @@
 package main
 
-// ANSI color codes for terminal output
-const (
+// ANSI color codes for terminal output - these are now variables that can be disabled
+var (
 	ColorRed           = "\033[31m"
 	ColorGreen         = "\033[32m"
 	ColorBlue          = "\033[34m"

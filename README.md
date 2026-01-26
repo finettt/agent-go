@@ -76,6 +76,7 @@ graph LR
 | Capability | Description |
 | :--- | :--- |
 | **Native Execution** | Executes shell commands directly (`ls`, `git`, `docker`, etc.) with `&&` chaining support. |
+| **Pipeline Integration** 🚀 | Full Unix pipeline support with stdin/stdout redirection, clean output, and automatic TTY detection. |
 | **Agent Studio** | Create, manage, and spawn specialized sub-agents with the `/agent` command family. |
 | **Infinite Memory** | Intelligent token compression ensures your conversation context is never lost. |
 | **RAG Engine** | Enable `/rag` to let the agent read your local codebase and documentation for context. |
@@ -108,6 +109,54 @@ Hello, World!
 Perfect for CI/CD or scripting.
 ```bash
 agent-go "Create a new directory called 'test-project' and navigate into it"
+```
+
+### Pipeline Mode 🚀 NEW
+Agent-Go now integrates seamlessly with Unix shell pipelines and redirection operators.
+
+**Features:**
+- **Clean Output**: Only the final AI response (no colors, no metadata)
+- **Silent Tool Execution**: Tools run without prompts or status messages
+- **Automatic TTY Detection**: Colors disabled for non-TTY output
+- **Proper Error Handling**: Errors sent to stderr with appropriate exit codes
+
+**Examples:**
+```bash
+# Pipe input to agent-go
+echo "Hello World" | agent-go "translate to Spanish"
+
+# Read from file
+agent-go "summarize this document" < README.md
+
+# Write output to file
+agent-go "generate a Python hello world script" > hello.py
+
+# Append to file
+cat header.txt | agent-go "add a docstring" >> script.py
+
+# Chain with other commands
+cat access.log | agent-go "extract all error messages" | grep "404"
+
+# Process data in pipelines
+git diff | agent-go "review these changes for bugs" | tee review.md
+
+# Multi-step data transformation
+cat data.json | agent-go "convert to CSV" > data.csv
+```
+
+**Real-world Use Cases:**
+```bash
+# Log analysis
+tail -f /var/log/syslog | agent-go "summarize errors in real-time"
+
+# Code review automation
+git diff main..feature | agent-go "create a code review summary"
+
+# Documentation generation
+ls -la | agent-go "create a markdown table of these files"
+
+# Data processing
+curl -s https://api.example.com/data | agent-go "extract user emails" > emails.txt
 ```
 
 ### Agent Studio & Slash Commands
