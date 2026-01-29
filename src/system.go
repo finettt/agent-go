@@ -9,6 +9,34 @@ import (
 	"time"
 )
 
+// getCurrentTimeContext returns a formatted string with current time information
+// for injection into API requests, providing the AI with temporal awareness.
+func getCurrentTimeContext() string {
+	now := time.Now()
+
+	// UTC time in ISO 8601 format (matching VS Code extension)
+	utcTime := now.UTC().Format(time.RFC3339)
+
+	// Local time in readable format
+	localTime := now.Format(time.RFC1123)
+
+	// Get timezone info
+	zone, offset := now.Zone()
+	offsetHours := offset / 3600
+	offsetMinutes := (offset % 3600) / 60
+
+	// Format offset as +HH:MM or -HH:MM
+	var offsetStr string
+	if offsetMinutes == 0 {
+		offsetStr = fmt.Sprintf("UTC%+d:00", offsetHours)
+	} else {
+		offsetStr = fmt.Sprintf("UTC%+d:%02d", offsetHours, offsetMinutes)
+	}
+
+	return fmt.Sprintf("Current Time: %s (UTC) | Local: %s | Timezone: %s (%s)",
+		utcTime, localTime, zone, offsetStr)
+}
+
 func getSystemInfo() string {
 	osName := runtime.GOOS
 	arch := runtime.GOARCH

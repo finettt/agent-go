@@ -477,7 +477,7 @@ func runCLI() {
 			agent.Messages = append(agent.Messages, assistantMsg)
 
 			if assistantMsg.ReasoningContent != nil && *assistantMsg.ReasoningContent != "" {
-				fmt.Printf("%sThink...\n%s", ColorMeta, ColorReset)
+				fmt.Printf("%s● %sThink...\n%s", ColorHighlight, ColorMeta, ColorReset)
 			}
 			if assistantMsg.Content != nil && *assistantMsg.Content != "" {
 				fmt.Printf("%s● %s%s%s\n", ColorHighlight, ColorMain, *assistantMsg.Content, ColorReset)
@@ -2021,7 +2021,7 @@ func editCommand() {
 		agent.Messages = append(agent.Messages, assistantMsg)
 
 		if assistantMsg.ReasoningContent != nil && *assistantMsg.ReasoningContent != "" {
-			fmt.Printf("%s%sThink...\n%s", StyleItalic, ColorMeta, ColorReset)
+			fmt.Printf("%s●%s Think...\n%s", ColorHighlight, StyleItalic, ColorMeta, ColorReset)
 		}
 		if assistantMsg.Content != nil && *assistantMsg.Content != "" {
 			fmt.Printf("%s● %s%s%s\n", ColorHighlight, ColorMain, *assistantMsg.Content, ColorReset)
