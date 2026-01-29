@@ -41,6 +41,37 @@ Run shell commands in the background with full monitoring and management:
 - **Application Safety**: Prevents exit when background tasks are running
 - **Real-time Monitoring**: Track command output and status
 
+### Tool Loop Detection
+
+Automatically detects and prevents infinite loops where the AI repeatedly calls the same tool:
+
+- **Loop Detection**: Monitors tool calls within API responses and across iterations
+- **Threshold**: Triggers after 3 repeated calls of the same tool with identical arguments
+- **Intervention**: Injects a stop message to guide the model toward alternative approaches
+- **Scope**: Applied to all execution modes (CLI, task, pipeline, editor) and sub-agents
+- **Implementation**: Uses `checkToolLoop()` function with `getToolCallSignature()` helper
+
+### Empty Response Retry Logic
+
+Intelligent retry mechanism for handling empty model responses:
+
+- **Detection**: Identifies empty responses (zero choices, empty content, no tool calls)
+- **Retry Limit**: Up to 3 automatic retry attempts
+- **Feedback**: Warns user about empty responses and retry attempts via stderr
+- **Scope**: Applied to all execution modes (interactive CLI, single task mode, pipeline mode)
+- **Resilience**: Improves stability by handling transient API issues gracefully
+
+### Time Context Injection
+
+Provides temporal awareness to the AI:
+
+- **Time Format**: UTC time in ISO 8601 format, local time in RFC1123 format
+- **Timezone Info**: Includes timezone name and UTC offset
+- **Format**: "Current Time: 2026-01-29T14:30:00Z (UTC) | Local: Thu, 29 Jan 2026 17:30:00 MSK | Timezone: MSK (UTC+03:00)"
+- **Implementation**: `getCurrentTimeContext()` function in `system.go`
+- **Integration**: Injected as a system message in API requests
+- **Benefits**: Enables time-aware operations and improves context for scheduling tasks
+
 ### Enhanced Features
 
 - **Usage Tracking**: `/usage <1|2|3>` command for verbosity control (Silent/Basic/Detailed) and `/cost` for detailed context and session statistics

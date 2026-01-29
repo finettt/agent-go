@@ -326,6 +326,37 @@ Support for `AGENTS.md` file for custom agent behavior:
 - **Verbose Mode**: `/verbose` command for enhanced logging control
 - **Security Review**: `/security` command to spawn subagent for code review
 
+### Tool Loop Detection
+
+Automatically detects when the AI gets stuck in infinite loops of calling the same tool with identical arguments:
+
+- **Loop Detection**: Monitors tool calls within a single API response and across multiple iterations
+- **Threshold**: Triggers after 3 repeated calls of the same tool with identical arguments
+- **Intervention**: Injects a `ToolLoopStopMessage` to guide the model toward alternative approaches
+- **Scope**: Applied to all execution modes (CLI, task, pipeline, editor) and sub-agents
+- **Implementation**: Uses `checkToolLoop()` function with `getToolCallSignature()` helper to detect patterns
+
+### Empty Response Retry Logic
+
+Intelligent retry mechanism for handling empty model responses:
+
+- **Detection**: Identifies empty responses (zero choices, empty content, no tool calls)
+- **Retry Limit**: Up to 3 automatic retry attempts
+- **Feedback**: Warns user about empty responses and retry attempts via stderr
+- **Scope**: Applied to all execution modes (interactive CLI, single task mode, pipeline mode)
+- **Resilience**: Improves stability by handling transient API issues gracefully
+
+### Time Context Injection
+
+Provides temporal awareness to the AI by injecting current time information:
+
+- **Time Format**: UTC time in ISO 8601 format, local time in RFC1123 format
+- **Timezone Info**: Includes timezone name and UTC offset (e.g., UTC+03:00)
+- **Format**: "Current Time: 2026-01-29T14:30:00Z (UTC) | Local: Thu, 29 Jan 2026 17:30:00 MSK | Timezone: MSK (UTC+03:00)"
+- **Implementation**: `getCurrentTimeContext()` function in `system.go`
+- **Integration**: Injected as a system message in API requests via `sendAPIRequest()` and `sendMiniLLMRequest()`
+- **Benefits**: Enables time-aware operations and improves context for scheduling tasks
+
 ## Data Flow
 
 1. **Application Start**: Display logo and load configuration

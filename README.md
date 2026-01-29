@@ -76,7 +76,7 @@ graph LR
 | Capability | Description |
 | :--- | :--- |
 | **Native Execution** | Executes shell commands directly (`ls`, `git`, `docker`, etc.) with `&&` chaining support. |
-| **Pipeline Integration** 🚀 | Full Unix pipeline support with stdin/stdout redirection, clean output, and automatic TTY detection. |
+| **Pipeline Integration** | Full Unix pipeline support with stdin/stdout redirection, clean output, and automatic TTY detection. |
 | **Agent Studio** | Create, manage, and spawn specialized sub-agents with the `/agent` command family. |
 | **Infinite Memory** | Intelligent token compression ensures your conversation context is never lost. |
 | **RAG Engine** | Enable `/rag` to let the agent read your local codebase and documentation for context. |
@@ -86,6 +86,9 @@ graph LR
 | **Checkpoint System** | Save and restore work progress with checkpoint and rollback capabilities. |
 | **Mini Model Integration** | Use lightweight models for utility tasks to optimize costs. |
 | **Enhanced Token Tracking** | Accurate context tracking with "Last Usage" algorithm for better memory management. |
+| **Tool Loop Detection** 🆕 | Automatically detects and stops infinite tool loops with helpful guidance. |
+| **Empty Response Retry** 🆕 | Intelligent retry logic for empty model responses (up to 3 attempts). |
+| **Time Context Injection** 🆕 | Provides current time and timezone information to the AI for temporal awareness. |
 
 ---
 
@@ -111,7 +114,7 @@ Perfect for CI/CD or scripting.
 agent-go "Create a new directory called 'test-project' and navigate into it"
 ```
 
-### Pipeline Mode 🚀 NEW
+### Pipeline Mode
 Agent-Go now integrates seamlessly with Unix shell pipelines and redirection operators.
 
 **Features:**

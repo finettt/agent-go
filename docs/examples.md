@@ -898,6 +898,61 @@ Context compressed. Starting new chat with compressed summary as system message.
 - Auto-compression triggers at 75% of `model_context_length`
 - Manual compression with `/compress` resets the token counter
 
+### 2. Tool Loop Detection
+
+Agent-Go automatically detects when the AI gets stuck in infinite loops:
+
+```
+> Try to execute a command that doesn't exist
+[Tool Loop Detected: execute_command called 3 times with identical arguments]
+STOP: You appear to be stuck in a loop, repeatedly calling the same tool. Please step back, analyze what you've tried so far, and try a completely different approach to solve this task.
+
+> Analyze the situation and try a different approach
+[AI now tries a different strategy, such as checking if the command exists or suggesting alternatives]
+```
+
+**How Tool Loop Detection Works:**
+- Monitors tool calls within each API response
+- Tracks repeated calls across multiple iterations
+- Triggers after 3 identical tool calls
+- Injects a stop message to guide the model
+- Works in all execution modes (CLI, task, pipeline, editor)
+
+### 3. Empty Response Retry Logic
+
+Agent-Go handles empty model responses gracefully:
+
+```
+> Ask a question
+[Warning: received an empty response from the API (attempt 1/3), retrying...]
+[Warning: model returned an empty message (attempt 2/3), retrying...]
+[AI provides response after successful retry]
+```
+
+**Retry Behavior:**
+- Automatically retries up to 3 times
+- Warns user about empty responses
+- Handles transient API issues gracefully
+- Works in all execution modes
+
+### 4. Time Context Injection
+
+Agent-Go provides temporal awareness to the AI:
+
+```
+> What time is it?
+Current Time: 2026-01-29T14:30:00Z (UTC) | Local: Thu, 29 Jan 2026 17:30:00 MSK | Timezone: MSK (UTC+03:00)
+
+> Schedule a meeting for tomorrow at 10 AM
+[AI uses current time context to calculate correct time for meeting]
+```
+
+**Time Context Benefits:**
+- Enables time-aware operations
+- Improves context for scheduling tasks
+- Helps with time-sensitive operations
+- Automatically injected in all API requests
+
 ### 2. MCP-Enhanced Development Workflow
 
 ```
