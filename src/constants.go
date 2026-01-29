@@ -37,10 +37,20 @@ const (
 	MaxSubAgentIterations = 50
 )
 
+// Tool loop detection
+const (
+	// MaxRepeatedToolCalls is the maximum number of times the same tool call can be repeated
+	// before the agent is stopped and asked to try a different approach
+	MaxRepeatedToolCalls = 3
+
+	// ToolLoopStopMessage is the message sent to the model when it gets stuck in a tool loop
+	ToolLoopStopMessage = "STOP: You appear to be stuck in a loop, repeatedly calling the same tool. Please step back, analyze what you've tried so far, and try a completely different approach to solve this task. If you cannot complete the task, explain what's blocking you."
+)
+
 // Default configuration values
 const (
 	DefaultTemp                  = 0.1
-	DefaultMaxTokens             = -1
+	DefaultMaxTokens             = 32768
 	DefaultAPIURL                = "https://api.openai.com"
 	DefaultModel                 = "gpt-3.5-turbo"
 	DefaultMiniModel             = "gpt-4o-mini"

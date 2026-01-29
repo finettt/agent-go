@@ -22,6 +22,10 @@ var shellMode = false
 var shouldSwitchToBuild = false
 var pipelineMode = false
 
+// Tool loop detection state
+var lastToolCallSignature = ""
+var repeatedToolCallCount = 0
+
 // Agent Studio + task-specific agents
 type AgentConfigSnapshot struct {
 	Model     string
@@ -41,6 +45,60 @@ var totalTokens = 0
 var totalPromptTokens = 0
 var totalCompletionTokens = 0
 var totalToolCalls = 0
+
+// getToolCallSignature creates a unique signature for a tool call to detect repeated calls
+func getToolCallSignature(toolCalls []ToolCall) string {
+	if len(toolCalls) == 0 {
+		return ""
+	}
+	// Create a signature from all tool calls (name + arguments)
+	var signature string
+	for _, tc := range toolCalls {
+		signature += tc.Function.Name + ":" + tc.Function.Arguments + ";"
+	}
+	return signature
+}
+
+// checkToolLoop checks if the model is stuck in a tool loop and returns true if it should be stopped
+// It checks both: repeated calls across iterations AND repeated calls within a single response
+func checkToolLoop(toolCalls []ToolCall) bool {
+	if len(toolCalls) == 0 {
+		// No tool calls, reset the counter
+		lastToolCallSignature = ""
+		repeatedToolCallCount = 0
+		return false
+	}
+
+	// First, check if there are repeated identical tool calls within this single response
+	toolCallMap := make(map[string]int)
+	for _, tc := range toolCalls {
+		sig := tc.Function.Name + ":" + tc.Function.Arguments
+		toolCallMap[sig]++
+		if toolCallMap[sig] >= MaxRepeatedToolCalls {
+			// Found the same tool call repeated multiple times in a single response
+			return true
+		}
+	}
+
+	// Second, check if this entire set of tool calls is the same as the previous iteration
+	signature := getToolCallSignature(toolCalls)
+	if signature == lastToolCallSignature {
+		repeatedToolCallCount++
+		if repeatedToolCallCount >= MaxRepeatedToolCalls {
+			return true
+		}
+	} else {
+		lastToolCallSignature = signature
+		repeatedToolCallCount = 1
+	}
+	return false
+}
+
+// resetToolLoopState resets the tool loop detection state
+func resetToolLoopState() {
+	lastToolCallSignature = ""
+	repeatedToolCallCount = 0
+}
 
 func formatTokenCount(count int) string {
 	if count >= 1000000 {
@@ -547,6 +605,19 @@ func runCLI() {
 			}
 
 			if len(assistantMsg.ToolCalls) > 0 {
+				// Check for tool loop before processing
+				if checkToolLoop(assistantMsg.ToolCalls) {
+					// Model is stuck in a loop, inject stop message
+					fmt.Printf("%sWarning: Detected repeated tool calls. Stopping agent and suggesting different approach.%s\n", ColorYellow, ColorReset)
+					agent.Messages = append(agent.Messages, Message{
+						Role:    "user",
+						Content: &[]string{ToolLoopStopMessage}[0],
+					})
+					resetToolLoopState()
+					// Continue the loop to let the model respond to the stop message
+					continue
+				}
+
 				processToolCalls(agent, assistantMsg.ToolCalls, config)
 
 				// Check if we need to switch to build mode after tool processing
@@ -602,6 +673,8 @@ func runCLI() {
 					// Continue loop - next iteration will start implementation
 				}
 			} else {
+				// No tool calls, reset loop detection
+				resetToolLoopState()
 				// Check if we got an empty response
 				if assistantMsg.Content == nil || *assistantMsg.Content == "" {
 					fmt.Printf("%sWarning: Received empty response from model%s\n", ColorMeta, ColorReset)
@@ -1867,8 +1940,23 @@ func runTask(task string) {
 		}
 
 		if len(assistantMsg.ToolCalls) > 0 {
+			// Check for tool loop before processing
+			if checkToolLoop(assistantMsg.ToolCalls) {
+				// Model is stuck in a loop, inject stop message
+				fmt.Printf("%sWarning: Detected repeated tool calls. Stopping agent and suggesting different approach.%s\n", ColorYellow, ColorReset)
+				agent.Messages = append(agent.Messages, Message{
+					Role:    "user",
+					Content: &[]string{ToolLoopStopMessage}[0],
+				})
+				resetToolLoopState()
+				// Continue the loop to let the model respond to the stop message
+				continue
+			}
+
 			processToolCalls(agent, assistantMsg.ToolCalls, config)
 		} else {
+			// No tool calls, reset loop detection
+			resetToolLoopState()
 			// Check if we got an empty response
 			if assistantMsg.Content == nil || *assistantMsg.Content == "" {
 				fmt.Printf("%sWarning: Received empty response from model%s\n", ColorYellow, ColorReset)
@@ -1877,6 +1965,8 @@ func runTask(task string) {
 		}
 		// Continue loop to send tool output back to API
 	}
+	// Reset tool loop state when exiting task
+	resetToolLoopState()
 }
 
 // runPipelineMode executes a task in pipeline mode with stdin content.
@@ -1991,13 +2081,30 @@ func runPipelineMode(task string) {
 		}
 
 		if len(assistantMsg.ToolCalls) > 0 {
+			// Check for tool loop before processing
+			if checkToolLoop(assistantMsg.ToolCalls) {
+				// Model is stuck in a loop, inject stop message (silent in pipeline mode)
+				fmt.Fprintf(os.Stderr, "Warning: Detected repeated tool calls. Stopping agent and suggesting different approach.\n")
+				agent.Messages = append(agent.Messages, Message{
+					Role:    "user",
+					Content: &[]string{ToolLoopStopMessage}[0],
+				})
+				resetToolLoopState()
+				// Continue the loop to let the model respond to the stop message
+				continue
+			}
+
 			processToolCalls(agent, assistantMsg.ToolCalls, config)
 		} else {
+			// No tool calls, reset loop detection
+			resetToolLoopState()
 			// No more tools to call, end agent turn
 			break
 		}
 		// Continue loop to send tool output back to API
 	}
+	// Reset tool loop state when exiting pipeline mode
+	resetToolLoopState()
 }
 
 // editCommand creates a temporary file in os.TempDir(), opens it in nano (or notepad on Windows),
@@ -2144,8 +2251,23 @@ func editCommand() {
 		}
 
 		if len(assistantMsg.ToolCalls) > 0 {
+			// Check for tool loop before processing
+			if checkToolLoop(assistantMsg.ToolCalls) {
+				// Model is stuck in a loop, inject stop message
+				fmt.Printf("%sWarning: Detected repeated tool calls. Stopping agent and suggesting different approach.%s\n", ColorYellow, ColorReset)
+				agent.Messages = append(agent.Messages, Message{
+					Role:    "user",
+					Content: &[]string{ToolLoopStopMessage}[0],
+				})
+				resetToolLoopState()
+				// Continue the loop to let the model respond to the stop message
+				continue
+			}
+
 			processToolCalls(agent, assistantMsg.ToolCalls, config)
 		} else {
+			// No tool calls, reset loop detection
+			resetToolLoopState()
 			// Check if we got an empty response
 			if assistantMsg.Content == nil || *assistantMsg.Content == "" {
 				fmt.Printf("%sWarning: Received empty response from model%s\n", ColorMeta, ColorReset)
