@@ -22,6 +22,10 @@ var shellMode = false
 var shouldSwitchToBuild = false
 var pipelineMode = false
 
+// Tool loop detection state
+var lastToolCallSignature = ""
+var repeatedToolCallCount = 0
+
 // Agent Studio + task-specific agents
 type AgentConfigSnapshot struct {
 	Model     string
@@ -41,6 +45,60 @@ var totalTokens = 0
 var totalPromptTokens = 0
 var totalCompletionTokens = 0
 var totalToolCalls = 0
+
+// getToolCallSignature creates a unique signature for a tool call to detect repeated calls
+func getToolCallSignature(toolCalls []ToolCall) string {
+	if len(toolCalls) == 0 {
+		return ""
+	}
+	// Create a signature from all tool calls (name + arguments)
+	var signature string
+	for _, tc := range toolCalls {
+		signature += tc.Function.Name + ":" + tc.Function.Arguments + ";"
+	}
+	return signature
+}
+
+// checkToolLoop checks if the model is stuck in a tool loop and returns true if it should be stopped
+// It checks both: repeated calls across iterations AND repeated calls within a single response
+func checkToolLoop(toolCalls []ToolCall) bool {
+	if len(toolCalls) == 0 {
+		// No tool calls, reset the counter
+		lastToolCallSignature = ""
+		repeatedToolCallCount = 0
+		return false
+	}
+
+	// First, check if there are repeated identical tool calls within this single response
+	toolCallMap := make(map[string]int)
+	for _, tc := range toolCalls {
+		sig := tc.Function.Name + ":" + tc.Function.Arguments
+		toolCallMap[sig]++
+		if toolCallMap[sig] >= MaxRepeatedToolCalls {
+			// Found the same tool call repeated multiple times in a single response
+			return true
+		}
+	}
+
+	// Second, check if this entire set of tool calls is the same as the previous iteration
+	signature := getToolCallSignature(toolCalls)
+	if signature == lastToolCallSignature {
+		repeatedToolCallCount++
+		if repeatedToolCallCount >= MaxRepeatedToolCalls {
+			return true
+		}
+	} else {
+		lastToolCallSignature = signature
+		repeatedToolCallCount = 1
+	}
+	return false
+}
+
+// resetToolLoopState resets the tool loop detection state
+func resetToolLoopState() {
+	lastToolCallSignature = ""
+	repeatedToolCallCount = 0
+}
 
 func formatTokenCount(count int) string {
 	if count >= 1000000 {
@@ -461,15 +519,43 @@ func runCLI() {
 				agentDef, _ = loadAgentDefinition(agent.AgentDefName)
 			}
 
-			resp, err = sendAPIRequest(agent, config, config.SubagentsEnabled, agentDef)
+			// Retry logic if the model returns an empty response
+			const maxEmptyRetries = 2
+			for attempt := 0; attempt <= maxEmptyRetries; attempt++ {
+				resp, err = sendAPIRequest(agent, config, config.SubagentsEnabled, agentDef)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+					break
+				}
 
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %s\n", err)
-				break // Break from the agentic loop
+				if len(resp.Choices) == 0 {
+					if attempt < maxEmptyRetries {
+						fmt.Fprintf(os.Stderr, "Warning: received an empty response from the API (attempt %d/%d), retrying...\n", attempt+1, maxEmptyRetries+1)
+						continue
+					}
+					fmt.Fprintf(os.Stderr, "Error: received an empty response from the API after %d attempts\n", maxEmptyRetries+1)
+					break
+				}
+
+				assistantMsg := resp.Choices[0].Message
+				// If both main content and reasoning are empty and there are no tool calls, treat as empty and retry
+				if (assistantMsg.Content == nil || *assistantMsg.Content == "") &&
+					(assistantMsg.ReasoningContent == nil || *assistantMsg.ReasoningContent == "") &&
+					len(assistantMsg.ToolCalls) == 0 {
+					if attempt < maxEmptyRetries {
+						fmt.Fprintf(os.Stderr, "Warning: model returned an empty message (attempt %d/%d), retrying...\n", attempt+1, maxEmptyRetries+1)
+						continue
+					}
+					fmt.Fprintf(os.Stderr, "Error: model returned an empty message after %d attempts\n", maxEmptyRetries+1)
+				}
+
+				// Successful non-empty response; put the message back into resp so the rest of the loop can use it
+				resp.Choices[0].Message = assistantMsg
+				break
 			}
 
-			if len(resp.Choices) == 0 {
-				fmt.Fprintf(os.Stderr, "Error: received an empty response from the API\n")
+			// If we still have an error or no choices after retries, break out of the loop
+			if err != nil || resp == nil || len(resp.Choices) == 0 {
 				break
 			}
 
@@ -519,6 +605,19 @@ func runCLI() {
 			}
 
 			if len(assistantMsg.ToolCalls) > 0 {
+				// Check for tool loop before processing
+				if checkToolLoop(assistantMsg.ToolCalls) {
+					// Model is stuck in a loop, inject stop message
+					fmt.Printf("%sWarning: Detected repeated tool calls. Stopping agent and suggesting different approach.%s\n", ColorYellow, ColorReset)
+					agent.Messages = append(agent.Messages, Message{
+						Role:    "user",
+						Content: &[]string{ToolLoopStopMessage}[0],
+					})
+					resetToolLoopState()
+					// Continue the loop to let the model respond to the stop message
+					continue
+				}
+
 				processToolCalls(agent, assistantMsg.ToolCalls, config)
 
 				// Check if we need to switch to build mode after tool processing
@@ -574,6 +673,8 @@ func runCLI() {
 					// Continue loop - next iteration will start implementation
 				}
 			} else {
+				// No tool calls, reset loop detection
+				resetToolLoopState()
 				// Check if we got an empty response
 				if assistantMsg.Content == nil || *assistantMsg.Content == "" {
 					fmt.Printf("%sWarning: Received empty response from model%s\n", ColorMeta, ColorReset)
@@ -1793,15 +1894,41 @@ func runTask(task string) {
 			agentDef, _ = loadAgentDefinition(agent.AgentDefName)
 		}
 
-		resp, err = sendAPIRequest(agent, config, config.SubagentsEnabled, agentDef)
+		// Retry logic if the model returns an empty response
+		const maxEmptyRetries = 2
+		for attempt := 0; attempt <= maxEmptyRetries; attempt++ {
+			resp, err = sendAPIRequest(agent, config, config.SubagentsEnabled, agentDef)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+				break
+			}
 
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+			if len(resp.Choices) == 0 {
+				if attempt < maxEmptyRetries {
+					fmt.Fprintf(os.Stderr, "Warning: received an empty response from the API (attempt %d/%d), retrying...\n", attempt+1, maxEmptyRetries+1)
+					continue
+				}
+				fmt.Fprintf(os.Stderr, "Error: received an empty response from the API after %d attempts\n", maxEmptyRetries+1)
+				break
+			}
+
+			assistantMsg := resp.Choices[0].Message
+			// If content is empty and there are no tool calls, treat as empty and retry
+			if (assistantMsg.Content == nil || *assistantMsg.Content == "") && len(assistantMsg.ToolCalls) == 0 {
+				if attempt < maxEmptyRetries {
+					fmt.Fprintf(os.Stderr, "Warning: model returned an empty message (attempt %d/%d), retrying...\n", attempt+1, maxEmptyRetries+1)
+					continue
+				}
+				fmt.Fprintf(os.Stderr, "Error: model returned an empty message after %d attempts\n", maxEmptyRetries+1)
+			}
+
+			// Successful non-empty response; put the message back into resp so the rest of the loop can use it
+			resp.Choices[0].Message = assistantMsg
 			break
 		}
 
-		if len(resp.Choices) == 0 {
-			fmt.Fprintf(os.Stderr, "Error: received an empty response from the API\n")
+		// If we still have an error or no choices after retries, break out of the loop
+		if err != nil || resp == nil || len(resp.Choices) == 0 {
 			break
 		}
 
@@ -1813,8 +1940,23 @@ func runTask(task string) {
 		}
 
 		if len(assistantMsg.ToolCalls) > 0 {
+			// Check for tool loop before processing
+			if checkToolLoop(assistantMsg.ToolCalls) {
+				// Model is stuck in a loop, inject stop message
+				fmt.Printf("%sWarning: Detected repeated tool calls. Stopping agent and suggesting different approach.%s\n", ColorYellow, ColorReset)
+				agent.Messages = append(agent.Messages, Message{
+					Role:    "user",
+					Content: &[]string{ToolLoopStopMessage}[0],
+				})
+				resetToolLoopState()
+				// Continue the loop to let the model respond to the stop message
+				continue
+			}
+
 			processToolCalls(agent, assistantMsg.ToolCalls, config)
 		} else {
+			// No tool calls, reset loop detection
+			resetToolLoopState()
 			// Check if we got an empty response
 			if assistantMsg.Content == nil || *assistantMsg.Content == "" {
 				fmt.Printf("%sWarning: Received empty response from model%s\n", ColorYellow, ColorReset)
@@ -1823,6 +1965,8 @@ func runTask(task string) {
 		}
 		// Continue loop to send tool output back to API
 	}
+	// Reset tool loop state when exiting task
+	resetToolLoopState()
 }
 
 // runPipelineMode executes a task in pipeline mode with stdin content.
@@ -1889,14 +2033,41 @@ func runPipelineMode(task string) {
 			agentDef, _ = loadAgentDefinition(agent.AgentDefName)
 		}
 
-		resp, err = sendAPIRequest(agent, config, config.SubagentsEnabled, agentDef)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
-			os.Exit(1)
+		// Retry logic if the model returns an empty response
+		const maxEmptyRetries = 2
+		for attempt := 0; attempt <= maxEmptyRetries; attempt++ {
+			resp, err = sendAPIRequest(agent, config, config.SubagentsEnabled, agentDef)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+				break
+			}
+
+			if len(resp.Choices) == 0 {
+				if attempt < maxEmptyRetries {
+					fmt.Fprintf(os.Stderr, "Warning: received an empty response from the API (attempt %d/%d), retrying...\n", attempt+1, maxEmptyRetries+1)
+					continue
+				}
+				fmt.Fprintf(os.Stderr, "Error: received an empty response from the API after %d attempts\n", maxEmptyRetries+1)
+				break
+			}
+
+			assistantMsg := resp.Choices[0].Message
+			// If content is empty and there are no tool calls, treat as empty and retry
+			if (assistantMsg.Content == nil || *assistantMsg.Content == "") && len(assistantMsg.ToolCalls) == 0 {
+				if attempt < maxEmptyRetries {
+					fmt.Fprintf(os.Stderr, "Warning: model returned an empty message (attempt %d/%d), retrying...\n", attempt+1, maxEmptyRetries+1)
+					continue
+				}
+				fmt.Fprintf(os.Stderr, "Error: model returned an empty message after %d attempts\n", maxEmptyRetries+1)
+			}
+
+			// Successful non-empty response; put the message back into resp so the rest of the loop can use it
+			resp.Choices[0].Message = assistantMsg
+			break
 		}
 
-		if len(resp.Choices) == 0 {
-			fmt.Fprintf(os.Stderr, "Error: received an empty response from the API\n")
+		// If we still have an error or no choices after retries, exit with error
+		if err != nil || resp == nil || len(resp.Choices) == 0 {
 			os.Exit(1)
 		}
 
@@ -1910,13 +2081,30 @@ func runPipelineMode(task string) {
 		}
 
 		if len(assistantMsg.ToolCalls) > 0 {
+			// Check for tool loop before processing
+			if checkToolLoop(assistantMsg.ToolCalls) {
+				// Model is stuck in a loop, inject stop message (silent in pipeline mode)
+				fmt.Fprintf(os.Stderr, "Warning: Detected repeated tool calls. Stopping agent and suggesting different approach.\n")
+				agent.Messages = append(agent.Messages, Message{
+					Role:    "user",
+					Content: &[]string{ToolLoopStopMessage}[0],
+				})
+				resetToolLoopState()
+				// Continue the loop to let the model respond to the stop message
+				continue
+			}
+
 			processToolCalls(agent, assistantMsg.ToolCalls, config)
 		} else {
+			// No tool calls, reset loop detection
+			resetToolLoopState()
 			// No more tools to call, end agent turn
 			break
 		}
 		// Continue loop to send tool output back to API
 	}
+	// Reset tool loop state when exiting pipeline mode
+	resetToolLoopState()
 }
 
 // editCommand creates a temporary file in os.TempDir(), opens it in nano (or notepad on Windows),
@@ -2063,8 +2251,23 @@ func editCommand() {
 		}
 
 		if len(assistantMsg.ToolCalls) > 0 {
+			// Check for tool loop before processing
+			if checkToolLoop(assistantMsg.ToolCalls) {
+				// Model is stuck in a loop, inject stop message
+				fmt.Printf("%sWarning: Detected repeated tool calls. Stopping agent and suggesting different approach.%s\n", ColorYellow, ColorReset)
+				agent.Messages = append(agent.Messages, Message{
+					Role:    "user",
+					Content: &[]string{ToolLoopStopMessage}[0],
+				})
+				resetToolLoopState()
+				// Continue the loop to let the model respond to the stop message
+				continue
+			}
+
 			processToolCalls(agent, assistantMsg.ToolCalls, config)
 		} else {
+			// No tool calls, reset loop detection
+			resetToolLoopState()
 			// Check if we got an empty response
 			if assistantMsg.Content == nil || *assistantMsg.Content == "" {
 				fmt.Printf("%sWarning: Received empty response from model%s\n", ColorMeta, ColorReset)

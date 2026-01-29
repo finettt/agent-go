@@ -52,6 +52,10 @@ func runSubAgentWithAgent(task string, agentName string, modelName string, confi
 		subConfig.Model = config.MiniModel
 	}
 
+	// Track tool loop for sub-agent
+	var lastSubAgentToolSig string
+	var subAgentToolRepeatCount int
+
 	// Limit iterations to prevent infinite loops
 	for iteration := 0; iteration < MaxSubAgentIterations; iteration++ {
 		// Use false for includeSpawn to prevent sub-agents from creating more sub-agents
@@ -74,6 +78,48 @@ func runSubAgentWithAgent(task string, agentName string, modelName string, confi
 				return *assistantMsg.Content, nil
 			}
 			return "", fmt.Errorf("sub-agent finished without providing a result")
+		}
+
+		// Check for tool loop in sub-agent (within single response)
+		toolCallMap := make(map[string]int)
+		for _, tc := range assistantMsg.ToolCalls {
+			sig := tc.Function.Name + ":" + tc.Function.Arguments
+			toolCallMap[sig]++
+			if toolCallMap[sig] >= MaxRepeatedToolCalls {
+				// Sub-agent is stuck with repeated calls in single response
+				fmt.Printf("%sWarning: Sub-agent detected repeated tool calls. Stopping and suggesting different approach.%s\n", ColorYellow, ColorReset)
+				stopMsg := ToolLoopStopMessage
+				subAgent.Messages = append(subAgent.Messages, Message{
+					Role:    "user",
+					Content: &stopMsg,
+				})
+				lastSubAgentToolSig = ""
+				subAgentToolRepeatCount = 0
+				// Continue to let sub-agent respond to stop message
+				continue
+			}
+		}
+
+		// Check for tool loop across iterations
+		signature := getToolCallSignature(assistantMsg.ToolCalls)
+		if signature == lastSubAgentToolSig {
+			subAgentToolRepeatCount++
+			if subAgentToolRepeatCount >= MaxRepeatedToolCalls {
+				// Sub-agent is stuck, inject stop message
+				fmt.Printf("%sWarning: Sub-agent detected repeated tool calls. Stopping and suggesting different approach.%s\n", ColorYellow, ColorReset)
+				stopMsg := ToolLoopStopMessage
+				subAgent.Messages = append(subAgent.Messages, Message{
+					Role:    "user",
+					Content: &stopMsg,
+				})
+				lastSubAgentToolSig = ""
+				subAgentToolRepeatCount = 0
+				// Continue to let sub-agent respond to stop message
+				continue
+			}
+		} else {
+			lastSubAgentToolSig = signature
+			subAgentToolRepeatCount = 1
 		}
 
 		for _, toolCall := range assistantMsg.ToolCalls {
