@@ -18,9 +18,21 @@ func sendAPIRequest(agent *Agent, config *Config, includeSpawn bool, agentDef *A
 	// Apply operation mode filtering and agent-specific policy
 	tools := filterToolsByPolicy(baseTools, agentDef, config.OperationMode)
 
+	// Create a copy of messages with time context injected
+	messagesWithTime := make([]Message, len(agent.Messages))
+	copy(messagesWithTime, agent.Messages)
+
+	// Inject current time as a system message at the end
+	timeContext := getCurrentTimeContext()
+	timeMsg := Message{
+		Role:    "system",
+		Content: &timeContext,
+	}
+	messagesWithTime = append(messagesWithTime, timeMsg)
+
 	requestBody := APIRequest{
 		Model:       config.Model,
-		Messages:    agent.Messages,
+		Messages:    messagesWithTime,
 		Temperature: config.Temp,
 		MaxTokens:   config.MaxTokens,
 		ToolChoice:  "auto",
@@ -71,9 +83,21 @@ func sendMiniLLMRequest(config *Config, messages []Message) (string, error) {
 		model = config.Model
 	}
 
+	// Create a copy of messages with time context injected
+	messagesWithTime := make([]Message, len(messages))
+	copy(messagesWithTime, messages)
+
+	// Inject current time as a system message at the end
+	timeContext := getCurrentTimeContext()
+	timeMsg := Message{
+		Role:    "system",
+		Content: &timeContext,
+	}
+	messagesWithTime = append(messagesWithTime, timeMsg)
+
 	requestBody := APIRequest{
 		Model:       model,
-		Messages:    messages,
+		Messages:    messagesWithTime,
 		Temperature: CompressionTemp,      // Reuse default temp for utility tasks
 		MaxTokens:   CompressionMaxTokens, // Reuse default max tokens for utility tasks
 	}
