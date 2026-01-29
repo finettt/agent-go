@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0](https://github.com/finettt/agent-go/compare/v2.0.0...v2.1.0) (2026-01-29)
+
+
+### Added
+
+* **api:** add current time context injection to API requests ([bbe7f61](https://github.com/finettt/agent-go/commit/bbe7f610e4a0382fb905208cb3dfd961823dfeda))
+* **pipeline:** add Unix shell pipeline integration support ([e9c6f11](https://github.com/finettt/agent-go/commit/e9c6f11d7d431eb100ca50931026ada5bba94289))
+* **pipeline:** add Unix shell pipeline integration support ([#37](https://github.com/finettt/agent-go/issues/37)) ([daa11e9](https://github.com/finettt/agent-go/commit/daa11e925b86a463914b7978cdf48925c0f7f716))
+
+
+### Changed
+
+* **build:** add path filters to optimize build triggers ([28cd01c](https://github.com/finettt/agent-go/commit/28cd01cc708536a4c92ab0c1e334025b56917d0c))
+* **release:** combine release-please and release-assets workflows ([46f3652](https://github.com/finettt/agent-go/commit/46f3652ddc4d33b9daed6bd510da5bf6846a2b54))
+* update documentation to match v2.0.0 implementation ([752f832](https://github.com/finettt/agent-go/commit/752f8321138f5cf803eba5df02d603e215847c4a))
+
 ## [2.0.0](https://github.com/finettt/agent-go/compare/v1.3.0...v2.0.0) (2026-01-25)
 
 
