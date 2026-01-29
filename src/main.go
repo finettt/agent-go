@@ -461,15 +461,43 @@ func runCLI() {
 				agentDef, _ = loadAgentDefinition(agent.AgentDefName)
 			}
 
-			resp, err = sendAPIRequest(agent, config, config.SubagentsEnabled, agentDef)
+			// Retry logic if the model returns an empty response
+			const maxEmptyRetries = 2
+			for attempt := 0; attempt <= maxEmptyRetries; attempt++ {
+				resp, err = sendAPIRequest(agent, config, config.SubagentsEnabled, agentDef)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+					break
+				}
 
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %s\n", err)
-				break // Break from the agentic loop
+				if len(resp.Choices) == 0 {
+					if attempt < maxEmptyRetries {
+						fmt.Fprintf(os.Stderr, "Warning: received an empty response from the API (attempt %d/%d), retrying...\n", attempt+1, maxEmptyRetries+1)
+						continue
+					}
+					fmt.Fprintf(os.Stderr, "Error: received an empty response from the API after %d attempts\n", maxEmptyRetries+1)
+					break
+				}
+
+				assistantMsg := resp.Choices[0].Message
+				// If both main content and reasoning are empty and there are no tool calls, treat as empty and retry
+				if (assistantMsg.Content == nil || *assistantMsg.Content == "") &&
+					(assistantMsg.ReasoningContent == nil || *assistantMsg.ReasoningContent == "") &&
+					len(assistantMsg.ToolCalls) == 0 {
+					if attempt < maxEmptyRetries {
+						fmt.Fprintf(os.Stderr, "Warning: model returned an empty message (attempt %d/%d), retrying...\n", attempt+1, maxEmptyRetries+1)
+						continue
+					}
+					fmt.Fprintf(os.Stderr, "Error: model returned an empty message after %d attempts\n", maxEmptyRetries+1)
+				}
+
+				// Successful non-empty response; put the message back into resp so the rest of the loop can use it
+				resp.Choices[0].Message = assistantMsg
+				break
 			}
 
-			if len(resp.Choices) == 0 {
-				fmt.Fprintf(os.Stderr, "Error: received an empty response from the API\n")
+			// If we still have an error or no choices after retries, break out of the loop
+			if err != nil || resp == nil || len(resp.Choices) == 0 {
 				break
 			}
 
@@ -1793,15 +1821,41 @@ func runTask(task string) {
 			agentDef, _ = loadAgentDefinition(agent.AgentDefName)
 		}
 
-		resp, err = sendAPIRequest(agent, config, config.SubagentsEnabled, agentDef)
+		// Retry logic if the model returns an empty response
+		const maxEmptyRetries = 2
+		for attempt := 0; attempt <= maxEmptyRetries; attempt++ {
+			resp, err = sendAPIRequest(agent, config, config.SubagentsEnabled, agentDef)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+				break
+			}
 
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+			if len(resp.Choices) == 0 {
+				if attempt < maxEmptyRetries {
+					fmt.Fprintf(os.Stderr, "Warning: received an empty response from the API (attempt %d/%d), retrying...\n", attempt+1, maxEmptyRetries+1)
+					continue
+				}
+				fmt.Fprintf(os.Stderr, "Error: received an empty response from the API after %d attempts\n", maxEmptyRetries+1)
+				break
+			}
+
+			assistantMsg := resp.Choices[0].Message
+			// If content is empty and there are no tool calls, treat as empty and retry
+			if (assistantMsg.Content == nil || *assistantMsg.Content == "") && len(assistantMsg.ToolCalls) == 0 {
+				if attempt < maxEmptyRetries {
+					fmt.Fprintf(os.Stderr, "Warning: model returned an empty message (attempt %d/%d), retrying...\n", attempt+1, maxEmptyRetries+1)
+					continue
+				}
+				fmt.Fprintf(os.Stderr, "Error: model returned an empty message after %d attempts\n", maxEmptyRetries+1)
+			}
+
+			// Successful non-empty response; put the message back into resp so the rest of the loop can use it
+			resp.Choices[0].Message = assistantMsg
 			break
 		}
 
-		if len(resp.Choices) == 0 {
-			fmt.Fprintf(os.Stderr, "Error: received an empty response from the API\n")
+		// If we still have an error or no choices after retries, break out of the loop
+		if err != nil || resp == nil || len(resp.Choices) == 0 {
 			break
 		}
 
@@ -1889,14 +1943,41 @@ func runPipelineMode(task string) {
 			agentDef, _ = loadAgentDefinition(agent.AgentDefName)
 		}
 
-		resp, err = sendAPIRequest(agent, config, config.SubagentsEnabled, agentDef)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
-			os.Exit(1)
+		// Retry logic if the model returns an empty response
+		const maxEmptyRetries = 2
+		for attempt := 0; attempt <= maxEmptyRetries; attempt++ {
+			resp, err = sendAPIRequest(agent, config, config.SubagentsEnabled, agentDef)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+				break
+			}
+
+			if len(resp.Choices) == 0 {
+				if attempt < maxEmptyRetries {
+					fmt.Fprintf(os.Stderr, "Warning: received an empty response from the API (attempt %d/%d), retrying...\n", attempt+1, maxEmptyRetries+1)
+					continue
+				}
+				fmt.Fprintf(os.Stderr, "Error: received an empty response from the API after %d attempts\n", maxEmptyRetries+1)
+				break
+			}
+
+			assistantMsg := resp.Choices[0].Message
+			// If content is empty and there are no tool calls, treat as empty and retry
+			if (assistantMsg.Content == nil || *assistantMsg.Content == "") && len(assistantMsg.ToolCalls) == 0 {
+				if attempt < maxEmptyRetries {
+					fmt.Fprintf(os.Stderr, "Warning: model returned an empty message (attempt %d/%d), retrying...\n", attempt+1, maxEmptyRetries+1)
+					continue
+				}
+				fmt.Fprintf(os.Stderr, "Error: model returned an empty message after %d attempts\n", maxEmptyRetries+1)
+			}
+
+			// Successful non-empty response; put the message back into resp so the rest of the loop can use it
+			resp.Choices[0].Message = assistantMsg
+			break
 		}
 
-		if len(resp.Choices) == 0 {
-			fmt.Fprintf(os.Stderr, "Error: received an empty response from the API\n")
+		// If we still have an error or no choices after retries, exit with error
+		if err != nil || resp == nil || len(resp.Choices) == 0 {
 			os.Exit(1)
 		}
 
