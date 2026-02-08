@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -325,6 +326,10 @@ func showHelp() {
 	printSubCmd("restore <name>", "Restore a session")
 	printSubCmd("new", "Create a new session with fresh context")
 	printSubCmd("rm <name>", "Delete a saved session")
+
+	printCmd("/export", "Export session to file")
+	printSubCmd("markdown|json|txt", "Export format")
+	printSubCmd("[session_id]", "Optional specific session (defaults to current)")
 
 	printCmd("/mcp", "Model Context Protocol server management")
 	printSubCmd("add <name> <cmd>", "Add an MCP server")
@@ -959,6 +964,51 @@ func handleSlashCommand(command string) {
 			}
 		default:
 			fmt.Println("Usage: /session [list|view <name>|restore <name>|new|rm <name>]")
+		}
+
+	case "/export":
+		if len(parts) < 2 {
+			fmt.Println("Usage: /export <format> [session_id]")
+			fmt.Println("Formats: markdown, json, txt")
+			fmt.Println("Examples:")
+			fmt.Println("  /export markdown                    # Export current session as markdown")
+			fmt.Println("  /export json main                    # Export 'main' session as JSON")
+			fmt.Println("  /export txt \"my session\"            # Export specific session as text")
+			return
+		}
+
+		format := parts[1]
+		sessionID := ""
+		if len(parts) > 2 {
+			sessionID = strings.Join(parts[2:], " ")
+		}
+
+		// Validate format
+		if format != "markdown" && format != "json" && format != "txt" {
+			fmt.Fprintf(os.Stderr, "Invalid format '%s'. Must be: markdown, json, or txt\n", format)
+			return
+		}
+
+		// Create export arguments
+		args := ExportSessionArgs{
+			SessionID:       sessionID,
+			Format:          format,
+			Filename:        "",   // Auto-generate
+			IncludeMetadata: true, // Default to true
+		}
+
+		argsJSON, err := json.Marshal(args)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error creating export arguments: %v\n", err)
+			return
+		}
+
+		// Call export function
+		result, err := exportSession(agent, string(argsJSON))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%sExport failed: %v%s\n", ColorRed, err, ColorReset)
+		} else {
+			fmt.Printf("%s%s%s\n", ColorMeta, result, ColorReset)
 		}
 
 	case "/mode":
