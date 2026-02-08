@@ -86,9 +86,10 @@ graph LR
 | **Checkpoint System** | Save and restore work progress with checkpoint and rollback capabilities. |
 | **Mini Model Integration** | Use lightweight models for utility tasks to optimize costs. |
 | **Enhanced Token Tracking** | Accurate context tracking with "Last Usage" algorithm for better memory management. |
-| **Tool Loop Detection** 🆕 | Automatically detects and stops infinite tool loops with helpful guidance. |
-| **Empty Response Retry** 🆕 | Intelligent retry logic for empty model responses (up to 3 attempts). |
-| **Time Context Injection** 🆕 | Provides current time and timezone information to the AI for temporal awareness. |
+| **Tool Loop Detection** | Automatically detects and stops infinite tool loops with helpful guidance. |
+| **Empty Response Retry** | Intelligent retry logic for empty model responses (up to 3 attempts). |
+| **Time Context Injection** | Provides current time and timezone information to the AI for temporal awareness. |
+| **Session Export** | Export conversations as markdown, JSON, or plain text with full metadata and content. |
 
 ---
 
@@ -146,6 +147,35 @@ git diff | agent-go "review these changes for bugs" | tee review.md
 # Multi-step data transformation
 cat data.json | agent-go "convert to CSV" > data.csv
 ```
+
+### Session Export
+Export your conversations for documentation, analysis, or sharing. The `export_session` tool saves sessions to `.agent-go/exports/` with support for multiple formats.
+
+**Features:**
+- **Multiple Formats**: Markdown, JSON, and plain text
+- **Full Content**: Includes system messages, tool calls, and reasoning
+- **Rich Metadata**: Token usage, timestamps, and agent information
+- **Flexible Options**: Export current session or specific saved sessions
+
+**Usage Examples:**
+```bash
+# Export current session as markdown
+export_session(format="markdown")
+
+# Export specific session as JSON
+export_session(session_id="main", format="json")
+
+# Export with custom filename
+export_session(format="txt", filename="api-integration.txt")
+
+# Export without metadata
+export_session(format="markdown", include_metadata=false)
+```
+
+**Export Locations:**
+- **Directory**: `.agent-go/exports/`
+- **Filenames**: Auto-generated with session name and timestamp
+- **Formats**: `.md`, `.json`, `.txt`
 
 **Real-world Use Cases:**
 ```bash
