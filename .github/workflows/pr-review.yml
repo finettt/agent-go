@@ -19,7 +19,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Configure custom model
-          config.model: "openai/Devstral2"
+          config.model: "openai/Qwen-3-Coder-Next"
           config.fallback_models: '["openai/Devstral2"]'
           # Set custom endpoint URL
           OPENAI__API_BASE: ${{ secrets.OPENAI_URL }}
