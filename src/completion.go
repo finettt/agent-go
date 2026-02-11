@@ -206,6 +206,8 @@ func buildCompleter(config *Config) readline.AutoCompleter {
 	var slashCompleter = readline.NewPrefixCompleter(
 		readline.PcItem("/help"),
 		readline.PcItem("/?"),
+		readline.PcItem("/init"),
+		readline.PcItem("/deploy"),
 		readline.PcItem("/edit"),
 		readline.PcItem("/model",
 			append(modelCompleters,
