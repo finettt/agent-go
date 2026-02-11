@@ -82,14 +82,12 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 		}
 
 		if dangerousTools[toolCall.Function.Name] {
-			// Create auto-checkpoint
-			// We skip if we are in Plan mode because commands aren't executed there anyway
-			if config.OperationMode == Build {
-				if _, err := createCheckpoint(agent, config, fmt.Sprintf("Auto-checkpoint before %s", toolCall.Function.Name), true); err != nil {
-					// Log error but proceed? Or fail?
-					// Ideally we just warn.
-					fmt.Printf("%sWarning: Failed to create auto-checkpoint: %v%s\n", ColorYellow, err, ColorReset)
-				}
+			// Create auto-checkpoint for dangerous tools
+			// Note: We create checkpoints regardless of OperationMode since MCP tools
+			// could potentially execute commands even in Plan mode
+			if _, err := createCheckpoint(agent, config, fmt.Sprintf("Auto-checkpoint before %s", toolCall.Function.Name), true); err != nil {
+				// Log error but proceed
+				fmt.Printf("%sWarning: Failed to create auto-checkpoint: %v%s\n", ColorYellow, err, ColorReset)
 			}
 		}
 

@@ -118,6 +118,11 @@ func loadSkillFromFile(path string) (*Skill, error) {
 		return nil, fmt.Errorf("skill name and command are required")
 	}
 
+	// Security validation: Check command for dangerous patterns
+	if err := validateSkillCommand(skill.Command); err != nil {
+		return nil, fmt.Errorf("invalid skill command: %w", err)
+	}
+
 	// Resolve command path if it's relative and exists locally
 	// We assume that if the command is a file in the same directory as skill.json, we should use the absolute path
 	dir := filepath.Dir(path)
@@ -129,4 +134,17 @@ func loadSkillFromFile(path string) (*Skill, error) {
 	}
 
 	return &skill, nil
+}
+
+// validateSkillCommand checks if a skill command is safe to execute
+func validateSkillCommand(command string) error {
+	// List of dangerous shell metacharacters that could allow command injection
+	dangerousPatterns := []string{"|", ";", "&", "$", "`", "(", ")", "<", ">", "\n", "\r"}
+	for _, pattern := range dangerousPatterns {
+		if strings.Contains(command, pattern) {
+			return fmt.Errorf("command contains forbidden character: %q", pattern)
+		}
+	}
+
+	return nil
 }
