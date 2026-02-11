@@ -12,6 +12,36 @@ This directory contains the full documentation for Agent-Go. For a quick start, 
 
 ## What's New
 
+### Session Export
+
+Export your conversations for documentation, analysis, or sharing:
+
+- **Multiple Formats**: Markdown, JSON, and plain text export options
+- **Full Content**: Includes system messages, tool calls, and reasoning
+- **Rich Metadata**: Token usage, timestamps, and agent information
+- **Flexible Options**: Export current session or specific saved sessions
+- **Slash Commands**: Quick access with `/export markdown`, `/export json`, `/export txt`
+
+**Usage Examples:**
+```bash
+# Export current session as markdown
+/export markdown
+
+# Export specific session as JSON
+/export json project-alpha
+
+# Export with custom filename via tool
+export_session(format="markdown", filename="api-integration.md")
+
+# Export without metadata
+export_session(format="txt", include_metadata=false)
+```
+
+**Export Locations:**
+- **Directory**: `.agent-go/exports/`
+- **Filenames**: Auto-generated with session name and timestamp
+- **Formats**: `.md`, `.json`, `.txt`
+
 ### Agent Studio
 
 Complete agent management system for creating, managing, and using task-specific agents:

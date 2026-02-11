@@ -250,7 +250,19 @@ Gathers system context for the AI:
 - **Timestamp**: Includes current time in system prompt
 - **Cross-platform**: Works on Windows, macOS, and Linux
 
-### 16. Data Types (`types.go`)
+### 16. Session Export (`export.go`)
+
+Provides session export functionality for documentation, analysis, and sharing:
+
+- **Multiple Formats**: Support for markdown, JSON, and plain text exports
+- **Metadata Inclusion**: Optional metadata (timestamps, token usage, agent info)
+- **Custom Filenames**: Auto-generated or user-specified filenames
+- **Full Content Export**: Complete conversation history including tool calls and reasoning
+- **Export Directory**: Exports saved to `.agent-go/exports/`
+- **Session Selection**: Export current session or specific saved sessions
+- **Tool Integration**: Available as `export_session` tool for agent use
+
+### 17. Data Types (`types.go`)
 
 Defines the core data structures used throughout the application:
 
@@ -267,6 +279,18 @@ Defines the core data structures used throughout the application:
 - **Agent Type**: Agent structure with ID, message history, and active agent definition name
 - **Agent Definition**: Structure for task-specific agent configurations (system prompt, model overrides)
 - **Session**: Structure for saving/restoring conversation state with token tracking
+
+### 17. Session Export (`export.go`)
+
+Provides session export functionality for documentation, analysis, and sharing:
+
+- **Multiple Formats**: Support for markdown, JSON, and plain text exports
+- **Metadata Inclusion**: Optional metadata (timestamps, token usage, agent info)
+- **Custom Filenames**: Auto-generated or user-specified filenames
+- **Full Content Export**: Complete conversation history including tool calls and reasoning
+- **Export Directory**: Exports saved to `.agent-go/exports/`
+- **Session Selection**: Export current session or specific saved sessions
+- **Tool Integration**: Available as `export_session` tool for agent use
 
 ## Enhanced Features
 
