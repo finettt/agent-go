@@ -75,8 +75,8 @@ IMPORTANT: You CANNOT execute shell commands in this mode. Focus purely on plann
 			"name_session",
 			"suggest_plan",
 			"create_agent_definition",
-			"use_mcp_tool",
-			"spawn_agent",
+			// REMOVED: "use_mcp_tool" - MCP tools can execute commands, bypassing Plan mode
+			// REMOVED: "spawn_agent" - sub-agents could use MCP tools
 		},
 	}
 }

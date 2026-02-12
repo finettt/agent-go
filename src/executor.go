@@ -225,6 +225,11 @@ func hasRunningBackgroundProcesses() bool {
 // executeSkill executes a skill command.
 // If it's a .sh file, it executes it directly with sh to avoid shell escaping issues.
 func executeSkill(command string, argsJSON []byte) (string, error) {
+	// Security: Re-validate command before execution (defense in depth)
+	if err := validateSkillCommand(command); err != nil {
+		return "", fmt.Errorf("refusing to execute unsafe command: %w", err)
+	}
+
 	if strings.HasSuffix(command, ".sh") {
 		cmd := exec.Command("sh", command)
 		cmd.Env = append(os.Environ(), fmt.Sprintf("SKILL_ARGS=%s", string(argsJSON)))

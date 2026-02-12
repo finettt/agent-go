@@ -62,6 +62,13 @@ func (m *mcpManager) ensureMCP(serverName string) (*mcp.ClientSession, error) {
 
 // useMCPTool calls a tool on a specified MCP server
 func useMCPTool(serverName, toolName string, arguments map[string]interface{}) (string, error) {
+	// SECURITY: Block MCP tool usage in Plan mode
+	// MCP tools can provide command execution capabilities, which would bypass
+	// the Plan mode security restriction against command execution.
+	if config != nil && config.OperationMode == Plan {
+		return "", fmt.Errorf("MCP tools cannot be used in Plan mode for security reasons")
+	}
+
 	session, err := globalMCP.ensureMCP(serverName)
 	if err != nil {
 		return "", err

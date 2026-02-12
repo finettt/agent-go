@@ -274,13 +274,8 @@ func exportSession(agent *Agent, argsJSON string) (string, error) {
 	if filename == "" {
 		filename = generateExportFilename(session, format)
 	} else {
-		// Ensure filename has correct extension
-		ext := filepath.Ext(filename)
-		if ext == "" {
-			filename += "." + format
-		} else if ext != "."+format {
-			filename = strings.TrimSuffix(filename, ext) + "." + format
-		}
+		// Sanitize user-provided filename to prevent path traversal
+		filename = sanitizeExportFilename(filename, format)
 	}
 
 	// Ensure export directory exists
@@ -305,7 +300,22 @@ func exportSession(agent *Agent, argsJSON string) (string, error) {
 	}
 
 	// Write to file
-	exportPath := filepath.Join(getExportDir(), filename)
+	// Use filepath.Base as defense in depth to ensure only the filename portion is used
+	exportPath := filepath.Join(getExportDir(), filepath.Base(filename))
+
+	// Validate the final path is within the export directory
+	absPath, err := filepath.Abs(exportPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve export path: %w", err)
+	}
+	absBase, err := filepath.Abs(getExportDir())
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve export directory: %w", err)
+	}
+	if !strings.HasPrefix(absPath, absBase+string(filepath.Separator)) {
+		return "", fmt.Errorf("invalid filename: path traversal detected")
+	}
+
 	if err := os.WriteFile(exportPath, []byte(content), 0644); err != nil {
 		return "", fmt.Errorf("failed to write export file: %w", err)
 	}
@@ -411,4 +421,27 @@ func formatExportsList() string {
 	}
 
 	return sb.String()
+}
+
+// sanitizeExportFilename sanitizes a user-provided filename for export
+func sanitizeExportFilename(filename, format string) string {
+	// Remove any path separators and traversal sequences
+	filename = strings.ReplaceAll(filename, "/", "_")
+	filename = strings.ReplaceAll(filename, "\\", "_")
+	filename = strings.ReplaceAll(filename, "..", "_")
+
+	// Remove any leading dots or special characters
+	for len(filename) > 0 && (filename[0] == '.' || filename[0] == '-') {
+		filename = filename[1:]
+	}
+
+	// Ensure filename has correct extension
+	ext := filepath.Ext(filename)
+	if ext == "" {
+		filename += "." + format
+	} else if ext != "."+format {
+		filename = strings.TrimSuffix(filename, ext) + "." + format
+	}
+
+	return filename
 }
