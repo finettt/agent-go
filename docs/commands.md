@@ -480,6 +480,95 @@ Session 'old-session' deleted successfully.
 - Useful for cleaning up old or unused sessions
 - Validates session existence before deletion
 
+## Session Export Commands
+
+### `/export <format> [session_id]`
+
+Exports a session to a file in the specified format. Exports are saved to `.agent-go/exports/`.
+
+**Usage:**
+
+```
+/export <format> [session_id]
+```
+
+**Parameters:**
+
+- `format`: Export format - `markdown`, `json`, or `txt`
+- `session_id` (optional): Session to export (defaults to current session)
+
+**Examples:**
+
+```
+> /export markdown
+Session exported successfully to: .agent-go/exports/session-main-20260129-143000.md
+Format: markdown
+Messages: 25
+Tokens: 15432
+
+> /export json project-alpha
+Session exported successfully to: .agent-go/exports/session-project-alpha-20260129-143500.json
+Format: json
+Messages: 150
+Tokens: 89215
+
+> /export txt old-session
+Session exported successfully to: .agent-go/exports/session-old-session-20260129-144000.txt
+Format: txt
+Messages: 45
+Tokens: 28150
+```
+
+**Export Formats:**
+
+| Format | Extension | Description |
+|--------|-----------|-------------|
+| `markdown` | `.md` | Structured markdown with headers, code blocks, and metadata |
+| `json` | `.json` | Full JSON export with all session data and export metadata |
+| `txt` | `.txt` | Plain text format for simple reading or sharing |
+
+**Export Location:**
+
+- **Directory**: `.agent-go/exports/`
+- **Filename Format**: `session-{name}-{timestamp}.{format}`
+- **Auto-created**: Export directory is created automatically
+
+**Export Content:**
+
+- Full conversation history (user, assistant, system messages)
+- Tool calls and their results
+- Reasoning content (when available)
+- Token usage statistics
+- Session metadata (creation time, agent definition, etc.)
+
+**Notes:**
+
+- Exports current session if no session_id specified
+- Files include both content and metadata by default
+- Use `export_session` tool for advanced options (custom filename, metadata toggle)
+- Exports are saved locally and not sent to any external service
+
+### Export via Tool (Advanced)
+
+For more control over exports, use the `export_session` tool through natural conversation:
+
+```
+> Export the current session as markdown with a custom filename
+[Using tool: export_session]
+Session exported successfully to: .agent-go/exports/my-custom-export.md
+
+> Export session project-alpha as JSON without metadata
+[Using tool: export_session]
+Session exported successfully to: .agent-go/exports/session-project-alpha.json
+```
+
+**Tool Parameters:**
+
+- `format`: Export format (`markdown`, `json`, `txt`)
+- `session_id`: Specific session to export (optional)
+- `filename`: Custom filename (optional)
+- `include_metadata`: Include metadata in export (default: true)
+
 ## Agent Studio Commands
 
 Agent Studio is a complete agent management system that allows you to create, manage, and use task-specific agents.

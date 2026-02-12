@@ -121,6 +121,7 @@ Create or edit agent definition files in `~/.config/agent-go/agents/`:
 - `delete_note` - Delete notes
 - `name_session` - Name the current session
 - `use_mcp_tool` - Access MCP server tools
+- `export_session` - Export session to file (markdown, json, txt)
 
 ### Build Mode Tools
 - `execute_command` - Execute shell commands

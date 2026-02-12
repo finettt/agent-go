@@ -182,6 +182,12 @@ func main() {
 		return
 	}
 
+	// Check for "deploy" command
+	if len(os.Args) > 1 && os.Args[1] == "deploy" {
+		runDeployMode()
+		return
+	}
+
 	// Check for command line task argument (no stdin piped)
 	if len(os.Args) > 1 {
 		task := strings.Join(os.Args[1:], " ")
@@ -287,7 +293,8 @@ func showHelp() {
 	fmt.Println("Available commands:")
 
 	printCmd("/help, /?", "Show this help message")
-	printCmd("/init", "Create AGENTS.md file")
+	printCmd("/init", "Create AGENTS.md and DEPLOY.md files")
+	printCmd("/deploy", "Deploy project by following DEPLOY.md instructions")
 	printCmd("/config", "Display current configuration")
 	printCmd("/shell", "Enter shell mode for direct command execution")
 	printCmd("/bg", "Background process management")
@@ -793,6 +800,38 @@ func handleSlashCommand(command string) {
 			fmt.Printf("Security review failed: %v\n", err)
 		} else {
 			fmt.Printf("\n=== Security Review ===\n%s\n", result)
+		}
+
+	case "/deploy":
+		if !config.SubagentsEnabled {
+			fmt.Println("Subagents are disabled. Enable them with /subagents on to use this command.")
+			return
+		}
+
+		// Check if DEPLOY.md exists
+		deployFileContent, err := readAgentsFile("DEPLOY.md")
+		if err != nil {
+			fmt.Printf("Error reading DEPLOY.md: %v\n", err)
+			return
+		}
+		if deployFileContent == "" {
+			fmt.Println("DEPLOY.md not found. Run /init first to create deployment instructions.")
+			return
+		}
+
+		task := fmt.Sprintf(`Follow the deployment instructions in DEPLOY.md to deploy this project.
+
+DEPLOY.md contents:
+%s
+
+Execute the deployment steps. Report progress and any issues encountered.`, deployFileContent)
+
+		fmt.Println("Spawning subagent to deploy project following DEPLOY.md instructions...")
+		result, err := runSubAgent(task, config)
+		if err != nil {
+			fmt.Printf("Deployment failed: %v\n", err)
+		} else {
+			fmt.Printf("\n=== Deployment Complete ===\n%s\n", result)
 		}
 
 	case "/usage":
@@ -1535,6 +1574,36 @@ CRITICAL: Only include information that is:
 			fmt.Printf("\n=== Initialization Complete ===\n%s\n", result)
 		}
 
+		// After AGENTS.md creation, create DEPLOY.md
+		deployTask := `Create (or update) a DEPLOY.md file that provides deployment instructions for this project.
+
+CRITICAL: Only include information that is:
+- Project-specific (not generic deployment steps)
+- Discovered by reading config files, CI/CD configs, Dockerfiles, package.json scripts, etc.
+- Essential for someone to deploy this project successfully
+
+1. Discovery Phase:
+   - Check for existing DEPLOY.md in project root
+   - Look for deployment-related files: Dockerfile, docker-compose.yml, .github/workflows/, deploy scripts, package.json scripts, Makefile, etc.
+   - Identify build commands, environment variables, secrets needed, deployment targets
+
+2. Create DEPLOY.md with sections:
+   - Prerequisites (tools, accounts needed)
+   - Environment setup (env vars, secrets)
+   - Build steps
+   - Deployment commands
+   - Post-deployment verification
+
+Keep it concise and actionable. Delete obvious or generic information.`
+
+		fmt.Println("Spawning subagent to analyze deployment setup and create DEPLOY.md...")
+		deployResult, err := runSubAgent(deployTask, config)
+		if err != nil {
+			fmt.Printf("DEPLOY.md creation failed: %v\n", err)
+		} else {
+			fmt.Printf("\n=== DEPLOY.md Created ===\n%s\n", deployResult)
+		}
+
 	case "/rag":
 		if len(parts) > 1 {
 			switch parts[1] {
@@ -2017,6 +2086,45 @@ func runTask(task string) {
 	}
 	// Reset tool loop state when exiting task
 	resetToolLoopState()
+}
+
+// runDeployMode handles the CLI "deploy" command for non-interactive deployment.
+func runDeployMode() {
+	config = loadConfig()
+	if config.APIKey == "" {
+		fmt.Fprintln(os.Stderr, "Error: API key not set. Please run the interactive setup first.")
+		os.Exit(1)
+	}
+
+	if !config.SubagentsEnabled {
+		fmt.Fprintln(os.Stderr, "Error: Subagents are disabled. Enable them with /subagents on first.")
+		os.Exit(1)
+	}
+
+	deployFileContent, err := readAgentsFile("DEPLOY.md")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error reading DEPLOY.md: %v\n", err)
+		os.Exit(1)
+	}
+	if deployFileContent == "" {
+		fmt.Fprintln(os.Stderr, "Error: DEPLOY.md not found. Run 'agent-go' and use /init first to create deployment instructions.")
+		os.Exit(1)
+	}
+
+	task := fmt.Sprintf(`Follow the deployment instructions in DEPLOY.md to deploy this project.
+
+DEPLOY.md contents:
+%s
+
+Execute the deployment steps. Report progress and any issues encountered.`, deployFileContent)
+
+	fmt.Println("Starting deployment...")
+	result, err := runSubAgent(task, config)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Deployment failed: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Printf("\n=== Deployment Complete ===\n%s\n", result)
 }
 
 // runPipelineMode executes a task in pipeline mode with stdin content.
