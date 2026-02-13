@@ -155,3 +155,9 @@ type GetBackgroundLogsArgs struct {
 type SwitchOperationModeArgs struct {
 	Mode string `json:"mode"`
 }
+
+type SearchFilesArgs struct {
+	Path        string `json:"path"`
+	Pattern     string `json:"pattern"`
+	FilePattern string `json:"file_pattern,omitempty"`
+}

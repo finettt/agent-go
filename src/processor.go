@@ -258,6 +258,11 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 			if err == nil {
 				logMessage = "Named session"
 			}
+		case "search_files":
+			output, err = searchFiles(toolCall.Function.Arguments)
+			if err == nil {
+				logMessage = "Searched files"
+			}
 		case "create_agent_definition":
 			output, err = createAgentDefinition(toolCall.Function.Arguments)
 			if err == nil {

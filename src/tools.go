@@ -1,8 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -95,6 +99,23 @@ func getAvailableTools(config *Config, includeSpawn bool, operationMode Operatio
 					"status": map[string]interface{}{"type": "string", "enum": []string{"pending", "in-progress", "completed"}},
 				},
 				"required": []string{"id", "status"},
+			},
+		},
+	})
+
+	tools = append(tools, Tool{
+		Type: "function",
+		Function: FunctionDefinition{
+			Name:        "search_files",
+			Description: "Search for regex patterns across files in the codebase. Returns matches with surrounding context.",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"path":         map[string]string{"type": "string", "description": "Directory path to search in (relative to workspace)"},
+					"pattern":      map[string]string{"type": "string", "description": "Regex pattern to search for"},
+					"file_pattern": map[string]string{"type": "string", "description": "Optional glob pattern to filter files (e.g., '*.go', '*.js')"},
+				},
+				"required": []string{"path", "pattern"},
 			},
 		},
 	})
@@ -438,4 +459,136 @@ func clearTodo(agentID string) (string, error) {
 		return "", err
 	}
 	return "Todo list cleared.", nil
+}
+
+// searchFiles searches for a regex pattern in files within a directory
+func searchFiles(argsJSON string) (string, error) {
+	var args SearchFilesArgs
+	if err := json.Unmarshal([]byte(argsJSON), &args); err != nil {
+		return "", fmt.Errorf("invalid arguments: %w", err)
+	}
+
+	if strings.TrimSpace(args.Path) == "" {
+		return "", fmt.Errorf("path cannot be empty")
+	}
+	if strings.TrimSpace(args.Pattern) == "" {
+		return "", fmt.Errorf("pattern cannot be empty")
+	}
+
+	regex, err := regexp.Compile(args.Pattern)
+	if err != nil {
+		return "", fmt.Errorf("invalid regex pattern: %w", err)
+	}
+
+	searchPath := args.Path
+	if !filepath.IsAbs(searchPath) {
+		cwd, _ := os.Getwd()
+		searchPath = filepath.Join(cwd, searchPath)
+	}
+
+	var results []string
+	matchCount := 0
+	const maxMatches = 100
+	const contextLines = 2
+
+	err = filepath.Walk(searchPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil // Skip files with errors
+		}
+		if info.IsDir() {
+			// Skip hidden directories and common non-code directories
+			name := info.Name()
+			if strings.HasPrefix(name, ".") || name == "node_modules" || name == "vendor" || name == "__pycache__" {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		// Check file pattern if specified
+		if args.FilePattern != "" {
+			matched, _ := filepath.Match(args.FilePattern, info.Name())
+			if !matched {
+				return nil
+			}
+		}
+
+		// Skip binary and large files
+		if info.Size() > 1024*1024 { // Skip files > 1MB
+			return nil
+		}
+
+		file, err := os.Open(path)
+		if err != nil {
+			return nil
+		}
+		defer file.Close()
+
+		scanner := bufio.NewScanner(file)
+		var lines []string
+		lineNum := 0
+
+		for scanner.Scan() {
+			lineNum++
+			line := scanner.Text()
+			lines = append(lines, line)
+
+			if regex.MatchString(line) {
+				if matchCount >= maxMatches {
+					results = append(results, fmt.Sprintf("\n... (truncated, max %d matches reached)", maxMatches))
+					return filepath.SkipAll
+				}
+				matchCount++
+
+				relPath, _ := filepath.Rel(args.Path, path)
+				if relPath == "" {
+					relPath = path
+				}
+
+				// Build context
+				var contextBuilder strings.Builder
+				contextBuilder.WriteString(fmt.Sprintf("\n%s:%d\n", relPath, lineNum))
+
+				startLine := lineNum - contextLines
+				if startLine < 1 {
+					startLine = 1
+				}
+
+				// Show preceding context from already scanned lines
+				for i := startLine; i < lineNum; i++ {
+					idx := len(lines) - (lineNum - i) - 1
+					if idx >= 0 && idx < len(lines) {
+						contextBuilder.WriteString(fmt.Sprintf("  %d | %s\n", i, lines[idx]))
+					}
+				}
+
+				// Highlight the matching line
+				contextBuilder.WriteString(fmt.Sprintf("> %d | %s\n", lineNum, line))
+
+				results = append(results, contextBuilder.String())
+			}
+
+			// Keep only recent lines for context
+			if len(lines) > contextLines+1 {
+				lines = lines[1:]
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return "", fmt.Errorf("search failed: %w", err)
+	}
+
+	if len(results) == 0 {
+		return fmt.Sprintf("No matches found for pattern '%s' in '%s'", args.Pattern, args.Path), nil
+	}
+
+	var output strings.Builder
+	output.WriteString(fmt.Sprintf("Found %d match(es) for '%s':\n", matchCount, args.Pattern))
+	for _, result := range results {
+		output.WriteString(result)
+	}
+
+	return output.String(), nil
 }
