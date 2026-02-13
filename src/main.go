@@ -15,6 +15,7 @@ import (
 	"syscall"
 
 	"github.com/chzyer/readline"
+	"github.com/google/uuid"
 )
 
 var config *Config
@@ -219,7 +220,7 @@ func main() {
 	}
 
 	agent = &Agent{
-		ID:           "main",
+		ID:           uuid.New().String(),
 		Messages:     make([]Message, 0),
 		AgentDefName: initialAgent,
 	}
@@ -966,7 +967,7 @@ Execute the deployment steps. Report progress and any issues encountered.`, depl
 
 			// Create new session with fresh context
 			agent = &Agent{
-				ID:       "main",
+				ID:       uuid.New().String(),
 				Messages: make([]Message, 0),
 			}
 
@@ -1986,7 +1987,7 @@ func runTask(task string) {
 
 	// Create agent instance
 	agent = &Agent{
-		ID:       "main",
+		ID:       uuid.New().String(),
 		Messages: make([]Message, 0),
 	}
 
@@ -2164,7 +2165,7 @@ func runPipelineMode(task string) {
 
 	// Create agent instance
 	agent = &Agent{
-		ID:       "main",
+		ID:       uuid.New().String(),
 		Messages: make([]Message, 0),
 	}
 
