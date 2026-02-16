@@ -291,8 +291,10 @@ func showHelp() {
 	fmt.Println("Available commands:")
 
 	printCmd("/help, /?", "Show this help message")
-	printCmd("/init", "Create AGENTS.md and DEPLOY.md files")
-	printCmd("/deploy", "Deploy project by following DEPLOY.md instructions")
+	printCmd("/init", "Create AGENTS.md file for project guidance")
+	printCmd("/deploy", "Deployment management")
+	printSubCmd("init", "Create DEPLOY.md with deployment instructions")
+	printSubCmd("", "(run without subcommand to deploy following DEPLOY.md)")
 	printCmd("/config", "Display current configuration")
 	printCmd("/shell", "Enter shell mode for direct command execution")
 	printCmd("/bg", "Background process management")
@@ -806,6 +808,40 @@ func handleSlashCommand(command string) {
 			return
 		}
 
+		// Check for subcommand
+		if len(parts) > 1 && parts[1] == "init" {
+			// Create DEPLOY.md
+			deployTask := `Create (or update) a DEPLOY.md file that provides deployment instructions for this project.
+
+CRITICAL: Only include information that is:
+- Project-specific (not generic deployment steps)
+- Discovered by reading config files, CI/CD configs, Dockerfiles, package.json scripts, etc.
+- Essential for someone to deploy this project successfully
+
+1. Discovery Phase:
+	  - Check for existing DEPLOY.md in project root
+	  - Look for deployment-related files: Dockerfile, docker-compose.yml, .github/workflows/, deploy scripts, package.json scripts, Makefile, etc.
+	  - Identify build commands, environment variables, secrets needed, deployment targets
+
+2. Create DEPLOY.md with sections:
+	  - Prerequisites (tools, accounts needed)
+	  - Environment setup (env vars, secrets)
+	  - Build steps
+	  - Deployment commands
+	  - Post-deployment verification
+
+Keep it concise and actionable. Delete obvious or generic information.`
+
+			fmt.Println("Spawning subagent to analyze deployment setup and create DEPLOY.md...")
+			deployResult, err := runSubAgent(deployTask, config)
+			if err != nil {
+				fmt.Printf("DEPLOY.md creation failed: %v\n", err)
+			} else {
+				fmt.Printf("\n=== DEPLOY.md Created ===\n%s\n", deployResult)
+			}
+			return
+		}
+
 		// Check if DEPLOY.md exists
 		deployFileContent, err := readAgentsFile("DEPLOY.md")
 		if err != nil {
@@ -813,7 +849,7 @@ func handleSlashCommand(command string) {
 			return
 		}
 		if deployFileContent == "" {
-			fmt.Println("DEPLOY.md not found. Run /init first to create deployment instructions.")
+			fmt.Println("DEPLOY.md not found. Run /deploy init first to create deployment instructions.")
 			return
 		}
 
@@ -1570,36 +1606,7 @@ CRITICAL: Only include information that is:
 			fmt.Printf("Initialization failed: %v\n", err)
 		} else {
 			fmt.Printf("\n=== Initialization Complete ===\n%s\n", result)
-		}
-
-		// After AGENTS.md creation, create DEPLOY.md
-		deployTask := `Create (or update) a DEPLOY.md file that provides deployment instructions for this project.
-
-CRITICAL: Only include information that is:
-- Project-specific (not generic deployment steps)
-- Discovered by reading config files, CI/CD configs, Dockerfiles, package.json scripts, etc.
-- Essential for someone to deploy this project successfully
-
-1. Discovery Phase:
-   - Check for existing DEPLOY.md in project root
-   - Look for deployment-related files: Dockerfile, docker-compose.yml, .github/workflows/, deploy scripts, package.json scripts, Makefile, etc.
-   - Identify build commands, environment variables, secrets needed, deployment targets
-
-2. Create DEPLOY.md with sections:
-   - Prerequisites (tools, accounts needed)
-   - Environment setup (env vars, secrets)
-   - Build steps
-   - Deployment commands
-   - Post-deployment verification
-
-Keep it concise and actionable. Delete obvious or generic information.`
-
-		fmt.Println("Spawning subagent to analyze deployment setup and create DEPLOY.md...")
-		deployResult, err := runSubAgent(deployTask, config)
-		if err != nil {
-			fmt.Printf("DEPLOY.md creation failed: %v\n", err)
-		} else {
-			fmt.Printf("\n=== DEPLOY.md Created ===\n%s\n", deployResult)
+			fmt.Printf("\nTip: Use '/deploy init' to create deployment instructions (DEPLOY.md)\n")
 		}
 
 	case "/rag":
@@ -2105,7 +2112,7 @@ func runDeployMode() {
 		os.Exit(1)
 	}
 	if deployFileContent == "" {
-		fmt.Fprintln(os.Stderr, "Error: DEPLOY.md not found. Run 'agent-go' and use /init first to create deployment instructions.")
+		fmt.Fprintln(os.Stderr, "Error: DEPLOY.md not found. Run 'agent-go' and use '/deploy init' first to create deployment instructions.")
 		os.Exit(1)
 	}
 
