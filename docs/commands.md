@@ -24,6 +24,10 @@ Displays a comprehensive list of all available commands with brief descriptions.
 > /help
 Available commands:
   /help              - Show this help message
+  /init              - Create AGENTS.md file for project guidance
+  /deploy            - Deployment management
+    init             - Create DEPLOY.md with deployment instructions
+                     - (run without subcommand to deploy following DEPLOY.md)
   /model <name>      - Set the AI model (e.g., gpt-4)
   /provider <url>    - Set the API provider URL
   /config            - Display current configuration
@@ -109,6 +113,71 @@ Exited shell mode.
 - To exit shell mode, type `exit` and press Enter.
 - Slash commands are not available while in shell mode.
 - Commands are executed with platform-specific shell handling (cmd.exe on Windows, sh on Unix-like systems)
+
+### `/init`
+
+Creates an AGENTS.md file in your project root with project-specific guidance for AI assistants.
+
+**Usage:**
+
+```
+/init
+```
+
+**Example:**
+
+```
+> /init
+Spawning subagent to analyze codebase and create AGENTS.md...
+
+=== Initialization Complete ===
+Created AGENTS.md with project-specific guidance.
+
+Tip: Use '/deploy init' to create deployment instructions (DEPLOY.md)
+```
+
+**Notes:**
+
+- Requires subagents to be enabled (`/subagents on`)
+- Analyzes your codebase to extract non-obvious, project-specific information
+- Updates existing AGENTS.md if it already exists
+- Focuses on essential information that isn't obvious from code structure
+- AGENTS.md content is automatically included in the system prompt
+
+### `/deploy`
+
+Deployment management with two modes: creating deployment instructions and executing deployment.
+
+**Usage:**
+
+```
+/deploy init    # Create DEPLOY.md with deployment instructions
+/deploy         # Execute deployment following DEPLOY.md
+```
+
+**Examples:**
+
+```
+> /deploy init
+Spawning subagent to analyze deployment setup and create DEPLOY.md...
+
+=== DEPLOY.md Created ===
+Created deployment instructions based on your project configuration.
+
+> /deploy
+Spawning subagent to deploy project following DEPLOY.md instructions...
+
+=== Deployment Complete ===
+Successfully deployed application to production.
+```
+
+**Notes:**
+
+- Requires subagents to be enabled (`/subagents on`)
+- `/deploy init` analyzes your project for deployment-related files (Dockerfile, CI/CD configs, etc.)
+- `/deploy` (without subcommand) executes the deployment steps in DEPLOY.md
+- DEPLOY.md is project-specific and focuses on actionable deployment steps
+- Common deployment files analyzed: Dockerfile, docker-compose.yml, .github/workflows/, Makefile, package.json scripts
 
 ### `/clear`
 
