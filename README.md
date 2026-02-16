@@ -1,5 +1,6 @@
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/b8914faa-998d-487e-9173-7008d75b36df" width="200" height="200" alt="Agent-Go Logo" />
+  <img width="200" height="200" alt="Agent-Go logo" src="https://github.com/user-attachments/assets/e1bb2a28-c203-418d-a7b5-5f3398329bf2" />
+
   <h1>./agent-go</h1>
   <p>
     <strong>Chat less. Execute more.</strong> <br>
