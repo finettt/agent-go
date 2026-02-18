@@ -9,6 +9,56 @@ import (
 	"time"
 )
 
+// formatToolCallCompact returns a compact display string for a tool call, e.g. "Bash(ls -la)" or "create_todo(...)".
+// Used for error display so the user sees what tool failed without verbose error messages.
+func formatToolCallCompact(toolCall ToolCall) string {
+	name := toolCall.Function.Name
+	argsRaw := toolCall.Function.Arguments
+
+	// For execute_command, show as Bash (command) — matches success log format in subagent
+	if name == "execute_command" {
+		var args CommandArgs
+		if err := json.Unmarshal([]byte(argsRaw), &args); err == nil && args.Command != "" {
+			cmd := args.Command
+			if len(cmd) > 80 {
+				cmd = cmd[:77] + "..."
+			}
+			return fmt.Sprintf("Bash (%s)", cmd)
+		}
+	}
+
+	// For spawn_agent, show as SpawnAgent (task_summary)
+	if name == "spawn_agent" {
+		var args SubAgentTask
+		if err := json.Unmarshal([]byte(argsRaw), &args); err == nil && args.Task != "" {
+			task := args.Task
+			if len(task) > 60 {
+				task = task[:57] + "..."
+			}
+			label := "SpawnAgent"
+			if args.Agent != "" {
+				label = fmt.Sprintf("SpawnAgent[%s]", args.Agent)
+			}
+			return fmt.Sprintf("%s (%s)", label, task)
+		}
+	}
+
+	// For use_mcp_tool, show as MCP:server.tool (...)
+	if name == "use_mcp_tool" {
+		var args UseMCPToolArgs
+		if err := json.Unmarshal([]byte(argsRaw), &args); err == nil {
+			return fmt.Sprintf("MCP:%s.%s (...)", args.ServerName, args.ToolName)
+		}
+	}
+
+	// Generic: show ToolName (truncated args)
+	summary := argsRaw
+	if len(summary) > 60 {
+		summary = summary[:57] + "..."
+	}
+	return fmt.Sprintf("%s (%s)", name, summary)
+}
+
 // processToolCalls handles the logic for executing tool calls from the API response
 func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 
@@ -51,7 +101,7 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 			if err != nil {
 				output = fmt.Sprintf("Tool execution error: %s", err)
 				if !pipelineMode {
-					fmt.Printf("%s%s%s\n", ColorRed, output, ColorReset)
+					fmt.Printf("%s==> %s%s\n", ColorRed, formatToolCallCompact(toolCall), ColorReset)
 				}
 			} else if logMessage != "" && !pipelineMode {
 				fmt.Printf("%s%s%s\n", ColorMeta, logMessage, ColorReset)
@@ -334,8 +384,7 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 		if err != nil {
 			output = fmt.Sprintf("Tool execution error: %s", err)
 			if !pipelineMode {
-				// Print error in meta color or red?
-				fmt.Printf("%s%s%s\n", ColorRed, output, ColorReset)
+				fmt.Printf("%s==> %s%s\n", ColorRed, formatToolCallCompact(toolCall), ColorReset)
 			}
 		} else if logMessage != "" && !pipelineMode {
 			// Always log the action summary (formerly only in verbose)

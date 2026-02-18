@@ -140,7 +140,7 @@ func processAgentStudioToolCalls(a *Agent, toolCalls []ToolCall) error {
 
 		if err != nil {
 			output = fmt.Sprintf("Tool execution error: %v", err)
-			fmt.Printf("%s%s%s\n", ColorRed, output, ColorReset)
+			fmt.Printf("%s==> %s%s\n", ColorRed, formatToolCallCompact(tc), ColorReset)
 		}
 
 		toolMsg := Message{

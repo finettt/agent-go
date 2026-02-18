@@ -159,7 +159,7 @@ func runSubAgentWithAgent(task string, agentName string, modelName string, confi
 
 			if err != nil {
 				output = fmt.Sprintf("Tool execution error: %s", err)
-				fmt.Printf("%s%s%s\n", ColorRed, output, ColorReset)
+				fmt.Printf("%s==> %s%s\n", ColorRed, formatToolCallCompact(toolCall), ColorReset)
 			} else if logMessage != "" {
 				fmt.Printf("%s%s==> %s%s%s\n", StyleBold, ColorHighlight, ColorReset, logMessage, ColorReset)
 			}
