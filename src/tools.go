@@ -418,15 +418,15 @@ func getTodoList(agentID string) (string, error) {
 	var builder strings.Builder
 	builder.WriteString("Current Todo List:\n")
 	for _, todo := range todoList.Todos {
-		checkbox := " "
+		checkbox := "☐"
 		switch todo.Status {
 		case "completed":
-			checkbox = "x"
+			checkbox = "☒"
 		case "in-progress":
-			checkbox = "-"
+			checkbox = "◐"
 		}
 
-		builder.WriteString(fmt.Sprintf("%d. [%s] %s \n", todo.ID, checkbox, todo.Task))
+		builder.WriteString(fmt.Sprintf("%d. %s %s \n", todo.ID, checkbox, todo.Task))
 	}
 
 	return builder.String(), nil

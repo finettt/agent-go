@@ -257,11 +257,17 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 			output, err = createTodo(agent.ID, toolCall.Function.Arguments)
 			if err == nil {
 				logMessage = "Created todo item"
+				if !pipelineMode {
+					fmt.Println(output)
+				}
 			}
 		case "update_todo":
 			output, err = updateTodo(agent.ID, toolCall.Function.Arguments)
 			if err == nil {
 				logMessage = "Updated todo item"
+				if !pipelineMode {
+					fmt.Println(output)
+				}
 			}
 		case "get_todo_list":
 			output, err = getTodoList(agent.ID)
