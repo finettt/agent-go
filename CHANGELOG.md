@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0](https://github.com/finettt/agent-go/compare/v2.1.0...v2.2.0) (2026-02-21)
+
+
+### Added
+
+* **cli:** separate deployment init from project init ([74a53ec](https://github.com/finettt/agent-go/commit/74a53eca8927c63a8c81a35bc53520ff3b4c4aa8))
+* **deploy:** add deploy mode with DEPLOY.md support ([92c650f](https://github.com/finettt/agent-go/commit/92c650fa7a6804734b32620b4192bfa975ed8176))
+* **deploy:** add deploy mode with DEPLOY.md support ([#45](https://github.com/finettt/agent-go/issues/45)) ([00569b3](https://github.com/finettt/agent-go/commit/00569b312547def4a16bef222db9e716536d47c0))
+* **export:** add session export functionality with multiple format support ([fca090f](https://github.com/finettt/agent-go/commit/fca090fb69698b8a0708febc9f2d493aa61c7242))
+* **github:** replace PR Agent with Claude Code workflow ([ff91162](https://github.com/finettt/agent-go/commit/ff91162a707d096374d1ff710e4fceab947ded5e))
+* **session:** generate unique UUID for each new session ([0f63c1c](https://github.com/finettt/agent-go/commit/0f63c1c682fe27af8e4d6cd48ec26492a03d6209))
+* **ui:** use unicode checkboxes for todos and show list on update ([af4c2f9](https://github.com/finettt/agent-go/commit/af4c2f956315ecd66a053ce0dfaaa633f4c62c1a))
+
+
+### Fixed
+
+* **security:** address multiple vulnerabilities from security review ([643668c](https://github.com/finettt/agent-go/commit/643668c5ccecb60bcccfa63f05292de0b5ea7e6c))
+* **ui:** show compact tool name in red on tool error instead of error message ([08934c2](https://github.com/finettt/agent-go/commit/08934c232c42b2ccd9077e8d9829500c85aa9c7f))
+
+
+### Changed
+
+* add session export documentation ([9c15ffd](https://github.com/finettt/agent-go/commit/9c15ffdd25f9c09b80af8a0e7d4bd5d1eeb72cb9))
+* add session export documentation ([#43](https://github.com/finettt/agent-go/issues/43)) ([75c5fb4](https://github.com/finettt/agent-go/commit/75c5fb40db4ef291c687170b58f4d145e40c48c9))
+* **ui:** replace ASCII logo with mascot for normal runs ([d751f59](https://github.com/finettt/agent-go/commit/d751f59b6c1d5f508fb447e1960b4a8a8f3983f0))
+
 ## [2.1.0](https://github.com/finettt/agent-go/compare/v2.0.0...v2.1.0) (2026-01-29)
 
 
