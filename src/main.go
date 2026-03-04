@@ -203,9 +203,9 @@ func main() {
 		printLogo()
 	}
 
-	// Ensure default agent files exist in the global agents directory
+	// Ensure built-in agent files (plan.json and build.json) exist in the global agents directory
 	if err := ensureDefaultAgentFiles(); err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: could not ensure default agent files: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Warning: could not ensure built-in agent files: %v\n", err)
 	}
 
 	config = loadConfig()
@@ -214,7 +214,8 @@ func main() {
 	}
 
 	// Determine initial agent based on deprecated OperationMode (for migration)
-	initialAgent := "build" // default
+	// Default to "build" agent
+	initialAgent := "build"
 	if config.OperationMode == Plan {
 		initialAgent = "plan"
 	}
@@ -998,10 +999,11 @@ Execute the deployment steps. Report progress and any issues encountered.`, depl
 				}
 			}
 
-			// Create new session with fresh context
+			// Create new session with fresh context, defaulting to build agent
 			agent = &Agent{
-				ID:       uuid.New().String(),
-				Messages: make([]Message, 0),
+				ID:           uuid.New().String(),
+				Messages:     make([]Message, 0),
+				AgentDefName: "build",
 			}
 
 			// Reset both current context and session stats for new session
@@ -1653,10 +1655,16 @@ CRITICAL: Only include information that is:
 		}
 
 		// Maintain the same ID so we are "in the same session" but cleared
+		// Preserve the current agent (or default to "build" if none)
 		currentID := agent.ID
+		currentAgentDef := agent.AgentDefName
+		if currentAgentDef == "" {
+			currentAgentDef = "build"
+		}
 		agent = &Agent{
-			ID:       currentID,
-			Messages: make([]Message, 0),
+			ID:           currentID,
+			Messages:     make([]Message, 0),
+			AgentDefName: currentAgentDef,
 		}
 		systemPrompt := buildSystemPrompt("")
 		agent.Messages = append(agent.Messages, Message{
@@ -1794,7 +1802,7 @@ CRITICAL: Only include information that is:
 
 		case "clear":
 			if agent.AgentDefName == "" {
-				fmt.Println("No active agent.")
+				fmt.Println("No active custom agent to clear. Already using build agent.")
 				return
 			}
 			if prevAgentConfigSnapshot != nil {
@@ -1804,7 +1812,7 @@ CRITICAL: Only include information that is:
 				prevAgentConfigSnapshot = nil
 			}
 
-			// Clear context and rebuild base system prompt.
+			// Clear context and rebuild with build agent (the default)
 			if len(agent.Messages) > 1 {
 				if err := saveSession(agent); err != nil {
 					fmt.Fprintf(os.Stderr, "Error saving session before clearing agent: %v\n", err)
@@ -1813,7 +1821,7 @@ CRITICAL: Only include information that is:
 				}
 			}
 			currentID := agent.ID
-			agent = &Agent{ID: currentID, Messages: make([]Message, 0), AgentDefName: ""}
+			agent = &Agent{ID: currentID, Messages: make([]Message, 0), AgentDefName: "build"}
 			systemPrompt := buildSystemPrompt("")
 			agent.Messages = append(agent.Messages, Message{Role: "system", Content: &systemPrompt})
 
@@ -1825,7 +1833,7 @@ CRITICAL: Only include information that is:
 			totalPromptTokens = 0
 			totalCompletionTokens = 0
 
-			fmt.Println("Active agent cleared. Context cleared.")
+			fmt.Println("Active agent cleared. Reverted to build agent. Context cleared.")
 
 		case "rm":
 			if len(parts) < 3 {
@@ -1989,10 +1997,11 @@ func runTask(task string) {
 		os.Exit(1)
 	}
 
-	// Create agent instance
+	// Create agent instance with build agent as default
 	agent = &Agent{
-		ID:       uuid.New().String(),
-		Messages: make([]Message, 0),
+		ID:           uuid.New().String(),
+		Messages:     make([]Message, 0),
+		AgentDefName: "build",
 	}
 
 	systemPrompt := buildSystemPrompt("")
@@ -2167,10 +2176,11 @@ func runPipelineMode(task string) {
 		os.Exit(1)
 	}
 
-	// Create agent instance
+	// Create agent instance with build agent as default for pipeline mode
 	agent = &Agent{
-		ID:       uuid.New().String(),
-		Messages: make([]Message, 0),
+		ID:           uuid.New().String(),
+		Messages:     make([]Message, 0),
+		AgentDefName: "build",
 	}
 
 	systemPrompt := buildSystemPrompt("")

@@ -29,7 +29,7 @@ type AgentDefinition struct {
 }
 
 func isBuiltInAgentName(name string) bool {
-	builtins := []string{"default", "plan", "build"}
+	builtins := []string{"plan", "build", "init", "deploy", "security"}
 	trimmed := strings.TrimSpace(name)
 	for _, b := range builtins {
 		if trimmed == b {
@@ -37,18 +37,6 @@ func isBuiltInAgentName(name string) bool {
 		}
 	}
 	return false
-}
-
-func builtInDefaultAgentSystemPrompt() string {
-	return strings.TrimSpace(`
-You are the built-in "default" task-specific agent for Agent-Go.
-
-Behavior:
-- Be direct and technical.
-- When writing code, prefer correct, minimal changes.
-- If command execution is available, propose safe commands and explain briefly.
-- Respect tool constraints imposed by the system (Plan vs Build, confirmation mode, etc.).
-`)
 }
 
 func getBuiltInPlanAgent() *AgentDefinition {
@@ -122,6 +110,92 @@ Best Practices:
 	}
 }
 
+func getBuiltInInitAgent() *AgentDefinition {
+	return &AgentDefinition{
+		Name:        "init",
+		Description: "Codebase analysis agent - creates AGENTS.md documentation",
+		SystemPrompt: `You are a codebase analysis agent. Your goal is to analyze a project and create concise AGENTS.md documentation.
+
+Focus ONLY on:
+- Non-obvious, project-specific information
+- Patterns discovered by reading actual files
+- Essential knowledge for avoiding mistakes
+- Custom conventions and utilities
+
+Do NOT include:
+- Generic framework/language information
+- Obvious practices any developer would know
+- Standard tooling documentation
+
+Be concise. The AGENTS.md should get SHORTER, not longer.`,
+		AllowedTools: []string{
+			"execute_command",
+			"create_todo",
+			"update_todo",
+			"get_todo_list",
+			"get_current_task",
+		},
+	}
+}
+
+func getBuiltInDeployAgent() *AgentDefinition {
+	return &AgentDefinition{
+		Name:        "deploy",
+		Description: "Deployment agent - handles deployment tasks and DEPLOY.md management",
+		SystemPrompt: `You are a deployment agent. Your goals are:
+
+For 'deploy init':
+- Analyze the project for deployment configuration
+- Look for Dockerfile, docker-compose.yml, CI/CD configs, Makefile, package.json scripts
+- Create a concise DEPLOY.md with project-specific deployment steps
+- Include only essential, non-obvious deployment information
+
+For 'deploy' (execution):
+- Follow the instructions in DEPLOY.md exactly
+- Execute deployment commands step by step
+- Report progress and any issues encountered
+
+Be direct and technical. Focus on actual deployment, not documentation.`,
+		AllowedTools: []string{
+			"execute_command",
+			"create_todo",
+			"update_todo",
+			"get_todo_list",
+			"get_current_task",
+		},
+	}
+}
+
+func getBuiltInSecurityAgent() *AgentDefinition {
+	return &AgentDefinition{
+		Name:        "security",
+		Description: "Security review agent - analyzes code for vulnerabilities and issues",
+		SystemPrompt: `You are a security review agent. Your goal is to analyze code changes for:
+
+- Security vulnerabilities (injection, XSS, CSRF, etc.)
+- Authentication/authorization issues
+- Sensitive data exposure
+- Insecure dependencies
+- Code quality issues that could lead to bugs
+- Best practices violations
+
+Provide a clear, actionable summary of findings with severity levels:
+- CRITICAL: Immediate security risk
+- HIGH: Significant security concern
+- MEDIUM: Best practice violation
+- LOW: Minor improvement suggestion
+
+Be concise and focus on actual issues found, not theoretical possibilities.`,
+		AllowedTools: []string{
+			"execute_command",
+			"create_todo",
+			"update_todo",
+			"get_todo_list",
+			"get_current_task",
+		},
+	}
+}
+
 func getBuiltInAgentDefinition(name string) (*AgentDefinition, bool) {
 	safe, err := sanitizeAgentName(name)
 	if err != nil {
@@ -129,20 +203,16 @@ func getBuiltInAgentDefinition(name string) (*AgentDefinition, bool) {
 	}
 
 	switch safe {
-	case "default":
-		// The default agent has no tool restrictions - it uses all available tools
-		// based on the operation mode (Plan vs Build). The tool availability is
-		// controlled by getAvailableTools() which filters based on mode.
-		return &AgentDefinition{
-			Name:         "default",
-			Description:  "Built-in default agent with full tool access",
-			SystemPrompt: builtInDefaultAgentSystemPrompt(),
-			// No AllowedTools or DeniedTools - allows all tools
-		}, true
 	case "plan":
 		return getBuiltInPlanAgent(), true
 	case "build":
 		return getBuiltInBuildAgent(), true
+	case "init":
+		return getBuiltInInitAgent(), true
+	case "deploy":
+		return getBuiltInDeployAgent(), true
+	case "security":
+		return getBuiltInSecurityAgent(), true
 	default:
 		return nil, false
 	}
@@ -224,38 +294,37 @@ func saveAgentDefinition(def *AgentDefinition) error {
 	return os.WriteFile(path, data, 0644)
 }
 
-// ensureDefaultAgentFiles creates plan.json and build.json in the default agents directory if they don't exist
+// ensureDefaultAgentFiles creates JSON files for all built-in agents in the default agents directory if they don't exist
 func ensureDefaultAgentFiles() error {
 	agentsDir := getAgentsDir()
 	if err := ensureAgentsDir(); err != nil {
 		return err
 	}
 
-	planPath := filepath.Join(agentsDir, "plan.json")
-	buildPath := filepath.Join(agentsDir, "build.json")
-
-	// Generate plan.json if missing
-	if _, err := os.Stat(planPath); os.IsNotExist(err) {
-		planAgent := getBuiltInPlanAgent()
-		planAgent.CreatedAt = time.Now()
-		planAgent.UpdatedAt = time.Now()
-		data, _ := json.MarshalIndent(planAgent, "", "  ")
-		if err := os.WriteFile(planPath, data, 0644); err != nil {
-			return fmt.Errorf("failed to create plan.json in agents dir: %w", err)
-		}
-		fmt.Printf("Created plan.json in %s\n", agentsDir)
+	// List of built-in agents to ensure exist
+	builtinAgents := []struct {
+		name  string
+		getFn func() *AgentDefinition
+	}{
+		{"plan", getBuiltInPlanAgent},
+		{"build", getBuiltInBuildAgent},
+		{"init", getBuiltInInitAgent},
+		{"deploy", getBuiltInDeployAgent},
+		{"security", getBuiltInSecurityAgent},
 	}
 
-	// Generate build.json if missing
-	if _, err := os.Stat(buildPath); os.IsNotExist(err) {
-		buildAgent := getBuiltInBuildAgent()
-		buildAgent.CreatedAt = time.Now()
-		buildAgent.UpdatedAt = time.Now()
-		data, _ := json.MarshalIndent(buildAgent, "", "  ")
-		if err := os.WriteFile(buildPath, data, 0644); err != nil {
-			return fmt.Errorf("failed to create build.json in agents dir: %w", err)
+	for _, builtin := range builtinAgents {
+		path := filepath.Join(agentsDir, builtin.name+".json")
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			agent := builtin.getFn()
+			agent.CreatedAt = time.Now()
+			agent.UpdatedAt = time.Now()
+			data, _ := json.MarshalIndent(agent, "", "  ")
+			if err := os.WriteFile(path, data, 0644); err != nil {
+				return fmt.Errorf("failed to create %s.json in agents dir: %w", builtin.name, err)
+			}
+			fmt.Printf("Created %s.json in %s\n", builtin.name, agentsDir)
 		}
-		fmt.Printf("Created build.json in %s\n", agentsDir)
 	}
 
 	return nil
@@ -307,9 +376,12 @@ func deleteAgentDefinition(name string) error {
 func listAgentDefinitions() ([]*AgentDefinition, error) {
 	defs := make([]*AgentDefinition, 0)
 
-	// Always include built-in "default".
-	if def, ok := getBuiltInAgentDefinition("default"); ok {
-		defs = append(defs, def)
+	// Include built-in agents
+	builtinNames := []string{"plan", "build", "init", "deploy", "security"}
+	for _, name := range builtinNames {
+		if def, ok := getBuiltInAgentDefinition(name); ok {
+			defs = append(defs, def)
+		}
 	}
 
 	dir := getAgentsDir()

@@ -310,12 +310,12 @@ func getAvailableTools(config *Config, includeSpawn bool, operationMode Operatio
 			Type: "function",
 			Function: FunctionDefinition{
 				Name:        "spawn_agent",
-				Description: "Spawn a sub-agent to perform a specific task and return the result. Optionally choose a task-specific agent definition (including built-in 'default').",
+				Description: "Spawn a sub-agent to perform a specific task and return the result. Optionally choose a task-specific agent definition (built-in: 'plan', 'build', or a custom saved agent).",
 				Parameters: map[string]interface{}{
 					"type": "object",
 					"properties": map[string]interface{}{
 						"task":  map[string]string{"type": "string"},
-						"agent": map[string]string{"type": "string", "description": "Optional agent name (e.g. 'default' or a saved agent) to use as the sub-agent's system prompt."},
+						"agent": map[string]string{"type": "string", "description": "Optional agent name (e.g. 'build', 'plan', or a custom agent) to use as the sub-agent's system prompt. Defaults to 'build'."},
 						"model": map[string]string{"type": "string", "description": "Optional model selection ('main' or 'mini'). Defaults to 'main'."},
 					},
 					"required": []string{"task"},
