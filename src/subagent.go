@@ -8,32 +8,34 @@ import (
 	"github.com/google/uuid"
 )
 
-// runSubAgent executes a task in a separate sub-agent context (backward-compatible default behavior).
+// runSubAgent executes a task in a separate sub-agent context (backward-compatible behavior, defaults to "build" agent).
 func runSubAgent(task string, config *Config) (string, error) {
-	return runSubAgentWithAgent(task, "", "", config)
+	return runSubAgentWithAgent(task, "build", "", config)
 }
 
-// runSubAgentWithAgent executes a task in a separate sub-agent context, optionally using a saved task-specific agent
-// definition (including the built-in "default") as additional system instructions.
+// runSubAgentWithAgent executes a task in a separate sub-agent context, using a specified agent
+// definition (built-in: 'plan', 'build', or a custom saved agent).
 func runSubAgentWithAgent(task string, agentName string, modelName string, config *Config) (string, error) {
 	sysInfo := getSystemInfo()
 
 	basePrompt := "You are a sub-agent tasked with completing a specific goal. You have access to the 'execute_command' and todo list management tools. Plan your steps and execute them sequentially. When you have finished the task, output the final result as a single response."
 
-	systemPrompt := sysInfo + "\n\n" + basePrompt
-
-	var def *AgentDefinition
-	if strings.TrimSpace(agentName) != "" {
-		var err error
-		def, err = loadAgentDefinition(agentName)
-		if err != nil {
-			return "", fmt.Errorf("failed to load agent '%s' for sub-agent: %w", agentName, err)
-		}
-		systemPrompt = sysInfo + "\n\n" + fmt.Sprintf("=== Task-Specific Agent: %s ===\n%s\n\n%s", def.Name, def.SystemPrompt, basePrompt)
+	// Default to "build" agent if no agent specified
+	if strings.TrimSpace(agentName) == "" {
+		agentName = "build"
 	}
 
+	// Load the agent definition
+	def, err := loadAgentDefinition(agentName)
+	if err != nil {
+		return "", fmt.Errorf("failed to load agent '%s' for sub-agent: %w", agentName, err)
+	}
+
+	systemPrompt := sysInfo + "\n\n" + fmt.Sprintf("=== Task-Specific Agent: %s ===\n%s\n\n%s", def.Name, def.SystemPrompt, basePrompt)
+
 	subAgent := &Agent{
-		ID: uuid.New().String(),
+		ID:           uuid.New().String(),
+		AgentDefName: agentName,
 		Messages: []Message{
 			{
 				Role:    "system",

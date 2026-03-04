@@ -120,7 +120,7 @@ type CommandArgs struct {
 
 type SubAgentTask struct {
 	Task  string `json:"task"`
-	Agent string `json:"agent,omitempty"` // Optional task-specific agent name (e.g., "default" or a saved agent)
+	Agent string `json:"agent,omitempty"` // Optional task-specific agent name (e.g., "build", "plan", or a custom agent). Defaults to "build".
 	Model string `json:"model,omitempty"` // Optional model selection ("main" or "mini")
 }
 
