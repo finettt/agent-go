@@ -77,6 +77,7 @@ graph LR
 | Capability | Description |
 | :--- | :--- |
 | **Native Execution** | Executes shell commands directly (`ls`, `git`, `docker`, etc.) with `&&` chaining support. |
+| **Interactive Terminal Sessions** | Open and control terminal applications (`nano`, `vim`, `bash`) with full PTY support and human-readable keycodes. |
 | **Pipeline Integration** | Full Unix pipeline support with stdin/stdout redirection, clean output, and automatic TTY detection. |
 | **Agent Studio** | Create, manage, and spawn specialized sub-agents with the `/agent` command family. |
 | **Infinite Memory** | Intelligent token compression ensures your conversation context is never lost. |

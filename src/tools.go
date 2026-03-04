@@ -305,6 +305,78 @@ func getAvailableTools(config *Config, includeSpawn bool, operationMode Operatio
 		},
 	})
 
+	// Terminal session tools
+	tools = append(tools, Tool{
+		Type: "function",
+		Function: FunctionDefinition{
+			Name:        "open_terminal_session",
+			Description: "Start an interactive bash terminal session. All sessions run in bash for stability. Optionally provide a command to execute immediately after bash starts. Use send_terminal_input to send commands and keycodes.",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"command": map[string]string{"type": "string", "description": "Optional command to execute after bash starts (e.g., 'nano file.txt', 'python3')"},
+				},
+			},
+		},
+	})
+
+	tools = append(tools, Tool{
+		Type: "function",
+		Function: FunctionDefinition{
+			Name:        "send_terminal_input",
+			Description: "Send input (text or keycodes) to an active terminal session. Use human-readable keys like 'Ctrl+S', 'Enter', 'ArrowUp', etc.",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"session_id": map[string]string{"type": "string", "description": "The terminal session ID"},
+					"input":      map[string]string{"type": "string", "description": "Text to type or keycode (e.g., 'Ctrl+S', 'Enter', 'Hello World')"},
+				},
+				"required": []string{"session_id", "input"},
+			},
+		},
+	})
+
+	tools = append(tools, Tool{
+		Type: "function",
+		Function: FunctionDefinition{
+			Name:        "read_terminal_output",
+			Description: "Read output from an active terminal session. Returns raw terminal output including ANSI escape sequences.",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"session_id": map[string]string{"type": "string", "description": "The terminal session ID"},
+					"bytes":      map[string]interface{}{"type": "integer", "description": "Number of bytes to read (default: 4096)"},
+					"read_all":   map[string]interface{}{"type": "boolean", "description": "Read all available output (default: false)"},
+				},
+				"required": []string{"session_id"},
+			},
+		},
+	})
+
+	tools = append(tools, Tool{
+		Type: "function",
+		Function: FunctionDefinition{
+			Name:        "close_terminal_session",
+			Description: "Close an active terminal session.",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"session_id": map[string]string{"type": "string", "description": "The terminal session ID to close"},
+				},
+				"required": []string{"session_id"},
+			},
+		},
+	})
+
+	tools = append(tools, Tool{
+		Type: "function",
+		Function: FunctionDefinition{
+			Name:        "list_terminal_sessions",
+			Description: "List all active terminal sessions.",
+			Parameters:  map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
+		},
+	})
+
 	if includeSpawn {
 		tools = append(tools, Tool{
 			Type: "function",

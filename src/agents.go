@@ -106,6 +106,11 @@ Best Practices:
 			"name_session",
 			"use_mcp_tool",
 			"spawn_agent",
+			"open_terminal_session",
+			"send_terminal_input",
+			"read_terminal_output",
+			"close_terminal_session",
+			"list_terminal_sessions",
 		},
 	}
 }
