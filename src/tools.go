@@ -324,12 +324,12 @@ func getAvailableTools(config *Config, includeSpawn bool, operationMode Operatio
 		Type: "function",
 		Function: FunctionDefinition{
 			Name:        "send_terminal_input",
-			Description: "Send input (text or keycodes) to an active terminal session. Use human-readable keys like 'Ctrl+S', 'Enter', 'ArrowUp', etc.",
+			Description: "Send input (text or keycodes) to an active terminal session. Use human-readable keys like 'Ctrl+S', 'Enter', 'ArrowUp', etc. IMPORTANT: Text input does NOT automatically include Enter/newline - you must either append '\\n' to your text (e.g., 'mypassword\\n') or send 'Enter' as a separate call after the text.",
 			Parameters: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
 					"session_id": map[string]string{"type": "string", "description": "The terminal session ID"},
-					"input":      map[string]string{"type": "string", "description": "Text to type or keycode (e.g., 'Ctrl+S', 'Enter', 'Hello World')"},
+					"input":      map[string]string{"type": "string", "description": "Text to type or keycode. For text that needs Enter, append '\\n' (e.g., 'mycommand\\n') or send 'Enter' separately. Keycodes: 'Ctrl+C', 'Enter', 'Tab', 'ArrowUp', etc."},
 				},
 				"required": []string{"session_id", "input"},
 			},

@@ -18,7 +18,17 @@ func runSubAgent(task string, config *Config) (string, error) {
 func runSubAgentWithAgent(task string, agentName string, modelName string, config *Config) (string, error) {
 	sysInfo := getSystemInfo()
 
-	basePrompt := "You are a sub-agent tasked with completing a specific goal. You have access to the 'execute_command' and todo list management tools. Plan your steps and execute them sequentially. When you have finished the task, output the final result as a single response."
+	basePrompt := `You are a sub-agent tasked with completing a specific goal. You have access to the 'execute_command' and todo list management tools. Plan your steps and execute them sequentially.
+
+IMPORTANT: To create or modify files, you MUST use the execute_command tool with shell commands like:
+- cat > filename.txt << 'EOF'
+content here
+EOF
+- echo "content" > filename.txt
+
+Do NOT just output file contents as text - you must actually write them to disk using execute_command.
+
+When you have fully completed the task (including writing any required files), provide a brief summary of what was done.`
 
 	// Default to "build" agent if no agent specified
 	if strings.TrimSpace(agentName) == "" {
