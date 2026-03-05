@@ -352,6 +352,44 @@ func processToolCalls(agent *Agent, toolCalls []ToolCall, config *Config) {
 				}
 				logMessage = "Listed checkpoints"
 			}
+		case "open_terminal_session":
+			output, err = openTerminalSession(toolCall.Function.Arguments)
+			if err == nil {
+				logMessage = "Opened terminal session"
+			}
+		case "send_terminal_input":
+			var inputArgs TerminalInputArgs
+			if unmarshalErr := json.Unmarshal([]byte(toolCall.Function.Arguments), &inputArgs); unmarshalErr != nil {
+				output = fmt.Sprintf("Failed to parse arguments: %s", unmarshalErr)
+			} else {
+				output, err = sendTerminalInput(toolCall.Function.Arguments)
+				if err == nil {
+					// Show more verbose log with the actual input
+					inputDisplay := inputArgs.Input
+					if len(inputDisplay) > 50 {
+						inputDisplay = inputDisplay[:47] + "..."
+					}
+					// Check if it's a keycode
+					if _, isKeycode := KeyMappings[inputArgs.Input]; isKeycode {
+						logMessage = fmt.Sprintf("Sent keycode '%s' to session %s", inputArgs.Input, inputArgs.SessionID)
+					} else {
+						logMessage = fmt.Sprintf("Sent '%s' to session %s", inputDisplay, inputArgs.SessionID)
+					}
+				}
+			}
+		case "read_terminal_output":
+			output, err = readTerminalOutput(toolCall.Function.Arguments)
+			if err == nil {
+				logMessage = "Read terminal output"
+			}
+		case "close_terminal_session":
+			output, err = closeTerminalSession(toolCall.Function.Arguments)
+			if err == nil {
+				logMessage = "Closed terminal session"
+			}
+		case "list_terminal_sessions":
+			output = listTerminalSessions()
+			logMessage = "Listed terminal sessions"
 		default:
 			// Check if it's a custom skill
 			var skillExecuted bool

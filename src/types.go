@@ -1,5 +1,11 @@
 package main
 
+import (
+	"bytes"
+	"os"
+	"time"
+)
+
 type Message struct {
 	Role             string     `json:"role"`
 	Content          *string    `json:"content,omitempty"`
@@ -154,4 +160,94 @@ type GetBackgroundLogsArgs struct {
 
 type SwitchOperationModeArgs struct {
 	Mode string `json:"mode"`
+}
+
+// Terminal session management types
+
+type TerminalSession struct {
+	ID           string        `json:"id"`
+	PID          int           `json:"pid"`
+	PTY          *os.File      `json:"-"`
+	StdoutBuffer *bytes.Buffer `json:"-"`
+	InputChan    chan string   `json:"-"`
+	DoneChan     chan struct{} `json:"-"`
+	StartTime    time.Time     `json:"start_time"`
+}
+
+type TerminalInputArgs struct {
+	SessionID string `json:"session_id"`
+	Input     string `json:"input"`
+}
+
+type TerminalReadArgs struct {
+	SessionID string `json:"session_id"`
+	Bytes     int    `json:"bytes,omitempty"`
+	ReadAll   bool   `json:"read_all,omitempty"`
+}
+
+type TerminalCloseArgs struct {
+	SessionID string `json:"session_id"`
+}
+
+// KeyMappings maps human-readable keys to terminal escape sequences
+var KeyMappings = map[string]string{
+	// Control codes (Ctrl+A through Ctrl+Z)
+	"Ctrl+A": "\x01",
+	"Ctrl+B": "\x02",
+	"Ctrl+C": "\x03",
+	"Ctrl+D": "\x04",
+	"Ctrl+E": "\x05",
+	"Ctrl+F": "\x06",
+	"Ctrl+G": "\x07",
+	"Ctrl+H": "\x08",
+	"Ctrl+I": "\x09",
+	"Ctrl+J": "\x0a",
+	"Ctrl+K": "\x0b",
+	"Ctrl+L": "\x0c",
+	"Ctrl+M": "\x0d",
+	"Ctrl+N": "\x0e",
+	"Ctrl+O": "\x0f",
+	"Ctrl+P": "\x10",
+	"Ctrl+Q": "\x11",
+	"Ctrl+R": "\x12",
+	"Ctrl+S": "\x13",
+	"Ctrl+T": "\x14",
+	"Ctrl+U": "\x15",
+	"Ctrl+V": "\x16",
+	"Ctrl+W": "\x17",
+	"Ctrl+X": "\x18",
+	"Ctrl+Y": "\x19",
+	"Ctrl+Z": "\x1a",
+
+	// Special keys
+	"Enter":     "\n",
+	"Tab":       "\t",
+	"Escape":    "\x1b",
+	"Backspace": "\x7f",
+
+	// Arrow keys
+	"ArrowUp":    "\x1b[A",
+	"ArrowDown":  "\x1b[B",
+	"ArrowRight": "\x1b[C",
+	"ArrowLeft":  "\x1b[D",
+
+	// Function keys
+	"F1":  "\x1b[11~",
+	"F2":  "\x1b[12~",
+	"F3":  "\x1b[13~",
+	"F4":  "\x1b[14~",
+	"F5":  "\x1b[15~",
+	"F6":  "\x1b[17~",
+	"F7":  "\x1b[18~",
+	"F8":  "\x1b[19~",
+	"F9":  "\x1b[20~",
+	"F10": "\x1b[21~",
+	"F11": "\x1b[23~",
+	"F12": "\x1b[24~",
+
+	// Page/Home/End
+	"PageUp":   "\x1b[5~",
+	"PageDown": "\x1b[6~",
+	"Home":     "\x1b[H",
+	"End":      "\x1b[F",
 }
