@@ -55,7 +55,7 @@ jobs:
                 "env": {
                   "NODE_ENV": "test",
                   "ANTHROPIC_BASE_URL": "${{ secrets.OPENAI_URL }}",
-                  "ANTHROPIC_AUTH_TOKEN": "null",
+                  "ANTHROPIC_AUTH_TOKEN": "${{ secrets.LLAMA_CPP_API_KEY }}",
                   "ANTHROPIC_DEFAULT_OPUS_MODEL": "Qwen-3-Coder-Next",
                   "ANTHROPIC_DEFAULT_SONNET_MODEL": "Qwen-3-Coder-Next",
                   "ANTHROPIC_DEFAULT_HAIKU_MODEL": "Qwen-3-Coder-Next"
