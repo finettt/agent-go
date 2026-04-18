@@ -1,5 +1,5 @@
 <div align="center">
-  <img width="200" height="200" alt="Agent-Go logo" src="https://github.com/user-attachments/assets/e1bb2a28-c203-418d-a7b5-5f3398329bf2" />
+  <img width="300" height="200" alt="Agent-Go logo" src="https://github.com/user-attachments/assets/e1bb2a28-c203-418d-a7b5-5f3398329bf2" />
 
   <h1>./agent-go</h1>
   <p>
